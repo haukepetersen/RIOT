@@ -1,0 +1,34 @@
+
+# this CPU implementation is using the new core/CPU interface
+export CFLAGS += -DCOREIF_NG=1
+
+# tell the build system that the CPU depends on the Cortex-M common files
+export USEMODULE += cortexm_common
+
+# define path to cortex-m common module, which is needed for this CPU
+export CORTEX_COMMON = $(RIOTCPU)/cortexm_common/
+
+# define the ST standard peripheral library and the specific CPU
+#export STM_LIB_BASE = $(RIOTBASE)/pkg/stm32f0_stdperiph_lib/
+
+# add the type of MCU used to the compiler flags (see stm32f4xx.h for details)
+export CFLAGS += -DSTM32F40_41xxx
+
+# define the linker script to use for this CPU
+export LINKERSCRIPT = $(RIOTCPU)/$(CPU)/stm32f407vg_linkerscript.ld
+
+# include CPU specific includes
+export INCLUDES += -I$(RIOTCPU)/$(CPU)/include
+
+# add the CPU specific system calls implementations for the linker
+export UNDEF += $(BINDIR)cpu/syscalls.o
+export UNDEF += $(BINDIR)cpu/startup.o
+
+# export the peripheral drivers to be linked into the final binary
+export USEMODULE += periph
+
+# CPU depends on the cortex-m common module, so include it
+include $(CORTEX_COMMON)Makefile.include
+
+# the stm32f303vc depends on the STM32F3 std peripheral library, so include this
+#include $(STM_LIB_BASE)Makefile.include
