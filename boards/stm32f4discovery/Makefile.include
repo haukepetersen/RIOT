@@ -21,14 +21,17 @@ export CPU_USAGE = -mcpu=cortex-m4
 export FPU_USAGE = -mfloat-abi=hard -mfpu=fpv4-sp-d16
 export CFLAGS = -ggdb -g3 -std=gnu99 -Os -Wall -Wstrict-prototypes $(CPU_USAGE) $(FPU_USAGE) -mlittle-endian -mthumb -mthumb-interwork -nostartfiles
 export CFLAGS += -DREENTRANT_SYSCALLS_PROVIDED
-export CFLAGS += -flto -ffunction-sections -fdata-sections -fno-builtin  # addiontal compiler flags to optimize compiling for newlib-nano
+export CFLAGS += -flto -ffunction-sections -fdata-sections -fno-builtin
 export ASFLAGS = -ggdb -g3 -mcpu=cortex-m4 $(FPU_USAGE) -mlittle-endian
 export LINKFLAGS = -g3 -ggdb -std=gnu99 $(CPU_USAGE) $(FPU_USAGE) -mlittle-endian -static -lgcc -mthumb -mthumb-interwork -nostartfiles
-export LINKFLAGS += -T$(LINKERSCRIPT)                                   # linkerscript specified in cpu/Makefile.include
-export LINKFLAGS += -specs=nano.specs -lc -lnosys                       # additional linker flags to enable newlib-nano
+export LINKFLAGS += -T$(LINKERSCRIPT)
 export OFLAGS = -O binary
 export FFLAGS = write bin/$(BOARD)/$(PROJECT).hex 0x8000000
 
+# use newLib nano-specs if available
+ifeq ($(shell $(LINK) -specs=nano.specs -E - 2>/dev/null >/dev/null </dev/null ; echo $$?),0)
+export LINKFLAGS += -specs=nano.specs -lc -lnosys
+endif
 
 # export board specific includes to the global includes-listing
 export INCLUDES += -I$(RIOTBOARD)/$(BOARD)/include
