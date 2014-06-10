@@ -1,6 +1,7 @@
 
 # define the cpu used by the stm32f3-discovery board
-export CPU = stm32f407vg
+export CPU = stm32f4
+export CPU_MODEL = stm32f407vg
 
 # define the default port used for serial connection to the board
 export PORT ?= /dev/ttyUSB0

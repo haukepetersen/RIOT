@@ -1,19 +1,19 @@
 /*
- * Copyright (C) 2013 Freie Universität Berlin
+ * Copyright (C) 2014 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License. See the file LICENSE in the top level directory for more
+ * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
 
 /**
- * @defgroup    board_stm32f0discovery STM32F0Discovery
+ * @defgroup    board_stm32f0discovery STM32F4Discovery
  * @ingroup     boards
- * @brief       Board specific files for the STM32F0Discovery board.
+ * @brief       Board specific files for the STM32F4Discovery board.
  * @{
  *
- * @file        board.h
- * @brief       Board specific definitions for the STM32F0Discovery evaluation board.
+ * @file
+ * @brief       Board specific definitions for the STM32F4Discovery evaluation board.
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
@@ -34,20 +34,10 @@
  */
 #define HW_TIMER            TIMER_0
 
-
 /**
- * @name Example: configure connected NRF24L01+ (radio) device
- * 
- * This is just an example on how to bind (externally or internally) connected
- * devices to the CPUs peripherals.
- * @{
+ * @name Define the UART used for stdio
  */
-#define NRF24L01P_NUMOF     (1U)
-#define NRF24L01P_SPI       SPI_0
-#define NRF24L01P_CE        GPIO_0
-#define NRF24L01P_CSN       GPIO_1
-#define NRF24L01P_INT       GPIO_2
-/** @} */
+#define STDIO               UART_0
 
 /**
  * @name LED pin definitions
