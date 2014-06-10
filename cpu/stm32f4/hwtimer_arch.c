@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2013 Freie Universität Berlin
+ * Copyright (C) 2014 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License. See the file LICENSE in the top level directory for more
+ * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
 
 /**
- * @ingroup     cpu_stm32f407vg
+ * @ingroup     cpu_stm32f4
  * @{
  *
- * @file        hwtimer_arch.c
+ * @file
  * @brief       Implementation of the kernels hwtimer interface
- *
- * The hardware timer implementation uses the Cortex build-in system timer as back-end.
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  *
@@ -53,7 +51,7 @@ void hwtimer_arch_set(unsigned long offset, short timer)
 
 void hwtimer_arch_set_absolute(unsigned long value, short timer)
 {
-    // will not be implemented
+    timer_set_absolute(HW_TIMER, timer, value);
 }
 
 void hwtimer_arch_unset(short timer)

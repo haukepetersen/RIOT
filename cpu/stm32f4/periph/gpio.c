@@ -1,19 +1,20 @@
 /*
- * Copyright (C) 2014 Hauke Petersen <mail@haukepetersen.de>
+ * Copyright (C) 2014 Freie Universität Berlin
  *
- * This file is subject to the terms and conditions of the GPLv2 License. 
- * See the file LICENSE in the top level directory for more details.
+ * This file is subject to the terms and conditions of the GNU Lesser General
+ * Public License v2.1. See the file LICENSE in the top level directory for more
+ * details.
  */
 
 /**
- * @ingroup     driver_periph
+ * @ingroup     cpu_stm32f4
  * @{
- * 
- * @file        gpio.c
+ *
+ * @file
  * @brief       Low-level GPIO driver implementation
  *
  * @author      Hauke Petersen <mail@haukepetersen.de>
- * 
+ *
  * @}
  */
 
@@ -614,8 +615,7 @@ int gpio_write(gpio_t dev, int value)
     }
 }
 
-
-static inline void irq_handler(gpio_t dev) 
+static inline void irq_handler(gpio_t dev)
 {
     config[dev].cb();
 }

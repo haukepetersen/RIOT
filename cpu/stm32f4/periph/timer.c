@@ -2,19 +2,19 @@
  * Copyright (C) 2014 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License. See the file LICENSE in the top level directory for more
+ * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
 
 /**
- * @ingroup     driver_periph
+ * @ingroup     cpu_stm32f4
  * @{
- * 
- * @file        timer.c
+ *
+ * @file
  * @brief       Low-level timer driver implementation
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- * 
+ *
  * @}
  */
 
@@ -25,19 +25,16 @@
 #include "periph_conf.h"
 #include "periph/timer.h"
 
-
-
+/** Unified IRQ handler for all timers */
 static inline void irq_handler(tim_t timer, TIM_TypeDef *dev);
 
+/** Type for timer state */
 typedef struct {
     void (*cb)(int);
 } timer_conf_t;
 
-/**
- * Timer state memory
- */
+/** Timer state memory */
 timer_conf_t config[TIMER_NUMOF];
-
 
 
 int timer_init(tim_t dev, unsigned int ticks_per_us, void (*callback)(int))
@@ -93,7 +90,13 @@ int timer_init(tim_t dev, unsigned int ticks_per_us, void (*callback)(int))
 int timer_set(tim_t dev, int channel, unsigned int timeout)
 {
     int now = timer_read(dev);
-    TIM_TypeDef *timer = NULL;
+    return timer_set_absolute(dev, channel, now + timeout - 1);
+}
+
+int timer_set_absolute(tim_t dev, int channel, unsigned int value)
+{
+    TIM_TypeDef *timer;
+
     switch (dev) {
         case TIMER_0:
             timer = TIMER_0_DEV;
@@ -105,36 +108,40 @@ int timer_set(tim_t dev, int channel, unsigned int timeout)
         default:
             return -1;
     }
+
     switch (channel) {
         case 0:
-            timer->CCR1 = now + timeout - 1;
+            timer->CCR1 = value;
             timer->SR &= ~TIM_SR_CC1IF;
             timer->DIER |= TIM_DIER_CC1IE;
             break;
         case 1:
-            timer->CCR2 = now + timeout - 1;
+            timer->CCR2 = value;
             timer->SR &= ~TIM_SR_CC2IF;
             timer->DIER |= TIM_DIER_CC2IE;
             break;
         case 2:
-            timer->CCR3 = now + timeout - 1;
+            timer->CCR3 = value;
             timer->SR &= ~TIM_SR_CC3IF;
             timer->DIER |= TIM_DIER_CC3IE;
             break;
         case 3:
-            timer->CCR4 = now + timeout - 1;
+            timer->CCR4 = value;
             timer->SR &= ~TIM_SR_CC4IF;
             timer->DIER |= TIM_DIER_CC4IE;
             break;
         default:
             return -1;
     }
+
     return 0;
+
 }
 
 int timer_clear(tim_t dev, int channel)
 {
     TIM_TypeDef *timer;
+
     switch (dev) {
         case TIMER_0:
             timer = TIMER_0_DEV;
@@ -146,6 +153,7 @@ int timer_clear(tim_t dev, int channel)
         default:
             return -1;
     }
+
     switch (channel) {
         case 0:
             timer->DIER &= ~TIM_DIER_CC1IE;
@@ -162,6 +170,7 @@ int timer_clear(tim_t dev, int channel)
         default:
             return -1;
     }
+
     return 0;
 }
 

@@ -2,17 +2,18 @@
  * Copyright (C) 2014 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License. See the file LICENSE in the top level directory for more
+ * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
 
+
 /**
- * @ingroup         stm32f407vg
+ * @ingroup         cpu_stm32f4
  * @{
- * 
- * @file            hwtimer_cpu.h
+ *
+ * @file
  * @brief           CPU specific hwtimer configuration options
- * 
+ *
  * @author          Hauke Petersen <hauke.peterse@fu-berlin.de>
  */
 

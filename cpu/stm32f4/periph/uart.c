@@ -2,15 +2,15 @@
  * Copyright (C) 2014 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License. See the file LICENSE in the top level directory for more
+ * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
 
 /**
- * @ingroup     driver_periph
+ * @ingroup     cpu_stm32f4
  * @{
  *
- * @file        uart.c
+ * @file
  * @brief       Low-level UART driver implementation
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>

@@ -1,16 +1,16 @@
 /*
- * Copyright (C) 2013 Freie Universität Berlin
+ * Copyright (C) 2014 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License. See the file LICENSE in the top level directory for more
+ * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
 
 /**
- * @ingroup     cpu_stm32f407vg
+ * @ingroup     cpu_stm32f4
  * @{
  *
- * @file        startup.c
+ * @file
  * @brief       Startup code and interrupt vector definition
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
@@ -119,7 +119,7 @@ void isr_svc(void)                  __attribute__ ((weak, alias("dummy_handler")
 void isr_pendsv(void)               __attribute__ ((weak, alias("dummy_handler")));
 void isr_systick(void)              __attribute__ ((weak, alias("dummy_handler")));
 
-/* STM32F407VG specific interrupt vector */
+/* STM32F0 specific interrupt vector */
 void isr_wwdg(void)                 __attribute__ ((weak, alias("dummy_handler")));
 void isr_pvd(void)                  __attribute__ ((weak, alias("dummy_handler")));
 void isr_tamp_stamp(void)           __attribute__ ((weak, alias("dummy_handler")));
@@ -208,7 +208,7 @@ __attribute__ ((section(".vectors")))
 const void *interrupt_vector[] = {
     /* Stack pointer */
     (void*) (&_estack),             /* pointer to the top of the empty stack */
-    /* Cortex-M handlers */
+    /* Cortex-M4 handlers */
     (void*) reset_handler,          /* entry point of the program */
     (void*) isr_nmi,                /* non maskable interrupt handler */
     (void*) isr_hard_fault,         /* if you end up here its not good */
