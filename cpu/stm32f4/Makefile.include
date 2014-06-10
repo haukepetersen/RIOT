@@ -11,10 +11,15 @@ export USEMODULE += cortex-m4_common
 export CORTEX_M4_COMMON = $(RIOTCPU)/cortex-m4_common/
 
 # CPU depends on the cortex-m common module, so include it
-include $(CORTEX_COMMON)Makefile.include
+include $(CORTEX_M4_COMMON)Makefile.include
 
 # define the linker script to use for this CPU
 export LINKERSCRIPT = $(RIOTCPU)/$(CPU)/$(CPU_MODEL)_linkerscript.ld
+
+# define CPU_MODEL dependent define for the STM header
+ifeq ($(strip $(CPU_MODEL)),stm32f407vg)
+export CFLAGS += -DSTM32F40_41xxx
+endif
 
 # include CPU specific includes
 export INCLUDES += -I$(RIOTCPU)/$(CPU)/include
