@@ -25,8 +25,6 @@
 #include "periph/uart.h"
 
 
-#define CLEAR_MASK      (~(0xffffffff))
-
 /**
  * @brief Each UART device has to store two callbacks.
  */
@@ -171,7 +169,7 @@ int uart_init_blocking(uart_t uart, uint32_t baudrate)
     divider = ((float)UART_CLK) / (16 * baudrate);
     mantissa = (uint16_t)floorf(divider);
     fraction = (uint8_t)floorf((divider - mantissa) * 16);
-    dev->BRR &= CLEAR_MASK;
+    dev->BRR = 0;
     dev->BRR |= ((mantissa & 0x0fff) << 4) | (0x0f & fraction);
 
     /* enable receive and transmit mode */
