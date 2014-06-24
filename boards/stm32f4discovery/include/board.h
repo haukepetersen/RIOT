@@ -54,18 +54,18 @@
  * @name Macros for controlling the on-board LEDs.
  * @{
  */
-#define LD3_ON              LED_PORT->BSRRL = LD3_PIN
-#define LD3_OFF             LED_PORT->BSRRH = LD3_PIN
-#define LD3_TOGGLE          LED_PORT->ODR ^= LD3_PIN
-#define LD4_ON              LED_PORT->BSRRL = LD4_PIN
-#define LD4_OFF             LED_PORT->BSRRH = LD4_PIN
-#define LD4_TOGGLE          LED_PORT->ODR ^= LD4_PIN
-#define LD5_ON              LED_PORT->BSRRL = LD5_PIN
-#define LD5_OFF             LED_PORT->BSRRH = LD5_PIN
-#define LD5_TOGGLE          LED_PORT->ODR ^= LD5_PIN
-#define LD6_ON              LED_PORT->BSRRL = LD6_PIN
-#define LD6_OFF             LED_PORT->BSRRH = LD6_PIN
-#define LD6_TOGGLE          LED_PORT->ODR ^= LD6_PIN
+#define LD3_ON              (LED_PORT->BSRRL = LD3_PIN)
+#define LD3_OFF             (LED_PORT->BSRRH = LD3_PIN)
+#define LD3_TOGGLE          (LED_PORT->ODR ^= LD3_PIN)
+#define LD4_ON              (LED_PORT->BSRRL = LD4_PIN)
+#define LD4_OFF             (LED_PORT->BSRRH = LD4_PIN)
+#define LD4_TOGGLE          (LED_PORT->ODR ^= LD4_PIN)
+#define LD5_ON              (LED_PORT->BSRRL = LD5_PIN)
+#define LD5_OFF             (LED_PORT->BSRRH = LD5_PIN)
+#define LD5_TOGGLE          (LED_PORT->ODR ^= LD5_PIN)
+#define LD6_ON              (LED_PORT->BSRRL = LD6_PIN)
+#define LD6_OFF             (LED_PORT->BSRRH = LD6_PIN)
+#define LD6_TOGGLE          (LED_PORT->ODR ^= LD6_PIN)
 
 /* for compatability to other boards */
 #define LED_GREEN_ON        LD4_ON
