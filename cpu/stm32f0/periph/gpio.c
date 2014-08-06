@@ -661,6 +661,7 @@ __attribute__((naked)) void isr_exti2_3(void)
     ISR_EXIT();
 }
 
+#if !SPI_0_EN
 __attribute__((naked)) void isr_exti4_15(void)
 {
     ISR_ENTER();
@@ -714,3 +715,4 @@ __attribute__((naked)) void isr_exti4_15(void)
     }
     ISR_EXIT();
 }
+#endif
