@@ -25,15 +25,16 @@
 #include "periph_conf.h"
 #include "thread.h"
 #include "sched.h"
+ #include "stm32f051x8.h"
 
-#define ENABLE_DEBUG    (1)
+#define ENABLE_DEBUG    (0)
 #include "debug.h"
 
 /* guard file in case no SPI device is defined */
 #if SPI_NUMOF
 
 /* this value will be send in return of the first transfered byte when in slave mode */
-#define RESET_VALUE     (0x77)
+#define RESET_VALUE     (0xbb)
 
 /**
  * @brief unified interrupt handler to be shared between SPI devices
@@ -42,6 +43,7 @@
  * @param[in] dev       The device that triggered the interrupt
  */
 static inline void irq_handler(SPI_TypeDef *spi, spi_t dev);
+static inline void irq_handler_begin(spi_t dev);
 
 /**
  * @brief structure that defines the state for an SPI device
@@ -130,7 +132,8 @@ int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
     spi->CR1 |= SPI_CR1_MSTR;
 
     /* the NSS (chip select) is managed purely by software */
-    spi->CR1 |= SPI_CR1_SSM | SPI_CR1_SSI;
+    //spi->CR1 |= SPI_CR1_SSM | SPI_CR1_SSI;
+    spi->CR2 |= SPI_CR2_SSOE;
 
     /* set data-size to 8-bit */
     spi->CR2 |= (7 << 8);
@@ -148,7 +151,7 @@ int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char data))
 {
     SPI_TypeDef *spi = 0;
     GPIO_TypeDef *port = 0;
-    int pin[3];        /* 3 pins: sck, miso, mosi */
+    int pin[4];        /* 3 pins: sck, miso, mosi */
     int af;
 
     /* enable the SPI modules clock */
@@ -162,10 +165,23 @@ int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char data))
             pin[0] = SPI_0_PIN_SCK;
             pin[1] = SPI_0_PIN_MISO;
             pin[2] = SPI_0_PIN_MOSI;
+            pin[3] = SPI_0_PIN_NSS;
             af = SPI_0_PIN_AF;
             SPI_0_PORT_CLKEN();
-            NVIC_SetPriority(SPI_0_IRQ, SPI_IRQ_PRIO);
+
+            NVIC_SetPriority(SPI_0_IRQ, SPI_0_IRQ_PRIO);
             NVIC_EnableIRQ(SPI_0_IRQ);
+
+            NVIC_SetPriority(EXTI4_15_IRQn, SPI_0_IRQ_PRIO);
+            NVIC_EnableIRQ(EXTI4_15_IRQn);
+            /* enable the SYSCFG clock */
+            RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+            /* connect PA4 to interrupt. EXTICR[1] (so the second) for pins 4..7, ~0xf = 0000 for PA pin */
+            SYSCFG->EXTICR[1] &= ~(0xf);
+            EXTI->IMR |= (1 << SPI_0_PIN_NSS);/* 1: interrupt request from line 4 not masked */
+            /* configure the active edges */
+            EXTI->RTSR &= ~(1 << SPI_0_PIN_NSS); /* 1: rising trigger disabled */
+            EXTI->FTSR |= (1 << SPI_0_PIN_NSS); /* 1: falling trigger enabled */
             break;
 #endif
 #if SPI_1_EN
@@ -176,8 +192,8 @@ int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char data))
             pin[1] = SPI_1_PIN_MISO;
             pin[2] = SPI_1_PIN_MOSI;
             af = SPI_1_PIN_AF;
-            SPI_0_PORT_CLKEN();
-            NVIC_SetPriority(SPI_1_IRQ, SPI_IRQ_PRIO);
+            SPI_1_PORT_CLKEN();
+            NVIC_SetPriority(SPI_1_IRQ, SPI_1_IRQ_PRIO);
             NVIC_EnableIRQ(SPI_1_IRQ);
             break;
 #endif
@@ -186,17 +202,9 @@ int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char data))
     /* set callback */
     spi_config[dev].cb = cb;
 
-    /* test callback */
-    char foo = spi_config[dev].cb(' ');
-    printf("SPI: cb-test ' ': %c\n", foo);
-
-    foo = spi_config[dev].cb(0x1f);
-    printf("SPI: cb-test '0x1f': %c\n", foo);
-    foo = spi_config[dev].cb(0);
-    printf("SPI: cb-test '0': %c\n", foo);
 
     /* configure pins for their correct alternate function */
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         port->MODER &= ~(3 << (pin[i] * 2));
         port->MODER |= (2 << (pin[i] * 2));
         int hl = (pin[i] < 8) ? 0 : 1;
@@ -229,8 +237,11 @@ int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char data))
 
 int spi_transfer_byte(spi_t dev, char out, char *in)
 {
-    char tmp;
+    //char tmp;
+    uint8_t tmp;
     SPI_TypeDef *spi = 0;
+
+    uint32_t spibase;
 
     DEBUG("Will tranfer char |%c|\n", out);
 
@@ -248,24 +259,27 @@ int spi_transfer_byte(spi_t dev, char out, char *in)
     }
 
 
-    DEBUG("Write data into DR\n");
-    /* put next byte into the output register */
-    spi->DR = out;
-
     DEBUG("Wait while TXE is not set\n");
     /* wait for an eventually previous byte to be readily transferred */
     while(!(spi->SR & SPI_SR_TXE));
 
+    DEBUG("Write data into DR\n");
+    /* put next byte into the output register */
+    spibase = (uint32_t)spi; 
+    spibase += 0x0C;
+     *(__IO uint8_t *) spibase = out;
+
+
+
     DEBUG("Wait while RXNE is not set\n");
     /* wait until the current byte was successfully transferred */
-    //while(!(spi->SR & SPI_SR_RXNE) );
-
-    DEBUG("Wait until device is not busy anymore\n");
-    while (spi->SR & SPI_SR_BSY);
+    while(!(spi->SR & SPI_SR_RXNE) );
+  
 
     DEBUG("Read DR\n");
     /* read response byte to reset flags */
-    tmp = spi->DR;
+    tmp = *(__IO uint8_t *) spibase;
+
 
     /* 'return' response byte if wished for */
     if (in) {
@@ -311,15 +325,20 @@ int spi_transfer_regs(spi_t dev, uint8_t reg, char *out, char *in, unsigned int 
 
 void spi_transmission_begin(spi_t dev, char reset_val)
 {
+    uint32_t spibase;
     switch (dev) {
 #if SPI_0_EN
         case SPI_0:
-            SPI_0_DEV->DR = reset_val;
+            spibase = (uint32_t)SPI_0_DEV; 
+            spibase += 0x0C;
+            *(__IO uint8_t *) spibase = reset_val;
             break;
 #endif
 #if SPI_1_EN
         case SPI_1:
-            SPI_1_DEV->DR = reset_val;
+            spibase = (uint32_t)SPI_1_DEV; 
+            spibase += 0x0C;
+            *(__IO uint8_t *) spibase = reset_val;
             break;
 #endif
     }
@@ -363,17 +382,20 @@ void spi_poweroff(spi_t dev)
 
 static inline void irq_handler(SPI_TypeDef *spi, spi_t dev)
 {
+
     char data;
+    uint32_t spibase = (uint32_t)spi;
+    spibase += 0x0C;
     LD3_TOGGLE;
 
     /* call owner when new byte was receive (asserts SPI is in slave mode) */
     if (spi->SR & SPI_SR_RXNE) {
         /* read received byte from data register */
-        data = spi->DR;
+        data = *(__IO uint8_t *) spibase;
         /* call callback for receiving the answer of the received byte */
         data = spi_config[dev].cb(data);
         /* set answer byte to be transferred next */
-        spi->DR = data;
+        *(__IO uint8_t *) spibase = data;
     }
     else {
         while (1) {
@@ -390,8 +412,13 @@ static inline void irq_handler(SPI_TypeDef *spi, spi_t dev)
     }
 }
 
+static inline void irq_handler_begin(spi_t dev)
+{
+    spi_transmission_begin(dev, RESET_VALUE);
+}
+
 #if SPI_0_EN
-__attribute__((naked)) void SPI_0_ISR(void)
+__attribute__((naked)) void SPI_0_IRQ_HANDLER(void)
 {
     ISR_ENTER();
     irq_handler(SPI_0_DEV, SPI_0);
@@ -400,10 +427,23 @@ __attribute__((naked)) void SPI_0_ISR(void)
 #endif
 
 #if SPI_1_EN
-__attribute__((naked)) void SPI_1_ISR(void)
+__attribute__((naked)) void SPI_1_IRQ_HANDLER(void)
 {
     ISR_ENTER();
-    irq_handler(SPI_0_DEV, SPI_1);
+    irq_handler(SPI_1_DEV, SPI_1);
+    ISR_EXIT();
+}
+#endif
+
+#if SPI_0_EN
+__attribute__((naked))
+void isr_exti4_15(void)
+{
+    ISR_ENTER();
+    if (EXTI->PR & EXTI_PR_PR4) {
+        EXTI->PR |= EXTI_PR_PR4;
+        irq_handler_begin(SPI_0);
+    }
     ISR_EXIT();
 }
 #endif
