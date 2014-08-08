@@ -53,7 +53,7 @@
 
 
 #define SHELL_BUFFER_SIZE        128
-#define BUF_SEND_LEN             10
+#define BUF_SEND_LEN             21
 
 static int shell_read(void);
 static void shell_write(int);
@@ -75,7 +75,7 @@ char test_irq(char data)
     test_buf[buf_count] = data;
     buf_count++;
 
-    if (buf_count == 9) {
+    if (buf_count > (BUF_SEND_LEN - 1)) {
         buf_count = 0;
     }
 
@@ -208,7 +208,7 @@ void cmd_send_master_bytes(int argc, char **argv)
     puts("Send Master multiple Bytes\n");
 
     char buf_send[BUF_SEND_LEN] = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1,};
-    char buf_return[BUF_SEND_LEN];
+    char buf_return[BUF_SEND_LEN] = {0,};
 
     gpio_clear(GPIO_7);
 
@@ -241,10 +241,6 @@ void cmd_send_master_8x1_byte(int argc, char **argv)
 
         gpio_set(GPIO_7);
         printf("One Byte transferred: %x, received: %x\n", data_send, data_return);
-        /*
-                timex_t sleep = timex_set(1, 0);
-                vtimer_sleep(sleep);
-        */
         data_send++;
     }
 }
@@ -323,12 +319,16 @@ void cmd_prxbuf(int argc, char **argv)
     (void) argc;
     (void) argv;
 
-    puts("Buffer print function\n");
+    puts("Buffer print function and clearing\n");
 
     buf_count = 0;
 
     for (int i = 0; i < BUF_SEND_LEN; i++) {
         printf("Sequence buffer: %x \n", test_buf[i]);
+    }
+
+    for (int i = 0; i < BUF_SEND_LEN; i++) {
+        test_buf[i] =  0;
     }
 }
 

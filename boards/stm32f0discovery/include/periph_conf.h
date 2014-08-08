@@ -172,7 +172,7 @@
  */
 #define SPI_NUMOF           (2U)
 #define SPI_0_EN            1
-#define SPI_1_EN            1
+#define SPI_1_EN            0
 
 /* SPI 0 device config */
 #define SPI_0_DEV           SPI1
@@ -184,7 +184,7 @@
 /* SPI 0 pin configuration */
 #define SPI_0_PORT          GPIOA
 #define SPI_0_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOAEN)
-#define SPI_0_PIN_NSS       4  
+#define SPI_0_PIN_NSS       4
 #define SPI_0_PIN_SCK       5
 #define SPI_0_PIN_MISO      6
 #define SPI_0_PIN_MOSI      7
