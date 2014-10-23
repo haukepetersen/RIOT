@@ -34,7 +34,7 @@ typedef struct {
 
 static gpio_state_t gpio_config[GPIO_NUMOF];
 
-/* static pint and port mappings */
+/* static port mappings */
 static GPIO_TypeDef *const gpio_port_map[GPIO_NUMOF] = {
 #if GPIO_0_EN
     [GPIO_0] = GPIO_0_PORT,
@@ -74,7 +74,7 @@ static GPIO_TypeDef *const gpio_port_map[GPIO_NUMOF] = {
 #endif
 };
 
-/* static pint and port mappings */
+/* static pin mappings */
 static const uint8_t gpio_pin_map[GPIO_NUMOF] = {
 #if GPIO_0_EN
     [GPIO_0] = GPIO_0_PIN,
@@ -111,6 +111,46 @@ static const uint8_t gpio_pin_map[GPIO_NUMOF] = {
 #endif
 #if GPIO_11_EN
     [GPIO_11] = GPIO_11_PIN,
+#endif
+};
+
+/* static irq mappings */
+static const IRQn_Type gpio_irq_map[GPIO_NUMOF] = {
+#if GPIO_0_EN
+    [GPIO_0] = GPIO_0_IRQ,
+#endif
+#if GPIO_1_EN
+    [GPIO_1] = GPIO_1_IRQ,
+#endif
+#if GPIO_2_EN
+    [GPIO_2] = GPIO_2_IRQ,
+#endif
+#if GPIO_3_EN
+    [GPIO_3] = GPIO_3_IRQ,
+#endif
+#if GPIO_4_EN
+    [GPIO_4] = GPIO_4_IRQ,
+#endif
+#if GPIO_5_EN
+    [GPIO_5] = GPIO_5_IRQ,
+#endif
+#if GPIO_6_EN
+    [GPIO_6] = GPIO_6_IRQ,
+#endif
+#if GPIO_7_EN
+    [GPIO_7] = GPIO_7_IRQ,
+#endif
+#if GPIO_8_EN
+    [GPIO_8] = GPIO_8_IRQ,
+#endif
+#if GPIO_9_EN
+    [GPIO_9] = GPIO_9_IRQ,
+#endif
+#if GPIO_10_EN
+    [GPIO_10] = GPIO_10_IRQ,
+#endif
+#if GPIO_11_EN
+    [GPIO_11] = GPIO_11_IRQ,
 #endif
 };
 
@@ -186,76 +226,65 @@ int gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb
 #ifdef GPIO_0_EN
         case GPIO_0:
             GPIO_0_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_0_IRQ);
             break;
 #endif
 #ifdef GPIO_1_EN
         case GPIO_1:
             GPIO_1_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_1_IRQ);
             break;
 #endif
 #ifdef GPIO_2_EN
         case GPIO_2:
             GPIO_2_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_2_IRQ);
             break;
 #endif
 #ifdef GPIO_3_EN
         case GPIO_3:
             GPIO_3_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_3_IRQ);
             break;
 #endif
 #ifdef GPIO_4_EN
         case GPIO_4:
             GPIO_4_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_4_IRQ);
             break;
 #endif
 #ifdef GPIO_5_EN
         case GPIO_5:
             GPIO_5_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_5_IRQ);
             break;
 #endif
 #ifdef GPIO_6_EN
         case GPIO_6:
             GPIO_6_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_6_IRQ);
             break;
 #endif
 #ifdef GPIO_7_EN
         case GPIO_7:
             GPIO_7_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_7_IRQ);
             break;
 #endif
 #ifdef GPIO_8_EN
         case GPIO_8:
             GPIO_8_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_8_IRQ);
             break;
 #endif
 #ifdef GPIO_9_EN
         case GPIO_9:
             GPIO_9_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_9_IRQ);
             break;
 #endif
 #ifdef GPIO_10_EN
         case GPIO_10:
             GPIO_10_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_10_IRQ);
             break;
 #endif
 #ifdef GPIO_11_EN
         case GPIO_11:
             GPIO_11_EXTI_CFG();
-            NVIC_EnableIRQ(GPIO_11_IRQ);
             break;
 #endif
     }
+    NVIC_EnableIRQ(gpio_irq_map[dev]);
 
     /* set callback */
     gpio_config[dev].cb = cb;
