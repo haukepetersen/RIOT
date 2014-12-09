@@ -66,6 +66,26 @@ extern "C" {
 #define UART_0_AF           (2)
 /** @} */
 
+/**
+ * @brief GPIO configuration
+ * @{
+ */
+#define GPIO_NUMOF          (8U)
+#define GPIO_0_EN           1
+#define GPIO_1_EN           1
+#define GPIO_2_EN           1
+#define GPIO_3_EN           1
+#define GPIO_4_EN           1
+#define GPIO_5_EN           1
+#define GPIO_6_EN           1
+#define GPIO_7_EN           1
+#define GPIO_IRQ_PRIO       1
+
+/* GPIO device configuration */
+#define GPIO_0_DEV          LPC_GPIO0
+#define GPIO_0_PIN          1
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
