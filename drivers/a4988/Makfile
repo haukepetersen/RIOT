@@ -1,0 +1,3 @@
+MODULE = a4988
+
+include $(RIOTBASE)/Makefile.base
