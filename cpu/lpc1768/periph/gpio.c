@@ -27,6 +27,14 @@
 #if GPIO_0_EN || GPIO_1_EN || GPIO_2_EN || GPIO_3_EN \
     GPIO_4_EN || GPIO_5_EN || GPIO_6_EN || GPIO_7_EN
 
+/**
+ * @brief data-structure holding the configuration for a single pin
+ */
+typedef struct {
+    gpio_flank_t flank;         /**< the active flank(s) if configured as external interrupt */
+    gpio_cb_t cb;               /**< callback to call on external interrupt */
+    void *arg;                  /**< argument passed to the callback */
+} config_t;
 
 /**
  * @brief define ports
@@ -88,10 +96,15 @@ static const uint8_t pin[GPIO_NUMOF] = {
 #endif
 }
 
+/**
+ * @brief save the pin configurations
+ */
+static config_t config[GPIO_NUMOF];
+
 
 int gpio_init_out(gpio_t dev, gpio_pp_t pullup)
 {
-    if (dev < GPIO_NUMOF) {
+    if (dev >= GPIO_NUMOF) {
         return -1;
     }
 
@@ -102,7 +115,7 @@ int gpio_init_out(gpio_t dev, gpio_pp_t pullup)
 
 int gpio_init_in(gpio_t dev, gpio_pp_t pullup)
 {
-    if (dev < GPIO_NUMOF) {
+    if (dev >= GPIO_NUMOF) {
         return -1;
     }
 
@@ -117,6 +130,79 @@ int gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb
         return res;
     }
 
+    /* save pin configuration */
+    config[dev].cb = cb;
+    config[dev].arg = arg;
+    config[dev].flank = flank;
+
+    /* enable global GPIO interrupts */
+
+    /* enable pin specific interrupt */
+    gpio_irq_enable(dev);
+
 }
+
+void gpio_irq_enable(gpio_t dev)
+{
+    if (dev >= GPIO_NUMOF) {
+        return -1;
+    }
+
+
+
+    switch (config[dev].flank) {
+        case GPIO_FALLING:
+            if (port[dev] == LPC_GPIO0) {
+                LPC_GPIOINT->IO0IntEnF |= (1 << pin[dev]);
+                LPC_GPIOINT->IO0IntEnR &= ~(1 << pin[dev]);
+            }
+            else if (port[dev] == LPC_GPIO2) {
+
+            }
+            break;
+        case GPIO_RISING:
+            if (port[dev] == LPC_GPIO0) {
+
+            }
+            else if (port[dev] == LPC_GPIO2) {
+
+            }
+            break;
+        case GPIO_BOTH:
+            if (port[dev] == LPC_GPIO0) {
+
+            }
+            else if (port[dev] == LPC_GPIO2) {
+
+            }
+            break;
+        default:
+            return;
+    }
+}
+
+void gpio_irq_disable(gpio_t dev)
+{
+    if (dev >= GPIO_NUMOF) {
+        return -1;
+    }
+
+    if (port[dev] == LPC_GPIO0) {
+
+    }
+    else if (port[dev] == LPC_GPIO2) {
+
+    }
+}
+
+int gpio_read(gpio_t dev);
+
+void gpio_set(gpio_t dev);
+
+void gpio_clear(gpio_t dev);
+
+void gpio_toggle(gpio_t dev);
+
+void gpio_write(gpio_t dev, int value);
 
 #endif /* GPIO_x_EN */
