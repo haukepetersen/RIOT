@@ -83,6 +83,33 @@ extern "C" {
 #define UART_1_AF           (2)
 /** @} */
 
+/**
+ * @brief SPI configuration
+ * @{
+ */
+#define SPI_NUMOF           (1U)
+#define SPI_0_EN            1
+#define SPI_IRQ_PRIO        1
+
+/* SPI 0 device configuration */
+#define SPI_DEV             LPC_SPI
+#define SPI_CLKEN()         (LPC_SC->PCONP |= (1 << 8))
+#define SPI_CLKDIS()        (LPC_SC->PCONP &= ~(1 << 8))
+/* SPI 0 pin configuration */
+#define SPI_0_MISO_PINSEL
+#define SPI_0_MISO_PINMODE
+#define SPI_0_MISO_PIN      (8)
+#define SPI_0_MISO_AF       (2)
+#define SPI_0_MOSI_PINSEL
+#define SPI_0_MOSI_PINMODE
+#define SPI_0_MOSI_PIN      (9)
+#define SPI_0_MOSI_AF       (2)
+#define SPI_0_SCK_PINSEL
+#define SPI_0_SCK_PINMODE
+#define SPI_0_SCK_PIN       (7)
+#define SPI_0_SCK_AF        (2)
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
