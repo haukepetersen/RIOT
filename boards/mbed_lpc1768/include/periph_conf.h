@@ -85,6 +85,38 @@ extern "C" {
 #define UART_1_AF           (2)
 /** @} */
 
+/**
+ * @brief ADC configuration
+ * @{
+ */
+#define ADC_NUMOF           (1U)
+#define ADC_EN              1
+#define ADC_MAX_CHANNELS    3
+
+/* ADC 0 device configuration */
+#define ADC_0_DEV           LPC_ADC
+#define ADC_0_CHANNELS      3
+#define ADC_0_CLKSEL()      (LPC_SC->PCLKSEL0 &= ~(0x3 << 24))      /* PCLK := CCLK / 4 */
+#define ADC_0_CLKEN()       (LPC_SC->PCONP |= (1 << 12))
+#define ADC_0_CLKDIS()      (LPC_SC->PCONP &= ~(1 << 12))
+/* ADC 0 pin configuration */
+#define ADC_0_CH0           (2)
+#define ADC_0_CH0_PINSEL    (LPC_PINCON->PINSEL1)
+#define ADC_0_CH0_PINMODE   (LPC_PINCON->PINMODE1)
+#define ADC_0_CH0_POS       (18)
+#define ADC_0_CH0_PIN       (25)
+#define ADC_0_CH1           (4)
+#define ADC_0_CH1_PINSEL    (LPC_PINCON->PINSEL3)
+#define ADC_0_CH1_PINMODE   (LPC_PINCON->PINMODE3)
+#define ADC_0_CH1_POS       (38)
+#define ADC_0_CH1_PIN       (30)
+#define ADC_0_CH2           (5)
+#define ADC_0_CH2_PINSEL    (LPC_PINCON->PINSEL3)
+#define ADC_0_CH2_PINMODE   (LPC_PINCON->PINMODE3)
+#define ADC_0_CH2_POS       (30)
+#define ADC_0_CH2_PIN       (31)
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
