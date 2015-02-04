@@ -14,6 +14,7 @@
  * @brief       Low-level SPI driver implementation
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Frank Holtz <frank-riot2015@holtznet.de>
  *
  * @}
  */
@@ -43,9 +44,14 @@ int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
 
     spi_poweron(dev);
 
+    /* disable the device -> nRF51822 reference 3.0 26.1.1 and 27.1*/
+    spi[dev]->ENABLE = 0;
+
     switch(dev) {
 #if SPI_0_EN
         case SPI_0:
+            /* Disable TWI Interface */
+            NRF_TWI0->ENABLE = 0;
             /* configure direction of used pins */
             NRF_GPIO->DIRSET = (1 << SPI_0_PIN_MOSI) | (1 << SPI_0_PIN_SCK);
             NRF_GPIO->DIRCLR = (1 << SPI_0_PIN_MISO);
@@ -57,6 +63,10 @@ int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
 #endif
 #if SPI_1_EN
         case SPI_1:
+            /* Disable SPI Slave */
+            NRF_SPIS1->ENABLE = 0;
+            /* Disable TWI Interface */
+            NRF_TWI1->ENABLE = 0;            
             /* configure direction of used pins */
             NRF_GPIO->DIRSET = (1 << SPI_1_PIN_MOSI) | (1 << SPI_1_PIN_SCK);
             NRF_GPIO->DIRCLR = (1 << SPI_1_PIN_MISO);
@@ -112,7 +122,8 @@ int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
 
 int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char data))
 {
-    return -1;      /* the NRF51822 does not support SPI slave mode */
+    /* This API is incompatible with nRF51 SPIS */
+    return -1;
 }
 
 int spi_transfer_byte(spi_t dev, char out, char *in)
@@ -152,7 +163,7 @@ int spi_transfer_regs(spi_t dev, uint8_t reg, char *out, char *in, unsigned int 
 
 void spi_transmission_begin(spi_t dev, char reset_val)
 {
-    /* nothing to do here, as the NRF51822 does not support slave mode */
+    /* spi slave is not implemented */
 }
 
 void spi_poweron(spi_t dev)
