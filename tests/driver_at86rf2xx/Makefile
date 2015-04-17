@@ -6,7 +6,7 @@ FEATURES_REQUIRED = periph_spi periph_gpio
 BOARD_INSUFFICIENT_RAM := stm32f0discovery
 
 ifneq (,$(filter iot-lab_M3,$(BOARD)))
-  USEMODULE += ng_at86rf231
+  DRIVER ?= ng_at86rf231
   export ATRF_SPI ?= SPI_0
   export ATRF_CS ?= GPIO_11
   export ATRF_INT ?= GPIO_12
@@ -14,7 +14,7 @@ ifneq (,$(filter iot-lab_M3,$(BOARD)))
   export ATRF_SLEEP ?= GPIO_14
 endif
 ifneq (,$(filter samr21-xpro,$(BOARD)))
-  USEMODULE += ng_at86rf233
+  DRIVER ?= ng_at86rf233
   export ATRF_SPI ?= SPI_0
   export ATRF_CS ?= GPIO_4
   export ATRF_INT ?= GPIO_5
@@ -23,7 +23,11 @@ ifneq (,$(filter samr21-xpro,$(BOARD)))
   export ATRF_SPI_SPEED ?= SPI_SPEED_1MHZ
 endif
 
-USEMODULE += ng_at86rf2xx         # default to the generic driver
+ifneq (,$(DRIVER))
+  USEMODULE += $(DRIVER)
+else
+  USEMODULE += ng_at86rf231         # default to ng_at86rf231
+endif
 USEMODULE += ng_netbase
 USEMODULE += ng_nomac
 USEMODULE += ng_pktdump
