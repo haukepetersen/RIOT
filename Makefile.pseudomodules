@@ -4,7 +4,5 @@ PSEUDOMODULES += pktqueue
 PSEUDOMODULES += ng_netbase
 
 # include variants of the AT86RF2xx drivers as pseudo modules
-PSEUDOMODULES += ng_at86rf231
-PSEUDOMODULES += ng_at86rf232
-PSEUDOMODULES += ng_at86rf233
-PSEUDOMODULES += ng_at86rf212b
+PSEUDOMODULES += ng_at86rf23%
+PSEUDOMODULES += ng_at86rf21%

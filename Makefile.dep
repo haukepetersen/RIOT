@@ -168,15 +168,6 @@ ifneq (,$(filter oonf_common,$(USEMODULE)))
   USEMODULE += socket_base
 endif
 
-ifneq (,$(filter ng_at86rf231,$(USEMODULE)))
-  USEMODULE += ng_at86rf2xx
-endif
-ifneq (,$(filter ng_at86rf232,$(USEMODULE)))
-  USEMODULE += ng_at86rf2xx
-endif
-ifneq (,$(filter ng_at86rf233,$(USEMODULE)))
-  USEMODULE += ng_at86rf2xx
-endif
-ifneq (,$(filter ng_at86rf212b,$(USEMODULE)))
+ifneq (,$(filter ng_at86rf2%,$(USEMODULE)))
   USEMODULE += ng_at86rf2xx
 endif
