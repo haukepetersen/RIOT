@@ -90,7 +90,19 @@ void ng_at86rf2xx_sram_write(const ng_at86rf2xx_t *dev,
  * @param len [description]
  */
 void ng_at86rf2xx_fb_read(const ng_at86rf2xx_t *dev,
-                          const uint8_t *data, const size_t len);
+                          uint8_t *data, const size_t len);
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ *
+ * @param dev [description]
+ * @param data [description]
+ * @param len [description]
+ */
+void ng_at86rf2xx_fb_write(const ng_at86rf2xx_t *dev,
+                           const uint8_t *data,
+                           const size_t len);
 
 /**
  * @brief [brief description]

@@ -86,7 +86,7 @@ void ng_at86rf2xx_sram_write(const ng_at86rf2xx_t *dev,
 }
 
 void ng_at86rf2xx_fb_read(const ng_at86rf2xx_t *dev,
-                          const uint8_t *data,
+                          uint8_t *data,
                           const size_t len)
 {
     spi_acquire(dev->spi);
@@ -96,6 +96,20 @@ void ng_at86rf2xx_fb_read(const ng_at86rf2xx_t *dev,
                       NULL);
     spi_transfer_bytes(dev->spi, NULL, (char *)data, len);
     gpio_set(dev->cs_pin);
+    spi_release(dev->spi);
+}
+
+void ng_at86rf2xx_fb_write(const ng_at86rf2xx_t *dev,
+                           const uint8_t *data,
+                           const size_t len)
+{
+    spi_acquire(dev->spi);
+    gpio_clear(dev->cs_pin);
+    spi_transfer_byte(dev->spi,
+                      NG_AT86RF2XX_ACCESS_FB | NG_AT86RF2XX_ACCESS_WRITE,
+                      NULL);
+    spi_transfer_bytes(dev->spi, (char *)data, NULL, len);
+    gpio_clear(dev->cs_pin);
     spi_release(dev->spi);
 }
 

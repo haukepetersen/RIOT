@@ -70,14 +70,14 @@ static size_t _make_data_frame_hdr(ng_at86rf2xx_t *dev, uint8_t *buf,
         buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 2));
         buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 1));
         /* set source address */
-        buf[pos++] = (uint8_t)((dev->addr_long) & 0xff);
-        buf[pos++] = (uint8_t)((dev->addr_long) >> 8);
-        buf[pos++] = (uint8_t)((dev->addr_long) >> 16);
-        buf[pos++] = (uint8_t)((dev->addr_long) >> 24);
-        buf[pos++] = (uint8_t)((dev->addr_long) >> 32);
-        buf[pos++] = (uint8_t)((dev->addr_long) >> 40);
-        buf[pos++] = (uint8_t)((dev->addr_long) >> 48);
         buf[pos++] = (uint8_t)((dev->addr_long) >> 56);
+        buf[pos++] = (uint8_t)((dev->addr_long) >> 48);
+        buf[pos++] = (uint8_t)((dev->addr_long) >> 40);
+        buf[pos++] = (uint8_t)((dev->addr_long) >> 32);
+        buf[pos++] = (uint8_t)((dev->addr_long) >> 24);
+        buf[pos++] = (uint8_t)((dev->addr_long) >> 16);
+        buf[pos++] = (uint8_t)((dev->addr_long) >> 8);
+        buf[pos++] = (uint8_t)((dev->addr_long) & 0xff);
     }
     /* unsupported address length */
     else {
@@ -258,8 +258,6 @@ static void _receive_data(ng_at86rf2xx_t *dev)
 
     /* get FCF field and compute 802.15.4 header length */
     ng_at86rf2xx_rx_read(dev, mhr, 2, 0);
-    DEBUG("incoming MHR: 0x%02x 0x%02x\n", mhr[0], mhr[1]);
-
     hdr_len = _get_frame_hdr_len(mhr);
     if (hdr_len == 0) {
         DEBUG("[ng_at86rf2xx] error: unable parse incoming frame header\n");
@@ -572,7 +570,7 @@ static void _isr_event(ng_netdev_t *device, uint32_t event_type)
         DEBUG("[ng_at86rf2xx] EVT - RX_START\n");
     }
     if (irq_mask & NG_AT86RF2XX_IRQ_STATUS_MASK__TRX_END) {
-        if (state == STATE_RX_AACK_ON) {
+        if (state == STATE_RX_AACK_ON || state == STATE_BUSY_RX_AACK) {
             DEBUG("[ng_at86rf2xx] EVT - RX_END\n");
             if (!(dev->options & OPT_TELL_RX_END)) {
                 return;

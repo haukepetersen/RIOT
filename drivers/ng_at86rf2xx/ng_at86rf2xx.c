@@ -190,10 +190,8 @@ size_t ng_at86rf2xx_tx_load(ng_at86rf2xx_t *dev, uint8_t *data,
     return offset + len;
 }
 
-uint8_t foobar[200];
 void ng_at86rf2xx_tx_exec(ng_at86rf2xx_t *dev)
 {
-
     /* write frame length field in FIFO */
     ng_at86rf2xx_sram_write(dev, 0, &(dev->frame_len), 1);
     /* trigger sending of pre-loaded frame */
