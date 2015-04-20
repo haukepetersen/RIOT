@@ -61,14 +61,13 @@ static size_t _make_data_frame_hdr(ng_at86rf2xx_t *dev, uint8_t *buf,
         buf[1] = 0xcc;
         /* set destination address located directly after ng_ifhrd_t in memory */
         pos = 3;
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 8));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 7));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 6));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 5));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 4));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 3));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 2));
-        buf[pos++] = *((uint8_t *)(hdr + sizeof(ng_netif_hdr_t) + 1));
+        buf[pos++] = (uint8_t)((dev->pan) & 0xff);
+        buf[pos++] = (uint8_t)((dev->pan) >> 8);
+        /* set destination address */
+        uint8_t *dst_addr = ng_netif_hdr_get_dst_addr(hdr);
+        for (int i = (hdr->dst_l2addr_len - 1);  i >= 0; i--) {
+            buf[pos++] = dst_addr[i];
+        }
         /* set source address */
         buf[pos++] = (uint8_t)((dev->addr_long) >> 56);
         buf[pos++] = (uint8_t)((dev->addr_long) >> 48);
@@ -102,7 +101,7 @@ size_t _get_frame_hdr_len(uint8_t *mhr)
         len += 4;
     }
     else if (tmp == NG_IEEE802154_FCF_DST_ADDR_LONG) {
-        len = 10;
+        len += 10;
     }
     else if (tmp != NG_IEEE802154_FCF_DST_ADDR_VOID) {
         return 0;

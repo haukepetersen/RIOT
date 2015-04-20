@@ -56,14 +56,14 @@ uint64_t ng_at86rf2xx_get_addr_long(ng_at86rf2xx_t *dev)
 void ng_at86rf2xx_set_addr_long(ng_at86rf2xx_t *dev, uint64_t addr)
 {
     dev->addr_long = addr;
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_0, addr);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_1, addr >> 8);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_2, addr >> 16);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_3, addr >> 24);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_4, addr >> 32);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_5, addr >> 40);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_6, addr >> 48);
-    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_7, addr >> 56);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_0, addr >> 56);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_1, addr >> 48);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_2, addr >> 40);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_3, addr >> 32);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_4, addr >> 24);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_5, addr >> 16);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_6, addr >> 8);
+    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__IEEE_ADDR_7, addr);
 }
 
 uint8_t ng_at86rf2xx_get_chan(ng_at86rf2xx_t *dev)
@@ -153,13 +153,8 @@ ng_at86rf2xx_state_t ng_at86rf2xx_get_state(ng_at86rf2xx_t *dev)
 
 static inline void _set_state(ng_at86rf2xx_t *dev, ng_at86rf2xx_state_t state)
 {
-    // int i = 0;
     ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__TRX_STATE, state);
     while (ng_at86rf2xx_get_state(dev) != state);
-    //  {
-    //     i ++;
-    // }
-    // printf("Convergence time: %i cycles\n", i);
 }
 
 void ng_at86rf2xx_set_state(ng_at86rf2xx_t *dev, ng_at86rf2xx_state_t state)
