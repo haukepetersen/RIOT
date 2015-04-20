@@ -109,7 +109,7 @@ int main(void)
                             ATRF_CS, ATRF_INT,
                             ATRF_SLEEP, ATRF_RESET);
     if (res < 0) {
-        puts("Error initializing AT86RF2xx radio");
+        puts("Error initializing AT86RF2xx radio device");
         return -1;
     }
     /* start MAC layer */
