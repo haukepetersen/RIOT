@@ -255,6 +255,18 @@ static void _receive_data(ng_at86rf2xx_t *dev)
         return;
     }
 
+    /* in raw mode, just read the binary dump into the packet buffer */
+    if (dev->options & OPT_RAWDUMP) {
+        payload = ng_pktbuf_add(NULL, NULL, pkt_len + 2, NG_NETTYPE_UNDEF);
+        if (payload == NULL ) {
+            DEBUG("[ng_at86rf2xx] error: unable to allocate RAW data\n");
+            return;
+        }
+        ng_at86rf2xx_rx_read(dev, payload->data, pkt_len + 2, 0);
+        dev->event_cb(NETDEV_EVENT_RX_COMPLETE, payload);
+        return;
+    }
+
     /* get FCF field and compute 802.15.4 header length */
     ng_at86rf2xx_rx_read(dev, mhr, 2, 0);
     hdr_len = _get_frame_hdr_len(mhr);
@@ -421,6 +433,18 @@ static int _get(ng_netdev_t *device, ng_netconf_opt_t opt, void *val, size_t max
                 return NETCONF_DISABLE;
             }
 
+        case NETCONF_OPT_RAWMODE:
+            if (max_len < sizeof(ng_netconf_enable_t))
+            {
+                return -EOVERFLOW;
+            }
+            if (dev->options & OPT_RAWDUMP) {
+                return NETCONF_ENABLE;
+            }
+            else {
+                return NETCONF_DISABLE;
+            }
+
         case NETCONF_OPT_IS_CHANNEL_CLR:
             if (max_len < sizeof(ng_netconf_enable_t))
             {
@@ -517,6 +541,13 @@ static int _set(ng_netdev_t *device, ng_netconf_opt_t opt, void *val, size_t len
                 return -EOVERFLOW;
             }
             ng_at86rf2xx_set_option(dev, OPT_PROMISCUOUS, ((bool *)val)[0]);
+            return sizeof(ng_netconf_enable_t);
+
+        case NETCONF_OPT_RAWMODE:
+            if (len > sizeof(ng_netconf_enable_t)) {
+                return -EOVERFLOW;
+            }
+            ng_at86rf2xx_set_option(dev, OPT_RAWDUMP, ((bool *)val)[0]);
             return sizeof(ng_netconf_enable_t);
 
         default:

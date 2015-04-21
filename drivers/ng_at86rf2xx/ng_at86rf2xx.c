@@ -69,6 +69,13 @@ int ng_at86rf2xx_init(ng_at86rf2xx_t *dev, spi_t spi, spi_speed_t spi_speed,
     gpio_init_out(dev->reset_pin, GPIO_NOPULL);
     gpio_set(dev->reset_pin);
     gpio_init_int(dev->int_pin, GPIO_NOPULL, GPIO_RISING, _irq_handler, dev);
+
+    /* test if the SPI is set up correctly and the device is responding */
+    if (ng_at86rf2xx_reg_read(dev, NG_AT86RF2XX_REG__PART_NUM) !=
+        NG_AT86RF2XX_PARTNUM) {
+        DEBUG("[ng_at86rf2xx] error: unable to read correct part number\n");
+    }
+
     /* reset device to default values and put it into RX state */
     ng_at86rf2xx_reset(dev);
     return 0;

@@ -80,14 +80,15 @@ typedef enum {
 } ng_at86rf2xx_state_t;
 
 typedef enum {
-    OPT_AUTOACK         = 0x01,
-    OPT_CSMA            = 0x02,
-    OPT_PROMISCUOUS     = 0x04,
-    OPT_PRELOADING      = 0x08,
-    OPT_TELL_TX_START   = 0x10,
-    OPT_TELL_TX_END     = 0x20,
-    OPT_TELL_RX_START   = 0x40,
-    OPT_TELL_RX_END     = 0x80,
+    OPT_AUTOACK         = 0x0001,
+    OPT_CSMA            = 0x0002,
+    OPT_PROMISCUOUS     = 0x0004,
+    OPT_PRELOADING      = 0x0008,
+    OPT_TELL_TX_START   = 0x0010,
+    OPT_TELL_TX_END     = 0x0020,
+    OPT_TELL_RX_START   = 0x0040,
+    OPT_TELL_RX_END     = 0x0080,
+    OPT_RAWDUMP         = 0x0100,
 } ng_at86rf2xx_opt_t;
 
 /**

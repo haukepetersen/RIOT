@@ -24,7 +24,7 @@
 #include "ng_at86rf2xx_registers.h"
 #include "periph/spi.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 
@@ -121,27 +121,71 @@ void ng_at86rf2xx_set_txpower(ng_at86rf2xx_t *dev, int16_t txpower)
 void ng_at86rf2xx_set_option(ng_at86rf2xx_t *dev, ng_at86rf2xx_opt_t option,
                              bool state)
 {
+    uint8_t tmp;
+
+    DEBUG("set option %i to %i\n", option, state);
+
     /* set option field */
     if (state) {
         dev->options |= option;
+        /* trigger option specific actions */
+        switch (option) {
+            case OPT_CSMA:
+                DEBUG("[ng_at86rf2xx] opt: enabling CSMA mode\n");
+                /* TODO: en/disable csma */
+                break;
+            case OPT_PROMISCUOUS:
+                DEBUG("[ng_at86rf2xx] opt: enabling PROMISCUOUS mode\n");
+                /* disable auto ACKs in promiscuous mode */
+                tmp = ng_at86rf2xx_reg_read(dev, NG_AT86RF2XX_REG__CSMA_SEED_1);
+                tmp |= NG_AT86RF2XX_CSMA_SEED_1__AACK_DIS_ACK;
+                ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__CSMA_SEED_1, tmp);
+                /* enable promiscuous mode */
+                tmp = ng_at86rf2xx_reg_read(dev, NG_AT86RF2XX_REG__XAH_CTRL_1);
+                tmp |= NG_AT86RF2XX_XAH_CTRL_1__AACK_PROM_MODE;
+                ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__XAH_CTRL_1, tmp);
+                break;
+            case OPT_AUTOACK:
+                DEBUG("[ng_at86rf2xx] opt: enabling auto ACKs\n");
+                tmp = ng_at86rf2xx_reg_read(dev, NG_AT86RF2XX_REG__CSMA_SEED_1);
+                tmp &= ~(NG_AT86RF2XX_CSMA_SEED_1__AACK_DIS_ACK);
+                ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__CSMA_SEED_1, tmp);
+                break;
+            default:
+                /* do nothing */
+                break;
+        }
     }
     else {
         dev->options &= ~(option);
-    }
-    /* trigger option specific actions */
-    switch (option) {
-        case OPT_AUTOACK:
-            /* TODO: en/disable auto-acking */
-            break;
-        case OPT_CSMA:
-            /* TODO: en/disable csma */
-            break;
-        case OPT_PROMISCUOUS:
-            /* TODO: en/disable promiscuous mode */
-            break;
-        default:
-            /* do nothing */
-            break;
+        /* trigger option specific actions */
+        switch (option) {
+            case OPT_CSMA:
+                /* TODO: en/disable csma */
+                break;
+            case OPT_PROMISCUOUS:
+                /* disable promiscuous mode */
+                tmp = ng_at86rf2xx_reg_read(dev, NG_AT86RF2XX_REG__XAH_CTRL_1);
+                tmp &= ~(NG_AT86RF2XX_XAH_CTRL_1__AACK_PROM_MODE);
+                ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__XAH_CTRL_1, tmp);
+                /* re-enable AUTOACK only if the option is set */
+                if (dev->options & OPT_AUTOACK) {
+                    tmp = ng_at86rf2xx_reg_read(dev,
+                                                NG_AT86RF2XX_REG__CSMA_SEED_1);
+                    tmp &= ~(NG_AT86RF2XX_CSMA_SEED_1__AACK_DIS_ACK);
+                    ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__CSMA_SEED_1,
+                                           tmp);
+                }
+                break;
+            case OPT_AUTOACK:
+                tmp = ng_at86rf2xx_reg_read(dev, NG_AT86RF2XX_REG__CSMA_SEED_1);
+                tmp |= NG_AT86RF2XX_CSMA_SEED_1__AACK_DIS_ACK;
+                ng_at86rf2xx_reg_write(dev, NG_AT86RF2XX_REG__CSMA_SEED_1, tmp);
+                break;
+            default:
+                /* do nothing */
+                break;
+        }
     }
 }
 
