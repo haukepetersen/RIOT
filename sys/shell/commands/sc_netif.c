@@ -77,7 +77,11 @@ static void _set_usage(char *cmd_name)
          "       * \"pan_id\" - alias for \"nid\"\n"
          "       * \"power\" - TX power in dBm\n"
          "       * \"src_len\" - sets the source address length in byte\n"
-         "       * \"state\" - set the device state\n");
+         "       * \"state\" - set the device state\n"
+         "       * \"promiscuous\" - en/disable promiscuous mode\n"
+         "       * \"raw\" - en/disable RAW data mode\n"
+         "       * \"preload\" - en/disable preloading\n"
+         "       * \"autoack\" - en/disable auto ACKs\n");
 }
 
 static void _print_netconf(ng_netconf_opt_t opt)
@@ -332,6 +336,25 @@ static void _netif_set_state(kernel_pid_t dev, char *state_str)
     puts("");
 }
 
+static void _netif_set_opt(kernel_pid_t dev, ng_netconf_opt_t opt, char *val)
+{
+    ng_netconf_enable_t state;
+
+    if (val[0] == '0') {
+        state = NETCONF_DISABLE;
+    } else if (val[0] == '1') {
+        state = NETCONF_ENABLE;
+    } else {
+        puts("error: invalid value given");
+        return;
+    }
+    if (ng_netapi_set(dev, opt, 0, &state, sizeof(state)) < 0) {
+        puts("error: unable to set option\n");
+    } else {
+        printf("success: set option to %c\n", val[0]);
+    }
+}
+
 static void _netif_set(char *cmd_name, kernel_pid_t dev, char *key, char *value)
 {
     if ((strcmp("addr", key) == 0) || (strcmp("addr_short", key) == 0)) {
@@ -355,6 +378,18 @@ static void _netif_set(char *cmd_name, kernel_pid_t dev, char *key, char *value)
     }
     else if (strcmp("state", key) == 0) {
         _netif_set_state(dev, value);
+    }
+    else if (strcmp("promiscuous", key) == 0) {
+        _netif_set_opt(dev, NETCONF_OPT_PROMISCUOUSMODE, value);
+    }
+    else if (strcmp("raw", key) == 0) {
+        _netif_set_opt(dev, NETCONF_OPT_RAWMODE, value);
+    }
+    else if (strcmp("preload", key) == 0) {
+        _netif_set_opt(dev, NETCONF_OPT_PRELOADING, value);
+    }
+    else if (strcmp("autoack", key) == 0) {
+        _netif_set_opt(dev, NETCONF_OPT_AUTOACK, value);
     }
     else {
         _set_usage(cmd_name);
