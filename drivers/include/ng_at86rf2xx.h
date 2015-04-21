@@ -51,21 +51,31 @@ extern "C" {
 #define NG_AT86RF2XX_TX_POWER_MAX       4
 
 /**
-  * @brief at86rf231's lowest supported channel
+  * @brief at86rf2xx channel config
+  * @{
   */
-#define NG_AT86RF2XX_MIN_CHANNEL        (11)
+#ifndef MODULE_AT86RF212B
+#define NG_AT86RF2XX_MIN_CHANNEL        (11U)
+#define NG_AT86RF2XX_MAX_CHANNEL        (26U)
+#define NG_AT86RF2XX_DEFAULT_CHANNEL    (17U)
+#else
+/* 212b has a sub-1GHz radio */
+#define NG_AT86RF2XX_MIN_CHANNEL        (0)
+#define NG_AT86RF2XX_MAX_CHANNEL        (10)
+#define NG_AT86RF2XX_DEFAULT_CHANNEL    (5)
+#endif
+/** @} */
 
 /**
   * @brief at86rf231's highest supported channel
   */
-#define NG_AT86RF2XX_MAX_CHANNEL        (26)
 
 #define NG_AT86RF2XX_MAX_PKT_LENGTH     (127)
 
 #define NG_AT86RF2XX_DEFAULT_ADDR_SHORT (0x0230)
 #define NG_AT86RF2XX_DEFAULT_ADDR_LONG  (0x1122334455667788)
-#define NG_AT86RF2XX_DEFAULT_CHANNEL    (17U)
-#define NG_AT86RF2XX_DEFAULT_PANID      (0x0023)
+
+#define NG_AT86RF2XX_DEFAULT_PANID      (0xffff)
 #define NG_AT86RF2XX_DEFAULT_TXPOWER    (0U)
 
 typedef enum {

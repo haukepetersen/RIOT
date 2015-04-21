@@ -69,6 +69,8 @@ enum ng_at86rf2xx_register {
     NG_AT86RF2XX_REG__BATMON = 0x11,
     NG_AT86RF2XX_REG__XOSC_CTRL = 0x12,
 
+    NG_AT86RF2XX_REG__CC_CTRL_1 = 0x14,
+
     NG_AT86RF2XX_REG__RX_SYN = 0x15,
 
     NG_AT86RF2XX_REG__XAH_CTRL_1 = 0x17,
@@ -135,7 +137,9 @@ enum ng_at86rf2xx_trx_ctrl_1 {
 
 enum ng_at86rf2xx_trx_ctrl_2 {
     NG_AT86RF2XX_TRX_CTRL_2_MASK__RX_SAFE_MODE = 0x80,
+    NG_AT86RF2XX_TRX_CTRL_2_MASK__SUB_MODE = 0x4,
     NG_AT86RF2XX_TRX_CTRL_2_MASK__OQPSK_DATA_RATE = 0x03,
+    NG_AT86RF2XX_TRX_CTRL_2_MASK__OQPSK_SCRAM_EN = 0x20,
 };
 
 enum ng_at86rf2xx_irq_status {

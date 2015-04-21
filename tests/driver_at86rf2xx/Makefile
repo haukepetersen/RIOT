@@ -5,6 +5,15 @@ FEATURES_REQUIRED = periph_spi periph_gpio
 
 BOARD_INSUFFICIENT_RAM := stm32f0discovery
 
+ifneq (,$(filter saml21-xpro,$(BOARD)))
+  DRIVER ?= ng_at86rf212b
+  export ATRF_SPI ?= SPI_0
+  export ATRF_CS ?= EXT1_SPI_SS
+  export ATRF_INT ?= EXT1_P09
+  export ATRF_RESET ?= EXT1_P07
+  export ATRF_SLEEP ?= EXT1_P10
+  export ATRF_SPI_SPEED ?= SPI_SPEED_1MHZ
+endif
 ifneq (,$(filter iot-lab_M3,$(BOARD)))
   DRIVER ?= ng_at86rf231
   export ATRF_SPI ?= SPI_0
