@@ -108,6 +108,15 @@ extern "C" {
 #define SPI_0_MOSI_PORT_CLKEN() (RCC->AHBENR |= RCC_AHBENR_GPIOAEN)
 /** @} */
 
+/**
+ * @brief wtimer configuration
+ * @{
+ */
+#define WTIMER_USLEEP_UNTIL_OVERHEAD 9
+#define WTIMER_BACKOFF 15
+#define WTIMER_OVERHEAD 3
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
