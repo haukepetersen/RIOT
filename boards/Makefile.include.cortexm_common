@@ -2,9 +2,6 @@
 export PREFIX = arm-none-eabi-
 include $(RIOTBOARD)/Makefile.include.gnu
 
-$(info HELLO)
-$(info $(CPU_ARCH))
-
 # define build specific options
 export CFLAGS_CPU   = -mcpu=$(MCPU) -mlittle-endian -mthumb -mno-thumb-interwork $(CFLAGS_FPU)
 export CFLAGS_STYLE = -std=gnu99 -Wall -Wstrict-prototypes
