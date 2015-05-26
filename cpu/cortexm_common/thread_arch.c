@@ -202,7 +202,7 @@ char *thread_arch_stack_init(thread_task_func_t task_func,
      * For the Cortex-M3 and Cortex-M4 we write them continuously onto the stack
      * as they can be read/written continuously by stack instructions. */
 
-#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0P)
+#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS)
     /* start with r7 - r4 */
     for (int i = 7; i >= 4; i--) {
         stk--;
@@ -282,7 +282,7 @@ __attribute__((naked)) void arch_context_switch(void)
     ".thumb_func                      \n"
     "context_save:"
     "mrs    r0, psp                   \n" /* get stack pointer from user mode */
-#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0P)
+#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS)
     "mov    r12, sp                   \n" /* remember the exception SP */
     "mov    sp, r0                    \n" /* set user mode SP as active SP */
     /* we can not push high registers directly, so we move R11-R8 into
@@ -316,7 +316,7 @@ __attribute__((naked)) void arch_context_switch(void)
     /* restore context and return from exception */
     ".thumb_func                      \n"
     "context_restore:                 \n"
-#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0P)
+#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS)
     "mov    lr, sp                    \n" /* save MSR stack pointer for later */
     "ldr    r0, =sched_active_thread  \n" /* load address of current TCB */
     "ldr    r0, [r0]                  \n" /* dereference TCB */
