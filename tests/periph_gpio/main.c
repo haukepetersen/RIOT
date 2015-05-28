@@ -25,7 +25,6 @@
 #include "posix_io.h"
 #include "board_uart0.h"
 #include "periph/gpio.h"
-#include "hwtimer.h"
 
 #define SHELL_BUFSIZE       (64U)
 
