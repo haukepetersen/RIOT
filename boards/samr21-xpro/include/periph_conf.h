@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2015 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -14,10 +14,15 @@
  * @brief       Peripheral MCU configuration for the Atmel SAM R21 Xplained Pro board
  *
  * @author      Thomas Eichinger <thomas.eichinger@fu-berlin.de>
+ * @author      Peter Kietzmann <peter.kietzmann@haw-hamburg.de>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
 #ifndef __PERIPH_CONF_H
 #define __PERIPH_CONF_H
+
+#include <stdint.h>
+#include "cpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +47,6 @@ extern "C" {
 #define TIMER_1_CHANNELS   2
 #define TIMER_1_MAX_VALUE  (0xffffffff)
 #define TIMER_1_ISR        isr_tc4
-
 /** @} */
 
 /**
@@ -77,6 +81,58 @@ extern "C" {
 #define UART_1_PINS
 /** @} */
 
+/**
+ * @name PWM configuration
+ * @{
+ */
+#define PWM_NUMOF           (PWM_0_EN + PWM_1_EN)
+#define PWM_0_EN            1
+#define PWM_1_EN            1
+#define PWM_MAX_CHANNELS    2
+/* for compatibility with test application */
+#define PWM_0_CHANNELS      PWM_MAX_CHANNELS
+#define PWM_1_CHANNELS      PWM_MAX_CHANNELS
+
+/**
+ * @brief PWM channel configuration data structure
+ *
+ * TODO: this should be moved into the CPU folder
+ */
+typedef struct {
+    PortGroup *port;            /**< GPIO port */
+    uint8_t pin;                /**< GPIO pin */
+    uint8_t fnct;               /**< pin function multiplex value */
+    uint8_t chan;               /**< TCC channel to use */
+} pwm_conf_chan_t;
+
+/**
+ * @brief PWM device configuration data structure
+ *
+ * TODO: this should be moved into the CPU folder
+ */
+typedef struct {
+    Tcc *dev;                   /*< TCC device to use */
+    pwm_conf_chan_t chan[2];    /**< channel configuration */
+} pwm_conf_t;
+
+/* PWM device configuration */
+#if PWM_NUMOF
+static const pwm_conf_t pwm_config[] = {
+#if PWM_0_EN
+    {TCC1, {
+        {(PortGroup *)0x41004400, 6, 4, 0}, /* port 0, pin 6, af E, chan 0 */
+        {(PortGroup *)0x41004400, 7, 4, 1}  /* port 0, pin 7, af E, chan 1 */
+    }},
+#endif
+#if PWM_1_EN
+    {TCC0, {
+        {(PortGroup *)0x41004400, 22, 5, 4},
+        {(PortGroup *)0x41004400, 23, 5, 5}
+    }},
+#endif
+};
+#endif
+/** @} */
 
 /**
  * @name SPI configuration
