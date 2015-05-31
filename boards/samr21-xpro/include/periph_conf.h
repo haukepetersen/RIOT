@@ -126,8 +126,8 @@ static const pwm_conf_t pwm_config[] = {
 #endif
 #if PWM_1_EN
     {TCC0, {
-        {(PortGroup *)0x41004400, 22, 5, 4},
-        {(PortGroup *)0x41004400, 23, 5, 5}
+        {(PortGroup *)0x41004400, 18, 5, 2},
+        {(PortGroup *)0x41004400, 19, 5, 3}
     }},
 #endif
 };
