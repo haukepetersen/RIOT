@@ -84,7 +84,7 @@ static void wtimer_sleep(uint32_t seconds);
  *
  * When called from an ISR, this function will spin and thus block the MCU for
  * the specified amount in microseconds, so only use it there for *very* short
- * periods, e.g., less then WTIMER_BACKOFF.
+ * periods, e.g., less than WTIMER_BACKOFF.
  *
  * @param in microseconds the amount of microseconds the thread should sleep
  */
