@@ -104,13 +104,13 @@ void wtimer_set_msg(wtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t t
 
 static void _callback_wakeup(void* arg)
 {
-    thread_wakeup((kernel_pid_t)((uint32_t)arg));
+    thread_wakeup((kernel_pid_t)((intptr_t)arg));
 }
 
 void wtimer_set_wakeup(wtimer_t *timer, uint32_t offset, kernel_pid_t pid)
 {
     timer->callback = _callback_wakeup;
-    timer->arg = (void*) ((uint32_t)pid);
+    timer->arg = (void*) ((intptr_t)pid);
 
     wtimer_set(timer, offset);
 }
