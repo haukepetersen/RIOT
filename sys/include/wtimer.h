@@ -187,6 +187,18 @@ void wtimer_set_msg(wtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t t
 void wtimer_set(wtimer_t *timer, uint32_t offset);
 
 /**
+ * @brief remove a timer
+ *
+ * @note this function runs in O(n) with n being the number of active timers
+ *
+ * @param[in] timer ptr to timer structure that will be removed
+ *
+ * @return 1 on success
+ * @return 0 when timer was not active
+ */
+int wtimer_remove(wtimer_t *timer);
+
+/**
  * @brief wtimer backoff value
  *
  * All timers that are less than WTIMER_BACKOFF microseconds in the future will

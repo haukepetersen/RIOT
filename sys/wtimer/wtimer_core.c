@@ -203,6 +203,45 @@ static void _add_timer_to_long_list(wtimer_t **list_head, wtimer_t *timer)
     *list_head = timer;
 }
 
+static int _remove_timer_from_list(wtimer_t **list_head, wtimer_t *timer)
+{
+    while (*list_head) {
+        if (*list_head == timer) {
+            *list_head = timer->next;
+            return 1;
+        }
+        list_head = &((*list_head)->next);
+    }
+
+    return 0;
+}
+
+int wtimer_remove(wtimer_t *timer)
+{
+    unsigned state = disableIRQ();
+    int res = 0;
+    if (timer_list_head == timer) {
+        uint32_t next;
+        timer_list_head = timer->next;
+        if (timer_list_head) {
+            /* schedule callback on next timer target time */
+            next = timer_list_head->target - WTIMER_OVERHEAD;
+        } else {
+            next = _mask(0xFFFFFFFF);
+        }
+        _lltimer_set(next);
+    }
+    else {
+        res = _remove_timer_from_list(&timer_list_head, timer) ||
+            _remove_timer_from_list(&overflow_list_head, timer) ||
+            _remove_timer_from_list(&long_list_head, timer);
+    }
+
+    restoreIRQ(state);
+
+    return res;
+}
+
 static uint32_t _time_left(uint32_t target, uint32_t reference)
 {
     uint32_t now = _wtimer_now();
