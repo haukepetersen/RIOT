@@ -266,8 +266,8 @@ static const pwm_conf_t pwm_config[] = {
 #define GPIO_2_PIN         (15)
 #define GPIO_2_EXTINT      (15)
 /* GPIO channel 3 config */
-#define GPIO_3_DEV         PORT->Group[0]
-#define GPIO_3_PIN         (19)
+#define GPIO_3_DEV         PORT->Group[1]
+#define GPIO_3_PIN         (3)
 #define GPIO_3_EXTINT      (3)
 /* GPIO 4-7 Internal radio pins*/
 /* GPIO channel 4 config  radio CS*/
