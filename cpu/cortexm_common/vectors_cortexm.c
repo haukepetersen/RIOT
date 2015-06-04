@@ -41,6 +41,13 @@ extern uint32_t _sstack;
 extern uint32_t _estack;
 /** @} */
 
+/** @brief Interrupt stack canary value
+ *
+ * @note 0xe7fe is the ARM Thumb machine code equivalent of asm("bl #-2\n") or
+ * 'while (1);', i.e. an infinite loop.
+ */
+#define STACK_CANARY_WORD 0xE7FEE7FEu
+
 /**
  * @brief   Required by g++ cross compiler
  */
@@ -66,6 +73,11 @@ void reset_handler_default(void)
     uint32_t *src = &_etext;
     
     pre_startup();
+
+    /* fill stack space with canary values */
+    for (dst = &_sstack; dst < &_estack; ) {
+        *(dst++) = STACK_CANARY_WORD;
+    }
 
     /* load data section from flash to ram */
     for (dst = &_srelocate; dst < &_erelocate; ) {
