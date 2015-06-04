@@ -24,8 +24,8 @@ extern "C" {
 #endif
 
 /**
- * @brief   Use this macro to make interrupt functions over writable with the
- *          dummy_hanler as fallback in case they are not implemented
+ * @brief   Use this macro to make interrupt functions overridable with the
+ *          dummy_handler as fallback in case they are not implemented
  */
 #define WEAK_DEFAULT    __attribute__((weak,alias("dummy_handler")))
 
