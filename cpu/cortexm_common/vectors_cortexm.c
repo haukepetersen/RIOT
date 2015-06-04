@@ -46,10 +46,26 @@ extern uint32_t _estack;
  */
 void *__dso_handle;
 
+/**
+ * @brief   Pre-start routine for CPU-specific settings
+ */
+__attribute__((weak)) void pre_startup (void)
+{
+}
+
+/**
+ * @brief   Post-start routine for CPU-specific settings
+ */
+__attribute__((weak)) void post_startup (void)
+{
+}
+
 void reset_handler_default(void)
 {
     uint32_t *dst;
     uint32_t *src = &_etext;
+    
+    pre_startup();
 
     /* load data section from flash to ram */
     for (dst = &_srelocate; dst < &_erelocate; ) {
@@ -59,6 +75,8 @@ void reset_handler_default(void)
     for (dst = &_szero; dst < &_ezero; ) {
         *(dst++) = 0;
     }
+
+    post_startup();
 
     /* initialize the board (which also initiates CPU initialization) */
     board_init();
