@@ -31,46 +31,20 @@
 #include "vectors_cortexm.h"
 #include "wdog.h"
 
-extern void *_estack[];
-extern void *_sstack[];
+/**
+ * memory markers as defined in the linker script
+ */
+extern uint32_t _estack;
+
+void pre_startup (void)
+{
+    /* disable the WDOG */
+    wdog_disable();
+}
 
 void dummy_handler(void)
 {
     dummy_handler_default();
-}
-
-/** @brief Interrupt stack canary value
- *
- * @note 0xe7fe is the ARM Thumb machine code equivalent of asm("bl #-2\n") or
- * 'while (1);', i.e. an infinite loop.
- */
-#define STACK_CANARY_WORD 0xE7FEE7FEu
-
-void pre_startup (void)
-{
-    /*
-     * Important: Keep this function as simple as possible, we must not use any
-     * stack space or we will crash, since we will overwrite all of the stack.
-     */
-    /* Disable watchdog first, it is necessary to do within 256 cycles.
-     * After this we will completely overwrite the stack so all necessary
-     * variables must be stored in registers or as immediate values in the
-     * machine code. */
-    wdog_disable();
-    /*
-     * The register keyword suggests to the compiler to place the variable in a
-     * register instead of on the stack. Using the register keyword is not a
-     * guarantee that the variable will be placed in a register. However, this
-     * function has been verified manually by disassembling the GCC output to
-     * ensure no stack is being used until after the write loop is finished.
-     */
-    register uint32_t *p;
-
-    /* Fill stack space with canary values */
-    for (p = (uint32_t *)_sstack; p < (uint32_t *)_estack; ++p) {
-        *p = STACK_CANARY_WORD;
-    }
-
 }
 
 /* Cortex-M specific interrupt vectors */
