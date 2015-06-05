@@ -120,12 +120,14 @@ typedef struct {
 static const pwm_conf_t pwm_config[] = {
 #if PWM_0_EN
     {TCC1, {
-        {(PortGroup *)0x41004400, 6, 4, 0}, /* port 0, pin 6, af E, chan 0 */
-        {(PortGroup *)0x41004400, 7, 4, 1}  /* port 0, pin 7, af E, chan 1 */
+        /* port , pin, AF, chan */
+        {(PortGroup *)0x41004400, 6, 4, 0},
+        {(PortGroup *)0x41004400, 7, 4, 1}
     }},
 #endif
 #if PWM_1_EN
     {TCC0, {
+        /* port , pin, AF, chan */
         {(PortGroup *)0x41004400, 18, 5, 2},
         {(PortGroup *)0x41004400, 19, 5, 3}
     }},
