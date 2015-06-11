@@ -172,6 +172,29 @@ static const pwm_conf_t pwm_config[] = {
 /** @} */
 
 /**
+ * @name   ADC configuration
+ * @{
+ */
+#define ADC_NUMOF           1
+#define ADC_0_EN            1
+#define ADC_CHANNELS        1
+#define ADC_MAX_CHANNELS    ADC_CHANNELS
+
+
+typedef struct {
+    PortGroup *port;
+    uint8_t pin;
+    uint8_t muxpos;                 /* see datasheet sec 30.8.8 */
+} adc_conf_t;
+
+#if ADC_CHANNELS
+static const adc_conf_t adc_config[] = {
+    {&PORT->Group[0], 8, 0x10},    /* port, pin, muxpos */
+};
+#endif
+/** @} */
+
+/**
  * @name SPI configuration
  * @{
  */
