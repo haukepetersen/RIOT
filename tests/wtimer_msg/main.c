@@ -28,8 +28,8 @@
 #include "thread.h"
 #include "msg.h"
 
-char timer_stack[KERNEL_CONF_STACKSIZE_MAIN];
-char timer_stack_local[KERNEL_CONF_STACKSIZE_MAIN];
+char timer_stack[THREAD_STACKSIZE_MAIN];
+char timer_stack_local[THREAD_STACKSIZE_MAIN];
 
 struct timer_msg {
     wtimer_t timer;
@@ -98,7 +98,7 @@ int main(void)
     kernel_pid_t pid = thread_create(
                   timer_stack,
                   sizeof(timer_stack),
-                  PRIORITY_MAIN - 1,
+                  THREAD_PRIORITY_MAIN - 1,
                   CREATE_STACKTEST,
                   timer_thread,
                   NULL,
@@ -115,7 +115,7 @@ int main(void)
     kernel_pid_t pid2 = thread_create(
                    timer_stack_local,
                    sizeof(timer_stack_local),
-                   PRIORITY_MAIN - 1,
+                   THREAD_PRIORITY_MAIN - 1,
                    CREATE_STACKTEST,
                    timer_thread_local,
                    NULL,
