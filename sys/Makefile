@@ -167,6 +167,12 @@ endif
 ifneq (,$(filter ng_netdev_eth,$(USEMODULE)))
     DIRS += net/link_layer/ng_netdev_eth
 endif
+ifneq (,$(filter dncp,$(USEMODULE)))
+    DIRS += net/application_layer/dncp
+endif
+ifneq (,$(filter hncp,$(USEMODULE)))
+    DIRS += net/application_layer/hncp
+endif
 
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, ${USEMODULE})))
 

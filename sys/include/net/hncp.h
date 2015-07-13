@@ -32,6 +32,15 @@
 extern "C" {
 #endif
 
+#define HNCP_MESSAGE_QUEUE_SIZE         (8U)
+
+#define HNCP_STACKSIZE_DEFAULT          (THREAD_STACKSIZE_DEFAULT + \
+                                         (sizeof(msg_queue_entry_t) * \
+                                          HNCP_MESSAGE_QUEUE_SIZE))
+
+#define HNCP_PRIO_DEFAULT               (THREAD_PRIO_MAIN - 1)
+
+void hncp_init(uint16_t port, char *stack, int stacksize, char prio);
 
 #ifdef __cplusplus
 }
