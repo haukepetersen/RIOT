@@ -37,6 +37,16 @@ extern "C" {
 
 #include "net/dncp/tlvs.h"
 #include "ng_nettype.h"
+#include "net/ng_ipv6.h"
+#include "trickle.h"
+
+#define HNCP_PORT 8808
+#define HNCP_DTLS_SERVER_PORT 8809
+#define HNCP_MCAST_GROUP "ff02::8808"
+
+#define TRICKLE_K 1
+#define TRICKLE_I_MIN 200
+#define TRICKLE_I_MAX 7
 
 /**
  * @brief	dncp profile structure
@@ -44,7 +54,13 @@ extern "C" {
  */
 typedef struct {
 	ng_nettype_t transport; /**< transport protocol */
-	uint16_t port;
+	uint16_t port;			/**< port of the transport protocol */
+	ng_ipv6_addr_t mcast;	/**< multicast group */
+	trickle_t trickle;		/**< trickle parameters */
+	void (*cb_hash)(uint8_t *hash, const uint8_t *data, size_t len); /**< hash callback */
+	uint8_t node_id_len;	/**< node identified length */
+	uint16_t keep_alive_interval;
+	float keep_alive_multiplier;
 } dncp_profile_t;
 
 /**

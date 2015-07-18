@@ -317,6 +317,7 @@ ifneq (,$(filter oonf_common,$(USEMODULE)))
 endif
 
 ifneq (,$(filter hncp,$(USEMODULE)))
+  USEMODULE += trickle
   USEMODULE += hashes
   USEMODULE += dncp
 endif
