@@ -155,7 +155,7 @@ int hncp_send(ng_ipv6_addr_t *addr, uint16_t port, uint8_t *data, size_t len)
         return -1;
     }
     /* forward packet to the transport layer */
-    if (!ng_netapi_dispatch_send(trans->type, NG_NETREG_DEMUX_CTX_ALL, trans)) {
+    if (!ng_netapi_dispatch_send(net->type, NG_NETREG_DEMUX_CTX_ALL, net)) {
         DEBUG("udp: cannot send packet: network layer not found\n");
         ng_pktbuf_release(net);
         return -1;
