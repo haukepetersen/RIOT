@@ -21,8 +21,36 @@
 #include "net/dncp.h"
 #include "net/dncp/tlvs.h"
 
+void dcnp_init(dncp_profile_t *profile)
+{
+
+}
+
 
 void dncp_dispatch(dncp_tlv_t *tlv)
 {
+    switch (tlv->type) {
+        case DNCP_TLV_TYPE_REQ_NET_STATE:
 
+
+            break;
+        case DNCP_TLV_TYPE_REQ_NODE_STATE:
+
+            break;
+        case DNCP_TLV_TYPE_NET_STATE:
+
+            break;
+        case DNCP_TLV_TYPE_NODE_STATE:
+
+
+            break;
+        case DNCP_TLV_TYPE_NODE_EP:
+        case DNCP_TLV_TYPE_FRAG_COUNT:
+        case DNCP_TLV_TYPE_NEIGHBOR:
+        case DNCP_TLV_TYPE_KEEP_ALIVE_INT:
+        case DNCP_TLV_TYPE_TRUST_VERDICT:
+        default:
+            /* TODO: not supported, yet */
+            break;
+    }
 }

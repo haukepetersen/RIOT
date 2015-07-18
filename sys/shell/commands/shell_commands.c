@@ -180,6 +180,13 @@ extern int _zep_init(int argc, char **argv);
 #endif
 #endif
 
+#ifdef MODULE_HNCP
+extern int _hncp_init(int argc, char **argv);
+extern int _hncp_list(int argc, char **argv);
+extern int _hncp_req_node(int argc, char **argv);
+extern int _hncp_req_net(int argv, char **argv);
+#endif
+
 const shell_command_t _shell_command_list[] = {
     {"reboot", "Reboot the node", _reboot_handler},
 #ifdef MODULE_CONFIG
@@ -297,6 +304,12 @@ const shell_command_t _shell_command_list[] = {
 #ifdef MODULE_NG_IPV6_ADDR
     {"zep_init", "initializes ZEP (Zigbee Encapsulation Protocol)", _zep_init },
 #endif
+#endif
+#ifdef MODULE_HNCP
+    {"hnet_init", "initialize Homenet", _hnet_init },
+    {"hnet_list", "list the current network state", _hnet_init },
+    {"hnet_req_node", "request a node's state", _hnet_init },
+    {"hnet_req_net", "request the network state", _hnet_init },
 #endif
     {NULL, NULL, NULL}
 };
