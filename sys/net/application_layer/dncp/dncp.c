@@ -21,3 +21,8 @@
 #include "net/dncp.h"
 #include "net/dncp/tlvs.h"
 
+
+void dncp_dispatch(dncp_tlv_t *tlv)
+{
+
+}

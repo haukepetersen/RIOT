@@ -35,6 +35,12 @@
 extern "C" {
 #endif
 
+/**
+ * @brief   Dispatch an incoming TLV block
+ *
+ * @param[in] tlv       TLV data
+ */
+void dncp_dispatch(dncp_tlv_t *tlv);
 
 #ifdef __cplusplus
 }
