@@ -308,7 +308,7 @@ const shell_command_t _shell_command_list[] = {
 #ifdef MODULE_HNCP
     {"hnet_init", "initialize Homenet", _hncp_init },
     {"hnet_list", "list the current network state", _hncp_init },
-    {"hnet_req_node", "request a node's state", _hncp_init },
+    {"hnet_req_node", "request a node's state", _hncp_req_node },
     {"hnet_req_net", "request the network state", _hncp_init },
 #endif
     {NULL, NULL, NULL}

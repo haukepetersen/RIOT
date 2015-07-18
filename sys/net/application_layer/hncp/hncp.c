@@ -33,6 +33,8 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
+dncp_profile_t dncp_profile;
+
 /* TODO: need src address and src port */
 static void dispatch(dncp_tlv_t *tlv)
 {
@@ -110,6 +112,20 @@ void hncp_hash(uint8_t *hash, const uint8_t *data, size_t len)
     uint8_t res[16];
     md5(res, data, len);
     memcpy(hash, res, 4);   /* TODO; was it the first or last 4 byte of the hash? */
+}
+
+int hncp_req_node(uint8_t *node_identifier)
+{
+	dncp_tlv_t req_node_state = {
+		.type = byteorder_htons(DNCP_TLV_TYPE_REQ_NODE_STATE),
+		.length = byteorder_htons(dncp_profile.node_id_len),
+	};
+
+	memcpy(req_node_state.value, node_identifier, dncp_profile.node_id_len);
+
+	hncp_send(&dncp_profile.mcast, dncp_profile.port, (uint8_t *) &req_node_state,
+			(sizeof(req_node_state.type) + sizeof(req_node_state.length) + dncp_profile.node_id_len));
+    return 0;
 }
 
 int hncp_send(ng_ipv6_addr_t *addr, uint16_t port, uint8_t *data, size_t len)

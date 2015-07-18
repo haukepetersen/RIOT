@@ -63,8 +63,6 @@ typedef struct {
 	float keep_alive_multiplier;
 } dncp_profile_t;
 
-extern dncp_profile_t *dncp_profile;
-
 /**
  * @brief   Initialization of DNCP
  *

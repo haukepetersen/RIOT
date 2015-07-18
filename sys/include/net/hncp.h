@@ -35,6 +35,7 @@ extern "C" {
 #include "thread.h"
 #include "stdint.h"
 #include "ng_nettype.h"
+#include "net/ng_ipv6.h"
 
 #define HNCP_MESSAGE_QUEUE_SIZE         (8U)
 
@@ -45,7 +46,8 @@ extern "C" {
 #define HNCP_PRIO_DEFAULT               (THREAD_PRIORITY_MAIN - 1)
 
 void hncp_init(ng_nettype_t transport, uint16_t port, char *stack, int stacksize, char prio);
-int hncp_req_node(void);
+int hncp_send(ng_ipv6_addr_t *addr, uint16_t port, uint8_t *data, size_t len);
+int hncp_req_node(uint8_t *node_identifier);
 
 #ifdef __cplusplus
 }

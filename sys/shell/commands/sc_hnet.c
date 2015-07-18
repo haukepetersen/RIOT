@@ -48,6 +48,8 @@ extern int _hncp_req_node(int argc, char **argv)
     (void)argc;
     (void)argv;
 
+	hncp_req_node((uint8_t *) argv[1]);
+
     return 0;
 }
 
