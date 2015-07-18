@@ -23,6 +23,8 @@
 extern "C" {
 #endif
 
+#include "byteorder.h"
+
 /**
  * @brief   Global DNCP TLV type definitions
  * @{

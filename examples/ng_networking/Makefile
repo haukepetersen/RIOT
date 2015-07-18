@@ -30,6 +30,7 @@ USEMODULE += uart0
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+USEMODULE += hncp
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

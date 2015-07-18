@@ -35,6 +35,8 @@
 extern "C" {
 #endif
 
+#include "net/dncp/tlvs.h"
+
 /**
  * @brief   Dispatch an incoming TLV block
  *
