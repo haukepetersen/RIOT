@@ -184,7 +184,7 @@ extern int _zep_init(int argc, char **argv);
 extern int _hncp_init(int argc, char **argv);
 extern int _hncp_list(int argc, char **argv);
 extern int _hncp_req_node(int argc, char **argv);
-extern int _hncp_req_net(int argv, char **argv);
+extern int _hncp_req_net(int argc, char **argv);
 #endif
 
 const shell_command_t _shell_command_list[] = {
@@ -306,10 +306,10 @@ const shell_command_t _shell_command_list[] = {
 #endif
 #endif
 #ifdef MODULE_HNCP
-    {"hnet_init", "initialize Homenet", _hnet_init },
-    {"hnet_list", "list the current network state", _hnet_init },
-    {"hnet_req_node", "request a node's state", _hnet_init },
-    {"hnet_req_net", "request the network state", _hnet_init },
+    {"hnet_init", "initialize Homenet", _hncp_init },
+    {"hnet_list", "list the current network state", _hncp_init },
+    {"hnet_req_node", "request a node's state", _hncp_init },
+    {"hnet_req_net", "request the network state", _hncp_init },
 #endif
     {NULL, NULL, NULL}
 };

@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include "net/ng_ipv6/addr.h"
+#include "net/ipv4/addr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,14 +51,14 @@ typedef struct __attribute__((packed)) {
     network_uint16_t type;          /**< TLV type, must be 36*/
     network_uint16_t length;        /**< length, must be 20 */
     network_uint32_t ep_id;         /**< endpoint identifier */
-    union addr {                    /**< IP address (IPv4 or IPv6) */
-        struct ipv4 {               /**< IPv4 mapped IPv6 address [RFC 4291] */
+    union {                    /**< IP address (IPv4 or IPv6) */
+        struct {               /**< IPv4 mapped IPv6 address [RFC 4291] */
             uint8_t reserved0[80];  /**< must be all zeros */
             uint8_t reserved1[16];  /**< must be all ones */
             ipv4_addr_t addr;       /**< the actual IPv4 address */
-        };
+        } ipv4;
         ng_ipv6_addr_t ipv6;        /**< IPv6 address */
-    }
+    } addr;
 } hncp_tlv_node_addr_t;
 
 #ifdef __cplusplus

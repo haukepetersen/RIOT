@@ -70,6 +70,9 @@ endif
 ifneq (,$(filter ng_zep ng_ipv6_addr,$(USEMODULE)))
   SRC += sc_zep.c
 endif
+ifneq (,$(filter hncp,$(USEMODULE)))
+  SRC += sc_hnet.c
+endif
 
 # TODO
 # Conditional building not possible at the moment due to

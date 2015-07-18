@@ -32,15 +32,20 @@
 extern "C" {
 #endif
 
+#include "thread.h"
+#include "stdint.h"
+#include "ng_nettype.h"
+
 #define HNCP_MESSAGE_QUEUE_SIZE         (8U)
 
 #define HNCP_STACKSIZE_DEFAULT          (THREAD_STACKSIZE_DEFAULT + \
-                                         (sizeof(msg_queue_entry_t) * \
+                                         (sizeof(msg_t) * \
                                           HNCP_MESSAGE_QUEUE_SIZE))
 
-#define HNCP_PRIO_DEFAULT               (THREAD_PRIO_MAIN - 1)
+#define HNCP_PRIO_DEFAULT               (THREAD_PRIORITY_MAIN - 1)
 
-void hncp_init(uint16_t port, char *stack, int stacksize, char prio);
+void hncp_init(ng_nettype_t transport, uint16_t port, char *stack, int stacksize, char prio);
+int hncp_req_node(void);
 
 #ifdef __cplusplus
 }

@@ -21,8 +21,9 @@
 #include "net/dncp.h"
 #include "net/dncp/tlvs.h"
 
-void dcnp_init(dncp_profile_t *profile)
+void dncp_init(dncp_profile_t *profile)
 {
+	(void) profile;
 
 }
 

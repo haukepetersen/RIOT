@@ -36,6 +36,23 @@ extern "C" {
 #endif
 
 #include "net/dncp/tlvs.h"
+#include "ng_nettype.h"
+
+/**
+ * @brief	dncp profile structure
+ *
+ */
+typedef struct {
+	ng_nettype_t transport; /**< transport protocol */
+	uint16_t port;
+} dncp_profile_t;
+
+/**
+ * @brief   Initialization of DNCP
+ *
+ * @param[in] profile   profile struct
+ */
+void dncp_init(dncp_profile_t *profile);
 
 /**
  * @brief   Dispatch an incoming TLV block

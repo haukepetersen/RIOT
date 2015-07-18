@@ -18,32 +18,48 @@
  * @}
  */
 
+#include <errno.h>
+
+#include "net/ng_netapi.h"
+#include "net/ng_pkt.h"
+#include "net/ng_pktbuf.h"
 #include "net/hncp.h"
 #include "net/dncp.h"
 #include "net/hncp/tlvs.h"
+#include "hashes/md5.h"
+#include "net/ng_ipv6.h"
+#include "net/ng_udp.h"
+
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
 
 /* TODO: need src address and src port */
 static void dispatch(dncp_tlv_t *tlv)
 {
     /* DNCP type? */
-    if (tlv->type > 0 && tlv->type <= DNCP_TLV_TYPE_TRUST_VERDICT) {
-        dncp_dispatch(tlv)
+    if (byteorder_ntohs(tlv->type) > 0 && byteorder_ntohs(tlv->type) <= DNCP_TLV_TYPE_TRUST_VERDICT) {
+        dncp_dispatch(tlv);
     }
 }
 
 static void parse_packet(ng_pktsnip_t *snip)
 {
+    size_t len = snip->size;
     do {
         /* read TLVs from incoming packet, TODO: adjust for other transports */
         dncp_tlv_t *tlv = (dncp_tlv_t *)snip->data;
+        len -= sizeof(tlv->type) + sizeof(tlv->length) + byteorder_ntohs(tlv->length);
         dispatch(tlv);
-    } while ();
+    } while (len);
 }
 
 static void *event_loop(void *arg)
 {
+    (void) arg;
+
     msg_t msg, reply;
-    mst_t msg_queue[HNCP_MESSAGE_QUEUE_SIZE];
+    msg_t msg_queue[HNCP_MESSAGE_QUEUE_SIZE];
+    ng_pktsnip_t *snip;
 
     /* prepare reply message */
     reply.type = NG_NETAPI_MSG_TYPE_ACK;
@@ -57,7 +73,7 @@ static void *event_loop(void *arg)
 
         switch (msg.type) {
             case NG_NETAPI_MSG_TYPE_RCV:
-                ng_pktsnip_t *snip = (ng_pktsnip_t *)msg.content.value;
+                snip = (ng_pktsnip_t *)msg.content.value;
                 parse_packet(snip);
                 ng_pktbuf_release(snip);
                 break;
@@ -81,9 +97,10 @@ void hncp_init(ng_nettype_t transport, uint16_t port,
                char *stack, int stacksize, char prio)
 {
     /* check transport */
+    (void) transport; /* TODO: for now unchecked */
 
     /* create the HNCP thread */
-    thread_create(stack, stacksize, prio, THREAD_CREATE_STACKTEST,
+    thread_create(stack, stacksize, prio, CREATE_STACKTEST,
                   event_loop, &port, "hncp");
 
 }
@@ -103,7 +120,7 @@ int hncp_send(ng_ipv6_addr_t *addr, uint16_t port, uint8_t *data, size_t len)
     p[1] = (uint8_t)port;
 
     /* allocate payload in packet buffer */
-    payload = ng_pktbuffer_add(NULL, data, len, NG_NETTYPE_UNDEF);
+    payload = ng_pktbuf_add(NULL, data, len, NG_NETTYPE_UNDEF);
     if (payload == NULL) {
         /* error */
         return -1;
@@ -122,8 +139,11 @@ int hncp_send(ng_ipv6_addr_t *addr, uint16_t port, uint8_t *data, size_t len)
         return -1;
     }
     /* forward packet to the transport layer */
-    if (!ng_netapi_dispatch_send(trans->type, NG_NETREG_DEMUX_CTX_ALL, pkt)) {
+    if (!ng_netapi_dispatch_send(trans->type, NG_NETREG_DEMUX_CTX_ALL, trans)) {
         DEBUG("udp: cannot send packet: network layer not found\n");
         ng_pktbuf_release(net);
+        return -1;
     }
+
+    return 0;
 }
