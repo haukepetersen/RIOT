@@ -48,7 +48,12 @@ extern int _hncp_req_node(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-	hncp_req_node((uint8_t *) argv[1]);
+    if (argc == 2) {
+        hncp_req_node((uint8_t *) argv[1]);
+    }
+    else {
+        return -1;
+    }
 
     return 0;
 }

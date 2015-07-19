@@ -49,7 +49,6 @@ extern "C" {
 typedef struct __attribute__((packed)) {
     network_uint16_t type;      /**< 16-bit type field, network byte order */
     network_uint16_t length;    /**< 16-bit length field, network byte order */
-    uint8_t value[];            /**< variable length data */
 } dncp_tlv_t;
 
 #ifdef __cplusplus

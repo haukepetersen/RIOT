@@ -42,7 +42,7 @@ extern "C" {
 
 #define HNCP_PORT 8808
 #define HNCP_DTLS_SERVER_PORT 8809
-#define HNCP_MCAST_GROUP "ff02::8808"
+#define HNCP_NODE_ID_LEN 32
 
 #define TRICKLE_K 1
 #define TRICKLE_I_MIN 200
