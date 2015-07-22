@@ -325,6 +325,10 @@ static void _select_long_timers(void)
             select_list_last = long_list_head;
             long_list_head = long_list_head->next;
         }
+        else {
+            /* remaining long_list timers belong to later long periods */
+            break;
+        }
     }
 
     /* cut the "selected long timer list" at the end */
