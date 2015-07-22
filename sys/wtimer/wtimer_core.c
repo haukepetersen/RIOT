@@ -421,10 +421,12 @@ overflow:
         /* make sure we don't fire too early */
         while (_time_left(_mask(timer_list_head->target), 0));
 
+        wtimer_t *next = timer_list_head->next;
+
         _shoot(timer_list_head);
 
         /* advance to next timer in list */
-        timer_list_head = timer_list_head->next;
+        timer_list_head = next;
     }
 
     /* possibly executing all callbacks took enough
