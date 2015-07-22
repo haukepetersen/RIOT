@@ -27,7 +27,7 @@
 
 static volatile uint32_t _long_cnt = 0;
 #if WTIMER_MASK
-static volatile uint32_t _high_cnt = 0;
+volatile uint32_t _high_cnt = 0;
 #endif
 
 static wtimer_t *timer_list_head = NULL;
