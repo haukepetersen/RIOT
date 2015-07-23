@@ -152,6 +152,7 @@ int _wtimer_set_absolute(wtimer_t *timer, uint32_t target)
         /* backoff */
         wtimer_spin_until(target);
         _shoot(timer);
+        return 0;
     }
 
     timer->target = target;
