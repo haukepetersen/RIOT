@@ -52,7 +52,7 @@ void *timer_thread(void *arg)
     /* without a queue, the message would get lost */
     /* because of the way this timer works, there can be max 1 queued message */
     msg_t msgq[1];
-    msg_init_queue(msgq, sizeof(msgq));
+    msg_init_queue(msgq, 1);
 
     while (1) {
         msg_t m;
