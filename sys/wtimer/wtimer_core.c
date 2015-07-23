@@ -80,7 +80,7 @@ uint64_t wtimer_now64(void)
 
 void _wtimer_set64(wtimer_t *timer, uint32_t offset, uint32_t long_offset)
 {
-    DEBUG(" _wtimer_set64() offset=%u long_offset=%u\n", (unsigned)offset, (unsigned)long_offset);
+    DEBUG(" _wtimer_set64() offset=%" PRIu32 " long_offset=%" PRIu32 "\n", offset, long_offset);
     if (! (long_offset)) {
         /* timer fits into the short timer */
         wtimer_set(timer, (uint32_t) offset);
@@ -96,14 +96,14 @@ void _wtimer_set64(wtimer_t *timer, uint32_t offset, uint32_t long_offset)
         int state = disableIRQ();
         _add_timer_to_long_list(&long_list_head, timer);
         restoreIRQ(state);
-        DEBUG("wtimer_set64(): added longterm timer (long_target=%u target=%u)\n",
-                (unsigned)timer->long_target, (unsigned)timer->target);
+        DEBUG("wtimer_set64(): added longterm timer (long_target=%" PRIu32 " target=%" PRIu32 ")\n",
+                timer->long_target, timer->target);
     }
 }
 
 void wtimer_set(wtimer_t *timer, uint32_t offset)
 {
-    DEBUG("timer_set(): offset=%u now=%u (%u)\n", (unsigned)offset, (unsigned)wtimer_now(), (unsigned)_wtimer_now());
+    DEBUG("timer_set(): offset=%" PRIu32 " now=%" PRIu32 " (%" PRIu32 ")\n", offset, wtimer_now(), _wtimer_now());
     if (!timer->callback) {
         DEBUG("timer_set(): timer has no callback.\n");
         return;
@@ -136,7 +136,7 @@ static void _shoot(wtimer_t *timer)
 
 static inline void _lltimer_set(uint32_t target)
 {
-    DEBUG("__lltimer_set(): setting %u\n", (unsigned) _mask(target));
+    DEBUG("__lltimer_set(): setting %" PRIu32 "\n", _mask(target));
     timer_set_absolute(WTIMER, WTIMER_CHAN, _mask(target));
 }
 
@@ -145,7 +145,7 @@ int _wtimer_set_absolute(wtimer_t *timer, uint32_t target)
     uint32_t now = wtimer_now();
     int res = 0;
 
-    DEBUG("timer_set_absolute(): now=%u target=%u\n", (unsigned)now, (unsigned)target);
+    DEBUG("timer_set_absolute(): now=%" PRIu32 " target=%" PRIu32 "\n", now, target);
 
     timer->next = NULL;
     if (target >= now && target - WTIMER_BACKOFF < now) {
@@ -389,8 +389,8 @@ static void _timer_callback(void)
     uint32_t next;
     uint32_t reference;
 
-    DEBUG("_timer_callback() now=%u (%u)pleft=%u\n", (unsigned)wtimer_now(),
-            (unsigned)_mask(wtimer_now()), (unsigned) _mask(0xffffffff-wtimer_now()));
+    DEBUG("_timer_callback() now=%" PRIu32 " (%" PRIu32 ")pleft=%" PRIu32 "\n", wtimer_now(),
+            _mask(wtimer_now()), _mask(0xffffffff-wtimer_now()));
 
     if (!timer_list_head) {
         DEBUG("_timer_callback(): tick\n");
