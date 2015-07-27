@@ -1,0 +1,40 @@
+/*
+ * Copyright (C) 2015 Freie Universität Berlin
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @ingroup     cpu_ezr32wg
+ * @{
+ *
+ * @file
+ * @brief       CPU specific hwtimer configuration options
+ *
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ */
+
+#ifndef __HWTIMER_CPU_H
+#define __HWTIMER_CPU_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @name Hardware timer configuration
+ * @{
+ */
+#define HWTIMER_MAXTIMERS   3           /**< the timers have 3 CC channels */
+#define HWTIMER_SPEED       (1000000U)  /**< the HW timer runs with 1MHz */
+#define HWTIMER_MAXTICKS    (0xFFFF)    /**< 16-bit timer */
+/** @} */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __HWTIMER_CPU_H */
+/** @} */
