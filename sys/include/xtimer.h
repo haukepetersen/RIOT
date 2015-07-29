@@ -161,13 +161,27 @@ void xtimer_now_timex(timex_t *out);
  * The mesage struct specified by msg parameter will not be copied, e.g., it
  * needs to point to valid memory until the message has been delivered.
  *
- *
  * @param[in] timer         timer struct to work with
  * @param[in] offset        microseconds from now
  * @param[in] msg           ptr to msg that will be sent
  * @param[in] target_pid    pid the message will be sent to
  */
 void xtimer_set_msg(xtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
+
+/**
+ * @brief Set a timer that sends a message, 64bit version
+ *
+ * This function sets a timer that will send a message <offset> microseconds from now.
+ *
+ * The mesage struct specified by msg parameter will not be copied, e.g., it
+ * needs to point to valid memory until the message has been delivered.
+ *
+ * @param[in] timer         timer struct to work with
+ * @param[in] offset        microseconds from now
+ * @param[in] msg           ptr to msg that will be sent
+ * @param[in] target_pid    pid the message will be sent to
+ */
+void xtimer_set_msg64(xtimer_t *timer, uint64_t offset, msg_t *msg, kernel_pid_t target_pid);
 
 /**
  * @brief Set a timer that wakes up a thread
@@ -209,6 +223,26 @@ void xtimer_set(xtimer_t *timer, uint32_t offset);
  * @return 0 when timer was not active
  */
 int xtimer_remove(xtimer_t *timer);
+
+/**
+ * @brief receive a message blocking but with timeout
+ *
+ * @param[out]   m           pointer to a msg_t which will be filled in case of no timeout
+ * @param[in]    timeout     timeout in microseconds relative
+ *
+ * @return       < 0 on error, other value otherwise
+ */
+int xtimer_msg_receive_timeout(msg_t *m, uint32_t microseconds);
+
+/**
+ * @brief receive a message blocking but with timeout, 64bit version
+ *
+ * @param[out]   m           pointer to a msg_t which will be filled in case of no timeout
+ * @param[in]    timeout     timeout in microseconds relative
+ *
+ * @return       < 0 on error, other value otherwise
+ */
+int xtimer_msg_receive_timeout64(msg_t *m, uint64_t microseconds);
 
 /**
  * @brief xtimer backoff value
@@ -278,6 +312,11 @@ int xtimer_remove(xtimer_t *timer);
 #if XTIMER_MASK
 extern volatile uint32_t _high_cnt;
 #endif
+
+/**
+ * @brief IPC message type for xtimer msg callback
+ */
+#define MSG_XTIMER 12345
 
 /**
  * @brief returns the (masked) low-level timer counter value.

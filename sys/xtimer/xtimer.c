@@ -91,15 +91,25 @@ static void _callback_msg(void* arg)
     msg_send_int(msg, msg->sender_pid);
 }
 
-void xtimer_set_msg(xtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid)
+static inline void _setup_msg(xtimer_t *timer, msg_t *msg, kernel_pid_t target_pid)
 {
     timer->callback = _callback_msg;
     timer->arg = (void*) msg;
 
     /* use sender_pid field to get target_pid into callback function */
     msg->sender_pid = target_pid;
+}
 
+void xtimer_set_msg(xtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid)
+{
+    _setup_msg(timer, msg, target_pid);
     xtimer_set(timer, offset);
+}
+
+void xtimer_set_msg64(xtimer_t *timer, uint64_t offset, msg_t *msg, kernel_pid_t target_pid)
+{
+    _setup_msg(timer, msg, target_pid);
+    _xtimer_set64(timer, offset, offset >> 32);
 }
 
 static void _callback_wakeup(void* arg)
@@ -131,4 +141,23 @@ void xtimer_now_timex(timex_t *out)
 
     out->seconds = _ms_to_sec(now);
     out->microseconds = now - (out->seconds * 1000000U);
+}
+
+int xtimer_msg_receive_timeout64(msg_t *m, uint64_t timeout) {
+    msg_t tmsg;
+    tmsg.type = MSG_XTIMER;
+    tmsg.content.ptr = (char *) &tmsg;
+
+    xtimer_t t;
+    xtimer_set_msg64(&t, timeout, &tmsg, sched_active_pid);
+
+    msg_receive(m);
+    if (m->type == MSG_XTIMER && m->content.ptr == (char *) &tmsg) {
+        /* we hit the timeout */
+        return -1;
+    }
+    else {
+        xtimer_remove(&t);
+        return 1;
+    }
 }
