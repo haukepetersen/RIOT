@@ -170,6 +170,18 @@ void wtimer_now_timex(timex_t *out);
 void wtimer_set_msg(wtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
 
 /**
+ * @brief Set a timer that wakes up a thread
+ *
+ * This function sets a timer that will wake up a thread when the timer has
+ * expired.
+ *
+ * @param[in] timer         timer struct to work with
+ * @param[in] offset        microseconds from now
+ * @param[in] pid           pid of the thread that will be woken up
+ */
+void wtimer_set_wakeup(wtimer_t *timer, uint32_t offset, kernel_pid_t pid);
+
+/**
  * @brief Set a timer to execute a callback at some time in the future
  *
  * Expects timer->callback to be set.
