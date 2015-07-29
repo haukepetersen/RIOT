@@ -22,26 +22,26 @@
 
 #include "msg.h"
 #include "thread.h"
-#include "wtimer.h"
+#include "xtimer.h"
 
 #define N 3
 
 int main(void)
 {
-    puts("wtimer_usleep_until test application.\n");
+    puts("xtimer_usleep_until test application.\n");
 
     kernel_pid_t me = thread_getpid();
 
     for (int n = 0; n < N; n++) {
         printf("Setting %u timers, removing timer %u/%u\n", N, n, N);
-        wtimer_t timers[N];
+        xtimer_t timers[N];
         msg_t msg[N];
         for (int i = 0; i < N; i++) {
             msg[i].type = i;
-            wtimer_set_msg(&timers[i], 100000*(i+1), &msg[i], me);
+            xtimer_set_msg(&timers[i], 100000*(i+1), &msg[i], me);
         }
 
-        wtimer_remove(&timers[n]);
+        xtimer_remove(&timers[n]);
 
         int num = N-1;
         while(num--) {
