@@ -285,6 +285,7 @@ ifneq (,$(filter l2_ping,$(USEMODULE)))
 endif
 
 ifneq (,$(filter vtimer,$(USEMODULE)))
+  USEMODULE += xtimer
   USEMODULE += timex
 endif
 
