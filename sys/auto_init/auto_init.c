@@ -52,8 +52,8 @@
 #include "vtimer.h"
 #endif
 
-#ifdef MODULE_WTIMER
-#include "wtimer.h"
+#ifdef MODULE_XTIMER
+#include "xtimer.h"
 #endif
 
 #ifdef MODULE_RTC
@@ -258,9 +258,9 @@ void auto_init(void)
     board_uart0_init();
 #endif
 #endif
-#ifdef MODULE_WTIMER
-    DEBUG("Auto init wtimer module.\n");
-    wtimer_init();
+#ifdef MODULE_XTIMER
+    DEBUG("Auto init xtimer module.\n");
+    xtimer_init();
 #endif
 #ifdef MODULE_RTC
     DEBUG("Auto init rtc module.\n");
