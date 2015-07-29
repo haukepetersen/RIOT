@@ -278,6 +278,25 @@ int xtimer_msg_receive_timeout64(msg_t *m, uint64_t microseconds);
 #define XTIMER_ISR_BACKOFF 20
 #endif
 
+/**
+ * @brief set xtimer default timer configuration
+ * @{
+ */
+#ifndef XTIMER
+#define XTIMER (0)
+#define XTIMER_CHAN (0)
+
+#if TIMER_0_MAX_VALUE == 0xffffff
+#define XTIMER_MASK 0xff000000
+#elif TIMER_0_MAX_VALUE == 0xffff
+#define XTIMER_MASK 0xffff0000
+#endif
+
+#endif
+/**
+ * @}
+ */
+
 #ifndef XTIMER_MASK
 /**
  * @brief xtimer timer mask
