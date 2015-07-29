@@ -189,7 +189,7 @@ void wtimer_set_wakeup(wtimer_t *timer, uint32_t offset, kernel_pid_t pid);
  * The callback specified in the timer struct will be executed <offset> microseconds in
  * the future.
  *
- * BEWARE! Callbacks from wtimer_set() are being executed in interrupt context
+ * @warning BEWARE! Callbacks from wtimer_set() are being executed in interrupt context
  * (unless offset < WTIMER_BACKOFF). DON'T USE THIS FUNCTION unless you know
  * *exactly* what that means.
  *
