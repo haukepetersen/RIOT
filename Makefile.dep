@@ -1,3 +1,7 @@
+ifneq (,$(filter schedstatistics,$(USEMODULE)))
+  USEMODULE += xtimer
+endif
+
 ifneq (,$(filter libcoap,$(USEPKG)))
   USEMODULE += pnet
 endif

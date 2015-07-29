@@ -12,6 +12,7 @@ PSEUDOMODULES += newlib
 PSEUDOMODULES += ng_sixlowpan_default
 PSEUDOMODULES += log
 PSEUDOMODULES += log_printfnoformat
+PSEUDOMODULES += schedstatistics
 
 # include variants of the AT86RF2xx drivers as pseudo modules
 PSEUDOMODULES += ng_at86rf23%

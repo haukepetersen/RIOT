@@ -29,7 +29,6 @@
 #include "cpu.h"
 #include "lpm.h"
 #include "thread.h"
-#include "hwtimer.h"
 #include "irq.h"
 #include "log.h"
 
@@ -83,8 +82,6 @@ void kernel_init(void)
 {
     (void) disableIRQ();
     LOG_INFO("kernel_init(): This is RIOT! (Version: %s)\n", RIOT_VERSION);
-
-    hwtimer_init();
 
     if (thread_create(idle_stack, sizeof(idle_stack), THREAD_PRIORITY_IDLE, CREATE_WOUT_YIELD | CREATE_STACKTEST, idle_thread, NULL, idle_name) < 0) {
         printf("kernel_init(): error creating idle task.\n");
