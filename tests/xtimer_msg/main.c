@@ -12,7 +12,7 @@
  * @{
  *
  * @file
- * @brief wtimer_msg test application
+ * @brief xtimer_msg test application
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  * @author      Oliver Hahm <oliver.hahm@inria.fr>
@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "wtimer.h"
+#include "xtimer.h"
 #include "thread.h"
 #include "msg.h"
 
@@ -32,7 +32,7 @@ char timer_stack[THREAD_STACKSIZE_MAIN];
 char timer_stack_local[THREAD_STACKSIZE_MAIN];
 
 struct timer_msg {
-    wtimer_t timer;
+    xtimer_t timer;
     uint32_t interval;
     char *text;
     msg_t msg;
@@ -58,7 +58,7 @@ void *timer_thread(void *arg)
         msg_t m;
         msg_receive(&m);
         struct timer_msg *tmsg = (struct timer_msg *) m.content.ptr;
-        wtimer_now_timex(&now);
+        xtimer_now_timex(&now);
         printf("now=%" PRIu32 ":%" PRIu32 " -> every %" PRIu32 ".%" PRIu32 "s: %s\n",
                now.seconds,
                now.microseconds,
@@ -68,7 +68,7 @@ void *timer_thread(void *arg)
 
         tmsg->msg.type = 12345;
         tmsg->msg.content.ptr = (void*)tmsg;
-        wtimer_set_msg(&tmsg->timer, tmsg->interval, &tmsg->msg, thread_getpid());
+        xtimer_set_msg(&tmsg->timer, tmsg->interval, &tmsg->msg, thread_getpid());
     }
 }
 
@@ -82,7 +82,7 @@ void *timer_thread_local(void *arg)
         msg_t m;
         msg_receive(&m);
 
-        uint32_t now = wtimer_now();
+        uint32_t now = xtimer_now();
         int sec, min, hr;
         sec = now/1000000;
         min = sec/60;
@@ -93,7 +93,7 @@ void *timer_thread_local(void *arg)
 
 int main(void)
 {
-    wtimer_init();
+    xtimer_init();
     msg_t m;
     kernel_pid_t pid = thread_create(
                   timer_stack,
@@ -122,7 +122,7 @@ int main(void)
                    "timer local");
 
     while (1) {
-        wtimer_usleep(1*1000000);
+        xtimer_usleep(1*1000000);
         msg_try_send(&m, pid2);
     }
 }
