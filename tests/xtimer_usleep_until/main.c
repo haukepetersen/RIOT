@@ -19,8 +19,7 @@
  */
 
 #include <stdio.h>
-#include "hwtimer.h"
-#include "wtimer.h"
+#include "xtimer.h"
 #include "periph_conf.h"
 
 #define N 1000
@@ -29,15 +28,15 @@ uint32_t res[N];
 
 int main(void)
 {
-    puts("wtimer_usleep_until test application.\n");
+    puts("xtimer_usleep_until test application.\n");
 
     uint32_t interval = 1000;
 
     for (int i = 0; i < N; i++) {
         printf("Testing interval %u...\n", (unsigned)interval);
-        uint32_t last_wakeup = wtimer_now();
+        uint32_t last_wakeup = xtimer_now();
         uint32_t before = last_wakeup;
-        wtimer_usleep_until(&last_wakeup, (unsigned)interval);
+        xtimer_usleep_until(&last_wakeup, (unsigned)interval);
         uint32_t diff = (last_wakeup-before)-interval;
         res[i] = diff;
         interval -= 1;

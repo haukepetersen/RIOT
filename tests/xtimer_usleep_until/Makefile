@@ -1,11 +1,11 @@
-APPLICATION = wtimer_sleep_until
+APPLICATION = xtimer_sleep_until
 include ../Makefile.tests_common
 
-CFLAGS += -DWTIMER=TIMER_0 -DWTIMER_CHAN=0
+CFLAGS += -DXTIMER=TIMER_0 -DXTIMER_CHAN=0
 
 BOARD ?= native
 RIOTBASE ?= $(CURDIR)/../..
 
-USEMODULE += wtimer
+USEMODULE += xtimer
 
 include $(RIOTBASE)/Makefile.include
