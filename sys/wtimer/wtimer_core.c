@@ -12,6 +12,7 @@
  * @author Kaspar Schleiser <kaspar@schleiser.de>
  * @}
  */
+
 #include <stdint.h>
 #include <string.h>
 #include "board.h"
@@ -44,6 +45,11 @@ static void _timer_callback(void);
 static void _periph_timer_callback(int chan);
 
 static inline int _this_high_period(uint32_t target);
+
+static inline int _is_set(wtimer_t *timer)
+{
+    return (timer->target || timer->long_target);
+}
 
 void wtimer_init(void)
 {
@@ -81,11 +87,13 @@ uint64_t wtimer_now64(void)
 void _wtimer_set64(wtimer_t *timer, uint32_t offset, uint32_t long_offset)
 {
     DEBUG(" _wtimer_set64() offset=%" PRIu32 " long_offset=%" PRIu32 "\n", offset, long_offset);
-    if (! (long_offset)) {
+    if (!long_offset) {
         /* timer fits into the short timer */
         wtimer_set(timer, (uint32_t) offset);
     }
     else {
+        wtimer_remove(timer);
+
         _wtimer_now64(&timer->target, &timer->long_target);
         timer->target += offset;
         timer->long_target += long_offset;
@@ -109,9 +117,8 @@ void wtimer_set(wtimer_t *timer, uint32_t offset)
         return;
     }
 
-    uint32_t now = wtimer_now();
-    uint32_t target = now+offset;
-    timer->target = target;
+    wtimer_remove(timer);
+    uint32_t target = wtimer_now() + offset;
 
     if (offset < WTIMER_BACKOFF) {
         /* spin until timer should be run */
@@ -163,17 +170,24 @@ int _wtimer_set_absolute(wtimer_t *timer, uint32_t target)
         timer->long_target = _long_cnt;
         _add_timer_to_long_list(&long_list_head, timer);
     }
-    else if (_mask(now) >= target) {
-        DEBUG("wtimer_set_absolute(): the timer will expire in the next timer period\n");
-        _add_timer_to_list(&overflow_list_head, timer);
-    }
     else {
-        DEBUG("timer_set_absolute(): timer will expire in this timer period.\n");
-        _add_timer_to_list(&timer_list_head, timer);
+        if (!target) {
+            /* set long_target != 0 so _is_set() can work */
+            timer->long_target = 1;
+        }
 
-        if (timer_list_head == timer) {
-            DEBUG("timer_set_absolute(): timer is new list head. updating lltimer.\n");
-            _lltimer_set(timer->target - WTIMER_OVERHEAD);
+        if (_mask(now) >= target) {
+            DEBUG("wtimer_set_absolute(): the timer will expire in the next timer period\n");
+            _add_timer_to_list(&overflow_list_head, timer);
+        }
+        else {
+            DEBUG("timer_set_absolute(): timer will expire in this timer period.\n");
+            _add_timer_to_list(&timer_list_head, timer);
+
+            if (timer_list_head == timer) {
+                DEBUG("timer_set_absolute(): timer is new list head. updating lltimer.\n");
+                _lltimer_set(target - WTIMER_OVERHEAD);
+            }
         }
     }
 
@@ -219,6 +233,10 @@ static int _remove_timer_from_list(wtimer_t **list_head, wtimer_t *timer)
 
 int wtimer_remove(wtimer_t *timer)
 {
+    if (!_is_set(timer)) {
+        return 0;
+    }
+
     unsigned state = disableIRQ();
     int res = 0;
     if (timer_list_head == timer) {
@@ -237,6 +255,9 @@ int wtimer_remove(wtimer_t *timer)
             _remove_timer_from_list(&overflow_list_head, timer) ||
             _remove_timer_from_list(&long_list_head, timer);
     }
+
+    timer->target = 0;
+    timer->long_target = 0;
 
     restoreIRQ(state);
 
