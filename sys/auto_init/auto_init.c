@@ -48,10 +48,6 @@
 #include "diskio.h"
 #endif
 
-#ifdef MODULE_VTIMER
-#include "vtimer.h"
-#endif
-
 #ifdef MODULE_XTIMER
 #include "xtimer.h"
 #endif
@@ -248,10 +244,6 @@ void auto_init(void)
     config_load();
 #endif
 
-#ifdef MODULE_VTIMER
-    DEBUG("Auto init vtimer module.\n");
-    vtimer_init();
-#endif
 #ifndef MODULE_UART_STDIO
 #ifdef MODULE_UART0
     DEBUG("Auto init uart0 module.\n");
