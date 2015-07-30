@@ -39,6 +39,7 @@ extern "C" {
  * Assign the hardware timer
  */
 #define XTIMER              TIMER_1
+#define XTIMER_CHAN         (0)
 
 /**
 * @name NG_AT86RF233 configuration
