@@ -26,7 +26,6 @@
 #include "periph/spi.h"
 #include "kernel_types.h"
 #include "transceiver.h"
-#include "hwtimer.h"
 #include "config.h"
 
 #define ENABLE_DEBUG (0)
