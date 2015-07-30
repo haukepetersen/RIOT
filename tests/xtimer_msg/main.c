@@ -93,7 +93,6 @@ void *timer_thread_local(void *arg)
 
 int main(void)
 {
-    xtimer_init();
     msg_t m;
     kernel_pid_t pid = thread_create(
                   timer_stack,
