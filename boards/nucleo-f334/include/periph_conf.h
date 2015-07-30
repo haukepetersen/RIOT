@@ -109,12 +109,12 @@ extern "C" {
 /** @} */
 
 /**
- * @brief wtimer configuration
+ * @brief xtimer configuration
  * @{
  */
-#define WTIMER_USLEEP_UNTIL_OVERHEAD 9
-#define WTIMER_BACKOFF 15
-#define WTIMER_OVERHEAD 3
+#define XTIMER_USLEEP_UNTIL_OVERHEAD 9
+#define XTIMER_BACKOFF 15
+#define XTIMER_OVERHEAD 3
 /** @} */
 
 #ifdef __cplusplus
