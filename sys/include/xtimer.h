@@ -33,6 +33,9 @@
 #include "periph/timer.h"
 #include "timex.h"
 
+#include "board.h"
+#include "periph_conf.h"
+
 /**
  * @def internal define to allow using variables instead of defines
  */
