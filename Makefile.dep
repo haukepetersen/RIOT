@@ -67,6 +67,7 @@ endif
 ifneq (,$(filter ng_at86rf2%,$(USEMODULE)))
   USEMODULE += ng_at86rf2xx
   USEMODULE += ng_ieee802154
+  USEMODULE += xtimer
 endif
 
 ifneq (,$(filter kw2xrf,$(USEMODULE)))
