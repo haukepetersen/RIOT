@@ -52,8 +52,8 @@
 #define HW_TIMER TIMER_0
 /** @} */
 
-#define WTIMER_OVERHEAD 14
-#define WTIMER_USLEEP_UNTIL_OVERHEAD 1
+#define XTIMER_OVERHEAD 14
+#define XTIMER_USLEEP_UNTIL_OVERHEAD 1
 
 #ifdef __cplusplus
 }
