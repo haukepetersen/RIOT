@@ -31,10 +31,21 @@ extern "C" {
  * @brief   Clock configuration
  * @{
  */
-#define CLOCK_CORECLOCK     (14000000U)     /* run @ 48MHz */
+#define CLOCK_RCOSC         (14000000)      /* internal RC oscillator speed */
+/* external oscillator speed, comment out if you want to use the internal RC
+ * oscillator circuit as a clock source */
+#define CLOCK_HFXO          (48000000U)
+/* define clock dividers */
+#define CLOCK_HFCORECLKDIV  (1U)            /* core clock divider */
+#define CLOCK_HFPERCLKDIV   (1U)            /* peripheral clock divider */
 
-#define CLOCK_HFXO          (48000000U)     /* external HF crystal speed */
-#define CLOCK_HFPERCLK      CLOCK_CORECLOCK
+/* generate the actual clock values */
+#ifdef CLOCK_HFXO
+#define CLOCK_CORECLOCK     (CLOCK_HFXO / CLOCK_HFCORECLKDIV)
+#else
+#define CLOCK_CORECLOCK     (CLOCK_RCOSC / CLOCK_HFCORECLKDIV)
+#endif
+#define CLOCK_HFPERCLK      (CLOCK_CORECLOCK / CLOCK_HFPERCLKDIV)
 /** @} */
 
 /**
