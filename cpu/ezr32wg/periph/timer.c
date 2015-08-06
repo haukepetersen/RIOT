@@ -18,10 +18,6 @@
  * @}
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "board.h"
 #include "cpu.h"
 #include "sched.h"
 #include "thread.h"

@@ -86,10 +86,6 @@ int gpio_init(gpio_t pin, gpio_dir_t dir, gpio_pp_t pushpull)
     mode = (dir | (pushpull & 0x3));
     port->MODE[pin_pos >> 3] &= ~(0xf << ((pin_pos & 0x7) * 4));
     port->MODE[pin_pos >> 3] |= (mode << ((pin_pos & 0x7) * 4));
-    // if (dir == GPIO_DIR_OUT) {
-    //     port->MODE[pin_pos >> 3] &= ~(0xf << ((pin_pos & 0x7) * 4));
-    //     port->MODE[pin_pos >> 3] |= (0x4 << ((pin_pos & 0x7) * 4));
-    // }
     port->CTRL = GPIO_P_CTRL_DRIVEMODE_DEFAULT;
     port->DOUT |= (((pushpull >> 2) & 0x1) << pin_pos);
     return 0;

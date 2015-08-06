@@ -43,7 +43,7 @@ extern "C" {
 /**
  * @brief   CPUID_ID_LEN length of cpuid in bytes
  */
-#define CPUID_ID_LEN                    (16U) /* 128 bits long, 16 bytes long */
+#define CPUID_ID_LEN                    (8U)    /* 64-bit unique ID */
 
 #ifdef __cplusplus
 }
