@@ -573,3 +573,7 @@ USEPKG := $(sort $(USEPKG))
 ifneq ($(OLD_USEMODULE) $(OLD_USEPKG),$(USEMODULE) $(USEPKG))
     include $(RIOTBASE)/Makefile.dep
 endif
+
+ifneq (,$(filter softpwm,$(USEMODULE)))
+  USEMODULE += xtimer
+endif
