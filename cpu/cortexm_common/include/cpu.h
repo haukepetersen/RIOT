@@ -22,7 +22,7 @@
  *
  * @author      Stefan Pfeiffer <stefan.pfeiffer@fu-berlin.de>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- * @author      Joakim Gebart <joakim.gebart@eistec.se>
+ * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
  *
  * @todo        remove include irq.h once core was adjusted
  */
@@ -62,14 +62,6 @@ extern "C" {
 #ifndef THREAD_STACKSIZE_IDLE
 #define THREAD_STACKSIZE_IDLE           (256)
 #endif
-/** @} */
-
-/**
- * @brief   Deprecated interrupt control function for backward compatibility
- * @{
- */
-#define eINT                            enableIRQ
-#define dINT                            disableIRQ
 /** @} */
 
 /**
