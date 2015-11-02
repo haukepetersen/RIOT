@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include "mm.h"
 
 int main(void)
 {
@@ -27,6 +28,17 @@ int main(void)
 
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+
+
+    MM1H;
+    MM2H;
+
+    for (int i = 0; i < 500000; i++) {
+        asm("nop");
+    }
+
+    MM1L;
+    MM2L;
 
     return 0;
 }
