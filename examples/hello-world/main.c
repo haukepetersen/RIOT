@@ -32,14 +32,58 @@ int main(void)
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 
+    MM_INIT;
 
     MM1H;
     MM2T;
     MM2T;
-    for (int i = 0; i < 500; i++) {
-        asm("nop");
-    }
+    MM1L;
 
+    MM1H;
+    MM1L;
+
+    MM1H;
+    asm("nop");
+    MM1L;
+
+    MM1H;
+    asm("nop");
+    asm("nop");
+    MM1L;
+
+    MM1H;
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    MM1L;
+
+    MM1H;
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    MM1L;
+
+    MM1H;
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    MM1L;
+
+
+    MM1H;
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
     MM1L;
 
     // gpio_init(GPIO_PIN(PA,6), GPIO_DIR_OUT, GPIO_NOPULL);
@@ -50,13 +94,6 @@ int main(void)
     //         asm("nop");
     //     }
     // }
-
-    MM1H;
-    MM1L;
-    MM1H;
-    MM1L;
-
-    puts("menno");
 
     return 0;
 }

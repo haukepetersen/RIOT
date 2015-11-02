@@ -72,6 +72,13 @@ static void *idle_thread(void *arg)
     (void) arg;
 
     MM2T;
+    MM1H;
+    MM1L;
+    MM2T;
+    MM2T;
+    MM1H;
+    MM1L;
+    MM2T;
 
     while (1) {
         if (lpm_prevent_sleep) {

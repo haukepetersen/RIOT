@@ -32,8 +32,6 @@ void board_init(void)
     /* initialize the CPU */
     cpu_init();
 
-    MM_INIT;
-
     /* initialize the boards LED at pin PA19 */
     LED_PORT.DIRSET.reg = (1 << LED_PIN);
     LED_PORT.OUTSET.reg = (1 << LED_PIN);
