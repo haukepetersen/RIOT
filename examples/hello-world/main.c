@@ -20,6 +20,9 @@
  */
 
 #include <stdio.h>
+
+
+#include "thread.h"
 #include "mm.h"
 
 int main(void)
@@ -31,14 +34,29 @@ int main(void)
 
 
     MM1H;
-    MM2H;
-
-    for (int i = 0; i < 500000; i++) {
+    MM2T;
+    MM2T;
+    for (int i = 0; i < 500; i++) {
         asm("nop");
     }
 
     MM1L;
-    MM2L;
+
+    // gpio_init(GPIO_PIN(PA,6), GPIO_DIR_OUT, GPIO_NOPULL);
+    // while (1) {
+    //     gpio_toggle(GPIO_PIN(PA,6));
+    //     MM2T;
+    //     for (int i = 0; i < 500000; i++) {
+    //         asm("nop");
+    //     }
+    // }
+
+    MM1H;
+    MM1L;
+    MM1H;
+    MM1L;
+
+    puts("menno");
 
     return 0;
 }

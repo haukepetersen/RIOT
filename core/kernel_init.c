@@ -36,6 +36,8 @@
 #include "sched.h"
 #endif
 
+#include "mm.h"
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -68,6 +70,8 @@ static void *main_trampoline(void *arg)
 static void *idle_thread(void *arg)
 {
     (void) arg;
+
+    MM2T;
 
     while (1) {
         if (lpm_prevent_sleep) {
