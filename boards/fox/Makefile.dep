@@ -1,0 +1,5 @@
+ifneq (,$(filter saul_default,$(USEMODULE)))
+  USEMODULE += lps331ap
+  USEMODULE += l3g4200d
+  USEMODULE += lsm303dlhc
+endif
