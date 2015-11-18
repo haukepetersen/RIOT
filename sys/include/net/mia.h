@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "mutex.h"
 #include "net/netdev2.h"
 
 #ifdef __cplusplus
@@ -32,7 +33,6 @@ extern "C" {
  * @brief   Default header lengths
  * @{
  */
-#define MIA_ETH_HDR_LEN     (14U)
 #define MIA_ARP_HDR_LEN     (28U)
 #define MIA_ICMP_HDR_LEN    (8U)
 #define MIA_IP_HDR_LEN      (20U)
@@ -43,10 +43,6 @@ extern "C" {
  * @brief   Base protocol field offsets
  * @{
  */
-#define MIA_ETH_POS             (0U)
-#define MIA_ETH_SRC             (MIA_ETH_POS + 6U)
-#define MIA_ETH_DST             (MIA_ETH_POS + 0U)
-#define MIA_ETH_TYPE            (MIA_ETH_POS + 12U)
 
 #define MIA_ARP_POS             (14U)
 #define MIA_ARP_HTYPE           (MIA_ARP_POS + 0U)
@@ -85,6 +81,9 @@ extern "C" {
 #define MIA_APP_POS             (42U)
 /** @} */
 
+
+#define MIA_IP_ADDR_LEN         (4U)
+
 /**
  * @brief   Custom MIA error codes
  * @{
@@ -94,6 +93,15 @@ extern "C" {
 /** @} */
 
 extern uint8_t mia_buf[];
+extern mutex_t mia_mutex;
+
+extern netdev2_t *mia_dev;
+
+extern uint8_t mia_mac[];
+
+
+extern const uint8_t mia_bcast[];
+
 
 typedef void (*mia_cb_t)(void);
 
@@ -105,16 +113,7 @@ typedef struct {
 
 int mia_run(netdev2_t *dev);
 
-void mia_ip_config(uint8_t *addr, uint8_t mask, uint8_t *gw);
-
 int mia_ping(uint8_t *addr, mia_cb_t cb);
-
-void mia_udp_bind(mia_bind_t *bindings);
-int mia_udp_send(uint8_t *ip, uint16_t src, uint16_t dst,
-                 uint8_t *data, size_t len);
-
-void mia_dump_ip(const int pos);
-void mia_dump_mac(const int pos);
 
 
 static inline uint8_t *mia_ptr(const int pos)
@@ -140,6 +139,16 @@ static inline void mia_ston(const int pos, uint16_t val)
     mia_buf[pos] = (uint8_t)val;
     mia_buf[pos + 1] = (uint8_t)(val >> 8);
 #endif
+}
+
+static inline void mia_lock(void)
+{
+    mutex_lock(&mia_mutex);
+}
+
+static inline void mia_unlock(void)
+{
+    mutex_unlock(&mia_mutex);
 }
 
 #ifdef __cplusplus

@@ -26,16 +26,18 @@
 #include "shell.h"
 #include "xtimer.h"
 #include "enc28j60.h"
+
 #include "net/mia.h"
+#include "net/mia/udp.h"
+#include "net/mia/icmp.h"
+#include "net/mia/dhcp.h"
+#include "net/mia/print.h"
 
 #define STACKSIZE           (THREAD_STACKSIZE_DEFAULT)
 #define MIA_PRIO            (THREAD_PRIORITY_MAIN - 4)
 
 #define PING_DELAY          (1000 * 1000U)
-
-#define IP_ADDR             {192, 168, 23, 199}
-#define IP_MASK             3       /* 3 * 8 --> 24 */
-#define IP_GATEWAY          {192, 168, 23, 1}
+#define DHCP_DELAY          (200 * 1000U)
 
 static enc28j60_params_t encp = {
     SPI_1,
@@ -47,9 +49,6 @@ static enc28j60_params_t encp = {
 static char stack[STACKSIZE];
 
 static enc28j60_t dev;
-
-static uint8_t ip[] = IP_ADDR;
-static uint8_t gw[] = IP_GATEWAY;
 
 static void *run_mia_run(void *arg)
 {
@@ -73,7 +72,7 @@ static void ping_cb(void)
     memcpy(&then, mia_ptr(MIA_ICMP_ECHO_DATA), 4);
 
     printf("%i bytes from ", mia_ntos(MIA_IP_LEN) - MIA_IP_HDR_LEN);
-    mia_dump_ip(MIA_IP_SRC);
+    mia_print_ip_addr(mia_ptr(MIA_IP_SRC));
     printf(": imcp_seq=%i ttl=%i time=",
            mia_ntos(MIA_ICMP_ECHO_SEQ), mia_ntos(MIA_IP_TTL));
     dump_time(now - then);
@@ -86,6 +85,23 @@ static void get_ip(char **argv, uint8_t *ip)
     ip[1] = (uint8_t)atoi(argv[2]);
     ip[2] = (uint8_t)atoi(argv[3]);
     ip[3] = (uint8_t)atoi(argv[4]);
+}
+
+static int cmd_ifconfig(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    printf("eth0\tLink encap:Ethernet  HWaddr ");
+    mia_print_mac_addr(mia_mac);
+    printf("\n\tinet addr:");
+    mia_print_ip_addr(mia_ip_addr);
+    printf("  Bcast:");
+    mia_print_ip_addr(mia_ip_bcast);
+    printf("  Mask:/%i  Gateway:", (8 * mia_ip_mask));
+    mia_print_ip_addr(mia_ip_gateway);
+    puts("");
+    return 0;
 }
 
 static int cmd_ping(int argc, char **argv)
@@ -104,7 +120,7 @@ static int cmd_ping(int argc, char **argv)
     }
 
     for (int i = 0; i < count; i++) {
-        mia_ping(ip, ping_cb);
+        mia_icmp_ping(ip, ping_cb);
         xtimer_usleep(PING_DELAY);
     }
     return 0;
@@ -114,6 +130,7 @@ static int cmd_udp(int argc, char **argv)
 {
     uint8_t ip[4];
     uint16_t src, dst;
+    size_t len;
 
     if (argc < 8) {
         printf("usage: %s addr0 addr1 addr2 addr3 src-port dst-port data\n",
@@ -124,31 +141,58 @@ static int cmd_udp(int argc, char **argv)
     src = (uint16_t)atoi(argv[5]);
     dst = (uint16_t)atoi(argv[6]);
 
-    mia_udp_send(ip, src, dst, (uint8_t *)argv[7], strlen(argv[7]));
+    len = strlen(argv[7]);
+    memcpy(mia_ptr(MIA_APP_POS), argv[7], len);
+    mia_buf[MIA_APP_POS + len] = '\n';
+    mia_ston(MIA_UDP_LEN, len + 1 + MIA_UDP_HDR_LEN);
+    mia_udp_send(ip, src, dst);
     return 0;
 }
 
-static void bind_echo(void)
+static int cmd_dhcp(int argc, char **argv)
 {
-    printf("UDP: from ");
-    mia_dump_ip(MIA_IP_SRC);
-    printf(", src-port:%i, dst-port:%i\n~~~\n",
-           mia_ntos(MIA_UDP_SRC), mia_ntos(MIA_UDP_DST));
-    for (uint16_t i = 0; i < (mia_ntos(MIA_UDP_LEN) - MIA_UDP_HDR_LEN); i++) {
-        printf("%c", *mia_ptr(MIA_APP_POS + i));
-    }
-    printf("\n~~~\n");
+    (void)argc;
+    (void)argv;
+
+    mia_dhcp_request();
+    return 0;
 }
 
 static const shell_command_t shell_commands[] = {
+    { "ifconfig", "show device infos", cmd_ifconfig },
     { "ping", "ping some other host", cmd_ping },
     { "udp", "send data via UDP", cmd_udp },
+    { "dhcp", "dhcp request", cmd_dhcp },
     { NULL, NULL, NULL }
 };
 
-static const mia_bind_t udp_bindings[] = {
-    { 443, bind_echo },
-    { 80, bind_echo },
+static void udp_info(void)
+{
+    printf("UDP: from ");
+    mia_print_ip_addr(mia_ptr(MIA_IP_SRC));
+    printf(", src-port:%i, dst-port:%i\n",
+           mia_ntos(MIA_UDP_SRC), mia_ntos(MIA_UDP_DST));
+}
+
+static void udp_print(void)
+{
+    udp_info();
+    for (uint16_t i = 0; i < (mia_ntos(MIA_UDP_LEN) - MIA_UDP_HDR_LEN); i++) {
+        printf("%c", *mia_ptr(MIA_APP_POS + i));
+    }
+    puts("\n~~~EOF~~~");
+}
+
+static void udp_echo(void)
+{
+    udp_info();
+    mia_udp_reply();
+}
+
+const mia_bind_t mia_udp_bindings[] = {
+    { 443, udp_print },
+    { 80, udp_echo },
+    { DHCP_CLI_PORT, mia_dhcp_process },
     { 0, NULL }
 };
 
@@ -162,10 +206,16 @@ int main(void)
     thread_create(stack, sizeof(stack), MIA_PRIO, CREATE_STACKTEST,
                   run_mia_run, NULL, "mia");
 
-    puts("MIA: configuring the stack");
-    mia_ip_config(ip, 3, gw);
-    mia_udp_bind((mia_bind_t *)udp_bindings);
+    /* trying to get an IP via DHCP */
+    while (mia_ip_mask == 0) {
+        puts("Requesting IP via DHCP...");
+        mia_dhcp_request();
+        xtimer_usleep(DHCP_DELAY);
+    }
+    puts("Successfully IP configuration via DHCP:");
+    cmd_ifconfig(0, NULL);
 
+    puts("Starting the shell now...");
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
     return 0;
