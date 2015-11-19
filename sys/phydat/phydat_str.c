@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "fmt.h"
 #include "phydat.h"
 
 void phydat_dump(phydat_t *data, uint8_t dim)
@@ -61,20 +62,20 @@ const char *phydat_unit_to_str(uint8_t unit)
 void phydat_scale_to_str(int8_t scale, char *str)
 {
     switch (scale) {
-        case 0:     str[0] = '\0'; return;
-        case -3:    str[0] = 'm'; break;
-        case -6:    str[0] = 'u'; break;
-        case -9:    str[0] = 'n'; break;
-        case -12:   str[0] = 'p'; break;
-        case -15:   str[0] = 'f'; break;
-        case 3:     str[0] = 'k'; break;
-        case 6:     str[0] = 'M'; break;
-        case 9:     str[0] = 'G'; break;
-        case 12:    str[0] = 'T'; break;
-        case 15:    str[0] = 'P'; break;
+        case 0:     *str = '\0'; return;
+        case -3:    *str = 'm'; break;
+        case -6:    *str = 'u'; break;
+        case -9:    *str = 'n'; break;
+        case -12:   *str = 'p'; break;
+        case -15:   *str = 'f'; break;
+        case 3:     *str = 'k'; break;
+        case 6:     *str = 'M'; break;
+        case 9:     *str = 'G'; break;
+        case 12:    *str = 'T'; break;
+        case 15:    *str = 'P'; break;
         default:
-            snprintf(str, PHYDAT_SCALE_STR_MAXLEN, "E%i", (int)scale);
-            return;
+            *str++ = 'E';
+            str += fmt_s32_dec(str, scale) -1;
     }
-    str[1] = '\0';
+    *++str = '\0';
 }
