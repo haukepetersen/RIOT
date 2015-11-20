@@ -28,6 +28,7 @@
 #include "enc28j60.h"
 
 #include "net/mia.h"
+#include "net/mia/ip.h"
 #include "net/mia/udp.h"
 #include "net/mia/icmp.h"
 #include "net/mia/dhcp.h"
@@ -74,7 +75,7 @@ static void ping_cb(void)
     printf("%i bytes from ", mia_ntos(MIA_IP_LEN) - MIA_IP_HDR_LEN);
     mia_print_ip_addr(mia_ptr(MIA_IP_SRC));
     printf(": imcp_seq=%i ttl=%i time=",
-           mia_ntos(MIA_ICMP_ECHO_SEQ), mia_ntos(MIA_IP_TTL));
+           mia_ntos(MIA_ICMP_ECHO_SEQ), mia_buf[MIA_IP_TTL]);
     dump_time(now - then);
     puts("");
 }
