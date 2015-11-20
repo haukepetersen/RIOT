@@ -4,6 +4,7 @@
 #include "net/ethertype.h"
 
 #include "net/mia.h"
+#include "net/mia/ip.h"
 #include "net/mia/eth.h"
 #include "net/mia/arp.h"
 #include "net/mia/arp_cache.h"

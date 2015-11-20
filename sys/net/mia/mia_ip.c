@@ -4,6 +4,7 @@
 #include "net/inet_csum.h"
 
 #include "net/mia.h"
+#include "net/mia/ip.h"
 #include "net/mia/eth.h"
 #include "net/mia/arp.h"
 #include "net/mia/arp_cache.h"
@@ -20,10 +21,10 @@
 
 
 
-uint32_t mia_ip_addr = 0;
-uint32_t mia_ip_mask = 0;
-uint32_t mia_ip_bcast = 0xffffffff;
-uint32_t mia_ip_gateway = 0xffffffff;
+uint8_t mia_ip_addr[] = MIA_IP_ADDR;
+uint8_t mia_ip_mask = MIA_IP_MASK;
+uint8_t mia_ip_bcast[] = MIA_IP_BCAST;
+uint8_t mia_ip_gateway[] = MIA_IP_GATEWAY;
 
 
 static void ip_csum(uint16_t len)

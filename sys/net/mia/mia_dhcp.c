@@ -2,6 +2,7 @@
 #include "net/ethernet.h"
 
 #include "net/mia.h"
+#include "net/mia/ip.h"
 #include "net/mia/udp.h"
 #include "net/mia/dhcp.h"
 
