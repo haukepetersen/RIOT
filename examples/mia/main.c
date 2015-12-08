@@ -204,7 +204,7 @@ int main(void)
     /* initialize out network device */
     enc28j60_setup(&dev, &encp);
     /* run MIA */
-    thread_create(stack, sizeof(stack), MIA_PRIO, CREATE_STACKTEST,
+    thread_create(stack, sizeof(stack), MIA_PRIO, THREAD_CREATE_STACKTEST,
                   run_mia_run, NULL, "mia");
 
     /* trying to get an IP via DHCP */
