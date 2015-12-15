@@ -30,6 +30,8 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#include "dbgpin.h"
+
 /**
  * @brief   Number of available external interrupt lines
  */
@@ -212,9 +214,11 @@ void gpio_write(gpio_t pin, int value)
 
 void isr_exti(void)
 {
+    // MM1H;
     for (int i = 0; i < GPIO_ISR_CHAN_NUMOF; i++) {
         if (EXTI->PR & (1 << i)) {
             EXTI->PR = (1 << i);        /* clear by writing a 1 */
+            // MM1L;
             exti_ctx[i].cb(exti_ctx[i].arg);
         }
     }

@@ -31,6 +31,8 @@
 #include "bitarithm.h"
 #include "sched.h"
 
+#include "dbgpin.h"
+
 volatile tcb_t *thread_get(kernel_pid_t pid)
 {
     if (pid_is_valid(pid)) {
@@ -67,6 +69,7 @@ void thread_sleep(void)
 
 int thread_wakeup(kernel_pid_t pid)
 {
+    // MM2H;
     DEBUG("thread_wakeup: Trying to wakeup PID %" PRIkernel_pid "...\n", pid);
 
     unsigned old_state = disableIRQ();
@@ -80,6 +83,7 @@ int thread_wakeup(kernel_pid_t pid)
         restoreIRQ(old_state);
         sched_switch(other_thread->priority);
 
+        // MM2L;
         return 1;
     }
     else {
@@ -92,6 +96,7 @@ int thread_wakeup(kernel_pid_t pid)
 
 void thread_yield(void)
 {
+    // MM2H;
     unsigned old_state = disableIRQ();
     tcb_t *me = (tcb_t *)sched_active_thread;
     if (me->status >= STATUS_ON_RUNQUEUE) {

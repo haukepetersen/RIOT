@@ -31,6 +31,8 @@
 #include "irq.h"
 #include "log.h"
 
+#include "dbgpin.h"
+
 #ifdef MODULE_SCHEDSTATISTICS
 #include "xtimer.h"
 #endif
@@ -62,6 +64,8 @@ schedstat sched_pidlist[KERNEL_PID_LAST + 1];
 
 int sched_run(void)
 {
+    MM2H;
+    MM2L;
     sched_context_switch_request = 0;
 
     tcb_t *active_thread = (tcb_t *)sched_active_thread;
@@ -119,6 +123,7 @@ int sched_run(void)
 
     DEBUG("sched_run: done, changed sched_active_thread.\n");
 
+    // MM2L;
     return 1;
 }
 

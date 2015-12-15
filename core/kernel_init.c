@@ -39,6 +39,8 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#include "dbgpin.h"
+
 #ifdef MODULE_AUTO_INIT
 #include <auto_init.h>
 #endif
@@ -68,6 +70,11 @@ static void *main_trampoline(void *arg)
 static void *idle_thread(void *arg)
 {
     (void) arg;
+
+    while (1) {
+        MM2H;
+        MM2L;
+    }
 
     while (1) {
         if (lpm_prevent_sleep) {

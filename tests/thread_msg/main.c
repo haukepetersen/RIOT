@@ -24,6 +24,8 @@
 #include "thread.h"
 #include "msg.h"
 
+#include "dbgpin.h"
+
 char t1_stack[THREAD_STACKSIZE_MAIN];
 char t2_stack[THREAD_STACKSIZE_MAIN];
 char t3_stack[THREAD_STACKSIZE_MAIN];
@@ -83,6 +85,8 @@ void *thread3(void *arg)
 
 int main(void)
 {
+
+
     p1 = thread_create(t1_stack, sizeof(t1_stack), THREAD_PRIORITY_MAIN - 1,
                        CREATE_WOUT_YIELD | CREATE_STACKTEST,
                        thread1, NULL, "nr1");

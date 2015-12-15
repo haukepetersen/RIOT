@@ -36,6 +36,8 @@
 #include "board.h"
 #include "periph/uart.h"
 
+#include "dbgpin.h"
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -64,7 +66,9 @@ static tsrb_t _rx_buf = TSRB_INIT(_rx_buf_mem);
 void uart_stdio_rx_cb(void *arg, char data)
 {
     (void)arg;
+    MM1H;
     tsrb_add_one(&_rx_buf, data);
+    MM1L;
     mutex_unlock(&_rx_mutex);
 }
 
@@ -80,6 +84,8 @@ int uart_stdio_read(char* buffer, int count)
     while (!(res = tsrb_get(&_rx_buf, buffer, count))) {
         mutex_lock(&_rx_mutex);
     }
+    MM1H;
+    MM1L;
     return res;
 }
 

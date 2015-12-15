@@ -32,6 +32,8 @@
 
 #include "flags.h"
 
+#include "dbgpin.h"
+
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 #include "thread.h"
@@ -55,6 +57,7 @@ static int queue_msg(tcb_t *target, const msg_t *m)
 
 int msg_send(msg_t *m, kernel_pid_t target_pid)
 {
+    // MM2H;
     if (inISR()) {
         return msg_send_int(m, target_pid);
     }

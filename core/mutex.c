@@ -34,6 +34,8 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
+#include "dbgpin.h"
+
 static void mutex_wait(struct mutex_t *mutex);
 
 int mutex_trylock(struct mutex_t *mutex)
@@ -84,6 +86,7 @@ static void mutex_wait(struct mutex_t *mutex)
 
 void mutex_unlock(struct mutex_t *mutex)
 {
+    MM1L;
     unsigned irqstate = disableIRQ();
     DEBUG("mutex_unlock(): val: %u pid: %" PRIkernel_pid "\n", ATOMIC_VALUE(mutex->val), sched_active_pid);
 
@@ -107,6 +110,7 @@ void mutex_unlock(struct mutex_t *mutex)
 
     uint16_t process_priority = process->priority;
     restoreIRQ(irqstate);
+    MM1H;
     sched_switch(process_priority);
 }
 

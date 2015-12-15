@@ -30,6 +30,8 @@
 #include "sched.h"
 #include "thread.h"
 
+#include "dbgpin.h"
+
 /* guard file in case no UART device is defined */
 #if UART_0_EN || UART_1_EN
 
@@ -271,8 +273,10 @@ void UART_1_ISR(void)
 
 static inline void irq_handler(uart_t uartnum, USART_TypeDef *dev)
 {
+    MM1H;
     if (dev->SR & USART_SR_RXNE) {
         char data = (char)dev->DR;
+        MM1L;
         config[uartnum].rx_cb(config[uartnum].arg, data);
     }
     else if (dev->SR & USART_SR_ORE) {

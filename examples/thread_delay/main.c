@@ -22,7 +22,6 @@
 #include <stdio.h>
 
 #include "thread.h"
-#include "mutex.h"
 #include "msg.h"
 #include "xtimer.h"
 #include "dbgpin.h"
@@ -30,15 +29,12 @@
 char stack[THREAD_STACKSIZE_DEFAULT];
 char stack2[THREAD_STACKSIZE_DEFAULT];
 char stack3[THREAD_STACKSIZE_DEFAULT];
-char stack4[THREAD_STACKSIZE_DEFAULT];
-
-mutex_t lock;
 
 void sig(void)
 {
     MM1L;
     MM2L;
-    // xtimer_usleep(1);
+    xtimer_usleep(1);
     // MM2H;
     // xtimer_usleep(1);
     // MM2L;
@@ -82,25 +78,11 @@ void *sleep_thread(void *arg)
     return NULL;
 }
 
-void *mutex_thread(void *arg)
-{
-    (void)arg;
-    puts("mutex_thread");
-
-    while (1) {
-        mutex_lock(&lock);
-        MM1L;
-        MM2H;
-    }
-
-}
-
 int main(void)
 {
     msg_t m;
     puts("Hello World!");
-    mutex_init(&lock);
-    mutex_lock(&lock);
+
 
     kernel_pid_t t2 = thread_create(
             stack2, sizeof(stack2),
@@ -110,12 +92,7 @@ int main(void)
     kernel_pid_t t3 = thread_create(
             stack3, sizeof(stack3),
             THREAD_PRIORITY_MAIN - 3, CREATE_STACKTEST,
-            sleep_thread, NULL, "nr3");
-
-    thread_create(
-            stack4, sizeof(stack4),
-            THREAD_PRIORITY_MAIN - 4, CREATE_STACKTEST,
-            mutex_thread, NULL, "nr4");
+            sleep_thread, NULL, "nr2");
 
     (void) thread_create(
             stack, sizeof(stack),
@@ -135,10 +112,6 @@ int main(void)
 
     MM1H;
     thread_wakeup(t3);
-    sig();
-
-    MM1H;
-    mutex_unlock(&lock);
     sig();
 
     puts("done.");

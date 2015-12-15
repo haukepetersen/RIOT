@@ -31,6 +31,8 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#include "dbgpin.h"
+
 /* guard file in case no TIMER device is defined */
 #if TIMER_0_EN || TIMER_1_EN
 
@@ -377,13 +379,14 @@ static inline void irq_handler(tim_t timer, TIM_TypeDef *dev0, TIM_TypeDef *dev1
 {
     DEBUG("CNT: %08x SR/DIER: %08x\n", ((dev1->CNT<<16) | (0xffff & dev0->CNT)),
                                        ((dev0->SR<<16) | (0xffff & dev0->DIER)));
-
+    MM1H;
     if ((dev0->SR & TIM_SR_CC1IF) && (dev0->DIER & TIM_DIER_CC1IE)) {
         /* clear interrupt anyway */
         dev0->SR &= ~TIM_SR_CC1IF;
         /* if higher 16bit also match */
         if (dev1->CNT >= dev1->CCR1) {
             dev0->DIER &= ~TIM_DIER_CC1IE;
+            MM1L;
             config[timer].cb(0);
         }
         DEBUG("channel 1 CCR: %08x\n", ((dev1->CCR1<<16) | (0xffff & dev0->CCR1)));

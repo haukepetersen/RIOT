@@ -5,9 +5,9 @@
 #include "cpu.h"
 #include "periph/gpio.h"
 
-#define PA          GPIO_PIN(PORT_B, 9)
-#define PB          GPIO_PIN(PORT_C, 11)
-#define PC          GPIO_PIN(PORT_A, 3)
+#define PA          GPIO(PORT_B, 9)
+#define PB          GPIO(PORT_C, 11)
+#define PC          GPIO(PORT_A, 3)
 
 #define MM_INIT     gpio_init(PA, GPIO_DIR_OUT, GPIO_NOPULL); \
                     gpio_init(PB, GPIO_DIR_OUT, GPIO_NOPULL)
