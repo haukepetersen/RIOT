@@ -21,6 +21,8 @@
 #include "board.h"
 #include "cpu.h"
 
+#include "dbgpin.h"
+
 static void leds_init(void);
 
 void board_init(void)
@@ -30,6 +32,8 @@ void board_init(void)
 
     /* initialize the boards LEDs */
     leds_init();
+
+    MM_INIT;
 }
 
 /**
