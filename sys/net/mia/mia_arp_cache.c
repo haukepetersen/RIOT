@@ -15,7 +15,7 @@ static int arp_cache_next = 0;
 
 uint8_t *mia_arp_cache_lookup(uint8_t *ip)
 {
-    for (int i = 0; i < MIA_ARP_CACHE_SIZE; i++) {
+    for (unsigned int i = 0; i < MIA_ARP_CACHE_SIZE; i++) {
         if (memcmp(ip, arp_cache[i].ip, MIA_IP_ADDR_LEN) == 0) {
             return arp_cache[i].mac;
         }
@@ -25,7 +25,7 @@ uint8_t *mia_arp_cache_lookup(uint8_t *ip)
 
 void mia_arp_cache_insert(uint8_t *ip, uint8_t *mac)
 {
-    for (int i = 0; i < MIA_ARP_CACHE_SIZE; i++) {
+    for (unsigned int i = 0; i < MIA_ARP_CACHE_SIZE; i++) {
         if (memcmp(ip, arp_cache[i].ip, MIA_IP_ADDR_LEN) == 0) {
             memcpy(arp_cache[i].mac, mac, ETHERNET_ADDR_LEN);
             return;

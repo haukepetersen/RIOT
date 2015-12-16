@@ -41,15 +41,6 @@ extern uint8_t mia_ip_mask;
 extern uint8_t mia_ip_bcast[];
 extern uint8_t mia_ip_gateway[];
 
-static inline void mia_ip_set(const int pos, uint32_t ip)
-{
-
-}
-
-static inline uint32_t mia_ip_get(const int pos)
-{
-    return mia_buf[pos];
-}
 
 void mia_ip_process(void);
 

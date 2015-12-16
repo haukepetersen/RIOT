@@ -10,11 +10,16 @@ RIOTBASE ?= $(CURDIR)/../..
 # Define some modules that are used
 USEMODULE += mia
 USEMODULE += inet_csum
-USEMODULE += enc28j60
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
 USEMODULE += xtimer
+
+ifneq (,($filter native $(BOARD)))
+  USEMODULE += netdev2_tap
+else
+  USEMODULE += enc28j60
+endif
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

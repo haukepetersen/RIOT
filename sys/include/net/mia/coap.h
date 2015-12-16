@@ -16,7 +16,7 @@ typedef struct {
     uint32_t ep;
     mia_cb_t get;
     mia_cb_t post;
-} mia_coap_ep_t
+} mia_coap_ep_t;
 
 void mia_coap_process(void);
 

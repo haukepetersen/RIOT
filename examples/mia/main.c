@@ -25,7 +25,6 @@
 #include "thread.h"
 #include "shell.h"
 #include "xtimer.h"
-#include "enc28j60.h"
 
 #include "net/mia.h"
 #include "net/mia/ip.h"
@@ -34,12 +33,22 @@
 #include "net/mia/dhcp.h"
 #include "net/mia/print.h"
 
+
 #define STACKSIZE           (THREAD_STACKSIZE_DEFAULT)
 #define MIA_PRIO            (THREAD_PRIORITY_MAIN - 4)
 
 #define PING_DELAY          (1000 * 1000U)
 #define DHCP_DELAY          (200 * 1000U)
 
+#define NOT_NATIVE 0
+
+#if NOT_NATIVE
+#include "enc28j60.h"
+#else
+#include "netdev2_tap.h"
+#endif
+
+#if NOT_NATIVE
 static enc28j60_params_t encp = {
     SPI_1,
     GPIO_PIN(PORT_B, 12),
@@ -47,9 +56,13 @@ static enc28j60_params_t encp = {
     GPIO_PIN(PORT_B, 10),
 };
 
+static enc28j60_t dev;
+#else
+extern netdev2_tap_t dev;
+#endif
+
 static char stack[STACKSIZE];
 
-static enc28j60_t dev;
 
 static void *run_mia_run(void *arg)
 {
@@ -201,19 +214,28 @@ int main(void)
 {
     puts("Hello MIA!");
 
+#if NOT_NATIVE
     /* initialize out network device */
     enc28j60_setup(&dev, &encp);
+#endif
+
+
+
     /* run MIA */
     thread_create(stack, sizeof(stack), MIA_PRIO, THREAD_CREATE_STACKTEST,
                   run_mia_run, NULL, "mia");
 
     /* trying to get an IP via DHCP */
+#if NOT_NATIVE
     while (mia_ip_mask == 0) {
         puts("Requesting IP via DHCP...");
         mia_dhcp_request();
         xtimer_usleep(DHCP_DELAY);
     }
     puts("Successfully IP configuration via DHCP:");
+#else
+    puts("not doing DHCP");
+#endif
     cmd_ifconfig(0, NULL);
 
     puts("Starting the shell now...");
