@@ -9,8 +9,26 @@
 /**
  * @defgroup    drivers_periph Peripheral Driver Interface
  * @ingroup     drivers
- * @brief       Low-level peripheral driver interface for vendor and platform
- *              independent access to MCU peripherals as UART, SPI, etc
+ * @brief       The peripheral driver interface provides vendor and platform
+ *              independent access to MCU peripherals.
+ *
+ * About
+ * =====
+ * One of the major features of any operating system is the abstraction of the
+ * actual used hardware. In typical (IoT related) micro-controller environments,
+ * we can roughly distinguish two kinds of hardware: the MCU core and
+ * peripherals and external devices (e.g. sensors, actuators, network devices).
+ *
+ *
+ * some text
+ *
+ * helllo1
+ * -------
+ * adfadsf
+ *
+ * hello2
+ * ------
+ * adsfasd
  *
  * The module contains the low-level peripheral driver interface. This interface
  * defines a standardized interface to access MCU peripherals that is not tied
