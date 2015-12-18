@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+#define COAP_PORT           (5683U)
+
 typedef void(*mia_coap_cb)(void);
 
 typedef struct {

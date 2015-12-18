@@ -15,10 +15,13 @@ USEMODULE += shell_commands
 USEMODULE += ps
 USEMODULE += xtimer
 
-ifneq (,($filter native $(BOARD)))
+
+ifneq (,$(filter native,$(BOARD)))
   USEMODULE += netdev2_tap
+  $(info BOO)
 else
   USEMODULE += enc28j60
+  $(info BAR)
 endif
 
 # Comment this out to disable code in RIOT that does safety checking

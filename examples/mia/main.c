@@ -31,6 +31,7 @@
 #include "net/mia/udp.h"
 #include "net/mia/icmp.h"
 #include "net/mia/dhcp.h"
+#include "net/mia/coap.h"
 #include "net/mia/print.h"
 
 
@@ -58,7 +59,7 @@ static enc28j60_params_t encp = {
 
 static enc28j60_t dev;
 #else
-extern netdev2_tap_t dev;
+extern netdev2_tap_t netdev2_tap;
 #endif
 
 static char stack[STACKSIZE];
@@ -68,7 +69,11 @@ static void *run_mia_run(void *arg)
 {
     (void)arg;
     puts("MIA: starting the stack now");
+#if NOT_NATIVE
     mia_run((netdev2_t *)&dev);
+#else
+    mia_run((netdev2_t *)&netdev2_tap);
+#endif
     return NULL;
 }
 
@@ -207,6 +212,7 @@ const mia_bind_t mia_udp_bindings[] = {
     { 443, udp_print },
     { 80, udp_echo },
     { DHCP_CLI_PORT, mia_dhcp_process },
+    { COAP_PORT, mia_coap_process },
     { 0, NULL }
 };
 
@@ -218,8 +224,6 @@ int main(void)
     /* initialize out network device */
     enc28j60_setup(&dev, &encp);
 #endif
-
-
 
     /* run MIA */
     thread_create(stack, sizeof(stack), MIA_PRIO, THREAD_CREATE_STACKTEST,
