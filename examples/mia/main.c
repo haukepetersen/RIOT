@@ -123,6 +123,30 @@ static int cmd_ifconfig(int argc, char **argv)
     return 0;
 }
 
+static int cmd_conf(int argc, char **argv)
+{
+    if (argc < 10) {
+        printf("usage: %s addr0 addr1 addr2 addr3 mask gw0 gw1 gw2 gw3\n", argv[0]);
+        return 1;
+    }
+    for (int i = 0; i < 4; i++) {
+        mia_ip_addr[i] = (uint8_t)atoi(argv[i + 1]);
+    }
+    mia_ip_mask = (uint8_t)atoi(argv[5]);
+    mia_ip_mask = (mia_ip_mask > 3) ? 3 : mia_ip_mask;
+    mia_ip_mask = (mia_ip_mask < 1) ? 1 : mia_ip_mask;
+    for (int i = 0; i < mia_ip_mask; i++) {
+        mia_ip_bcast[i] = mia_ip_addr[i];
+    }
+    for (int i = mia_ip_mask; i < 4; i++) {
+        mia_ip_bcast[i] = 255;
+    }
+    for (int i = 0; i < 4; i++) {
+        mia_ip_gateway[i] = (uint8_t)atoi(argv[i + 6]);
+    }
+    return 0;
+}
+
 static int cmd_ping(int argc, char **argv)
 {
     uint8_t ip[4];
@@ -179,6 +203,7 @@ static int cmd_dhcp(int argc, char **argv)
 
 static const shell_command_t shell_commands[] = {
     { "ifconfig", "show device infos", cmd_ifconfig },
+    { "conf", "configure IP addresses", cmd_conf },
     { "ping", "ping some other host", cmd_ping },
     { "udp", "send data via UDP", cmd_udp },
     { "dhcp", "dhcp request", cmd_dhcp },
