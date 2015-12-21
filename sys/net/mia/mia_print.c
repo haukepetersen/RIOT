@@ -11,6 +11,6 @@ void mia_print_ip_addr(uint8_t *ip)
 
 void mia_print_mac_addr(uint8_t *mac)
 {
-    printf("0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x",
+    printf("%02x:%02x:%02x:%02x:%02x:%02x",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
