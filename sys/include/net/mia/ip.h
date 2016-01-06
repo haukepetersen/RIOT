@@ -14,6 +14,11 @@
 extern "C" {
 #endif
 
+#define MIA_IP_ADDR             {10, 10, 10, 23}
+#define MIA_IP_MASK             (3U)
+#define MIA_IP_BCAST            {192, 168, 2, 255}
+#define MIA_IP_GATEWAY          {192, 168, 2, 1}
+
 /**
  * @brief   Default IP address configuration
  *

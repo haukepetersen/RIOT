@@ -33,7 +33,7 @@ static void on_evt(netdev2_t *dev, netdev2_event_t evt, void *arg)
             break;
         case NETDEV2_EVENT_RX_COMPLETE:
             mia_lock();
-            dev->driver->recv(dev, (char *)mia_buf, MIA_BUFSIZE);
+            dev->driver->recv(dev, (char *)mia_buf, MIA_BUFSIZE, NULL);
             mia_eth_process();
             mia_unlock();
             break;

@@ -12,12 +12,11 @@ extern "C" {
 
 #define COAP_PORT           (5683U)
 
-typedef void(*mia_coap_cb)(void);
+typedef uint16_t(*mia_coap_cb)(void);
 
 typedef struct {
-    uint32_t ep;
-    mia_cb_t get;
-    mia_cb_t post;
+    const char *ep;
+    mia_coap_cb cb;
 } mia_coap_ep_t;
 
 void mia_coap_process(void);
