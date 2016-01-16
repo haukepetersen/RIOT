@@ -94,22 +94,22 @@ static const uint8_t dbm_to_tx_pow[] = {0x0f, 0x0f, 0x0f, 0x0e, 0x0e, 0x0e,
 
 uint16_t at86rf2xx_get_addr_short(at86rf2xx_t *dev)
 {
-    return (dev->addr_short[0] << 8) | dev->addr_short[1];
+    return (dev->short_addr[0] << 8) | dev->short_addr[1];
 }
 
 void at86rf2xx_set_addr_short(at86rf2xx_t *dev, uint16_t addr)
 {
-    dev->addr_short[0] = addr >> 8;
-    dev->addr_short[1] = addr;
+    dev->short_addr[0] = (uint8_t)(addr);
+    dev->short_addr[1] = (uint8_t)(addr >> 8);
 #ifdef MODULE_SIXLOWPAN
     /* https://tools.ietf.org/html/rfc4944#section-12 requires the first bit to
      * 0 for unicast addresses */
-    dev->addr_short[1] &= 0x7F;
+    dev->short_addr[0] &= 0x7F;
 #endif
     at86rf2xx_reg_write(dev, AT86RF2XX_REG__SHORT_ADDR_0,
-                        dev->addr_short[0]);
+                        dev->short_addr[1]);
     at86rf2xx_reg_write(dev, AT86RF2XX_REG__SHORT_ADDR_1,
-                        dev->addr_short[1]);
+                        dev->short_addr[0]);
 }
 
 uint64_t at86rf2xx_get_addr_long(at86rf2xx_t *dev)
@@ -117,7 +117,7 @@ uint64_t at86rf2xx_get_addr_long(at86rf2xx_t *dev)
     uint64_t addr;
     uint8_t *ap = (uint8_t *)(&addr);
     for (int i = 0; i < 8; i++) {
-        ap[i] = dev->addr_long[7 - i];
+        ap[i] = dev->long_addr[i];
     }
     return addr;
 }
@@ -125,9 +125,9 @@ uint64_t at86rf2xx_get_addr_long(at86rf2xx_t *dev)
 void at86rf2xx_set_addr_long(at86rf2xx_t *dev, uint64_t addr)
 {
     for (int i = 0; i < 8; i++) {
-        dev->addr_long[i] = (addr >> ((7 - i) * 8));
+        dev->long_addr[i] = (uint8_t)(addr >> (i * 8));
         at86rf2xx_reg_write(dev, (AT86RF2XX_REG__IEEE_ADDR_0 + i),
-                            dev->addr_long[i]);
+                            (addr >> ((7 - i) * 8)));
     }
 }
 
@@ -177,10 +177,11 @@ uint16_t at86rf2xx_get_pan(at86rf2xx_t *dev)
 
 void at86rf2xx_set_pan(at86rf2xx_t *dev, uint16_t pan)
 {
+    le_uint16_t le_pan = byteorder_btols(byteorder_htons(pan));
     dev->pan = pan;
-    DEBUG("pan0: %u, pan1: %u\n", (uint8_t)pan, pan >> 8);
-    at86rf2xx_reg_write(dev, AT86RF2XX_REG__PAN_ID_0, (uint8_t)pan);
-    at86rf2xx_reg_write(dev, AT86RF2XX_REG__PAN_ID_1, (pan >> 8));
+    DEBUG("pan0: %u, pan1: %u\n", le_pan.u8[0], le_pan.u8[1]);
+    at86rf2xx_reg_write(dev, AT86RF2XX_REG__PAN_ID_0, le_pan.u8[0]);
+    at86rf2xx_reg_write(dev, AT86RF2XX_REG__PAN_ID_1, le_pan.u8[1]);
 }
 
 int16_t at86rf2xx_get_txpower(at86rf2xx_t *dev)
@@ -331,14 +332,14 @@ void at86rf2xx_set_option(at86rf2xx_t *dev, uint16_t option, bool state)
 
     /* set option field */
     if (state) {
-        dev->options |= option;
+        dev->flags |= option;
         /* trigger option specific actions */
         switch (option) {
             case AT86RF2XX_OPT_CSMA:
                 DEBUG("[at86rf2xx] opt: enabling CSMA mode" \
                       "(4 retries, min BE: 3 max BE: 5)\n");
                 /* Initialize CSMA seed with hardware address */
-                at86rf2xx_set_csma_seed(dev, dev->addr_long);
+                at86rf2xx_set_csma_seed(dev, dev->long_addr);
                 at86rf2xx_set_csma_max_retries(dev, 4);
                 at86rf2xx_set_csma_backoff_exp(dev, 3, 5);
                 break;
@@ -371,7 +372,7 @@ void at86rf2xx_set_option(at86rf2xx_t *dev, uint16_t option, bool state)
         }
     }
     else {
-        dev->options &= ~(option);
+        dev->flags &= ~(option);
         /* trigger option specific actions */
         switch (option) {
             case AT86RF2XX_OPT_CSMA:
@@ -386,7 +387,7 @@ void at86rf2xx_set_option(at86rf2xx_t *dev, uint16_t option, bool state)
                 tmp &= ~(AT86RF2XX_XAH_CTRL_1__AACK_PROM_MODE);
                 at86rf2xx_reg_write(dev, AT86RF2XX_REG__XAH_CTRL_1, tmp);
                 /* re-enable AUTOACK only if the option is set */
-                if (dev->options & AT86RF2XX_OPT_AUTOACK) {
+                if (dev->flags & AT86RF2XX_OPT_AUTOACK) {
                     tmp = at86rf2xx_reg_read(dev,
                                              AT86RF2XX_REG__CSMA_SEED_1);
                     tmp &= ~(AT86RF2XX_CSMA_SEED_1__AACK_DIS_ACK);
