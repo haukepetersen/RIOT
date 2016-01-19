@@ -25,26 +25,20 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin,
-                    uint8_t acc_address,
-                    lsm303dlhc_acc_sample_rate_t acc_sample_rate,
-                    lsm303dlhc_acc_scale_t acc_scale,
-                    uint8_t mag_address,
-                    lsm303dlhc_mag_sample_rate_t mag_sample_rate,
-                    lsm303dlhc_mag_gain_t mag_gain)
+int lsm303dlhc_init(lsm303dlhc_t *dev, const lsm303dlhc_params_t *params)
 {
     int res;
     char tmp;
 
-    dev->i2c = i2c;
-    dev->acc_address = acc_address;
-    dev->mag_address = mag_address;
-    dev->acc_pin     = acc_pin;
-    dev->mag_pin     = mag_pin;
+    dev->i2c         = params->i2c;
+    dev->acc_address = params->acc_addr;
+    dev->mag_address = params->mag_addr;
+    dev->acc_pin     = params->acc_pin;
+    dev->mag_pin     = params->mag_pin;
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->i2c);
-    i2c_init_master(i2c, I2C_SPEED_NORMAL);
+    i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
 
     DEBUG("lsm303dlhc reboot ");
     res = i2c_write_reg(dev->i2c, dev->acc_address,
@@ -58,34 +52,34 @@ int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin
     tmp = (LSM303DLHC_CTRL1_A_XEN
           | LSM303DLHC_CTRL1_A_YEN
           | LSM303DLHC_CTRL1_A_ZEN
-          | acc_sample_rate);
+          | params->acc_rate);
     i2c_acquire(dev->i2c);
     res += i2c_write_reg(dev->i2c, dev->acc_address,
                          LSM303DLHC_REG_CTRL1_A, tmp);
     /* update on read, MSB @ low address, scale and high-resolution */
-    tmp = (acc_scale | LSM303DLHC_CTRL4_A_HR);
+    tmp = (params->acc_scale | LSM303DLHC_CTRL4_A_HR);
     res += i2c_write_reg(dev->i2c, dev->acc_address,
                          LSM303DLHC_REG_CTRL4_A, tmp);
     /* no interrupt generation */
     res += i2c_write_reg(dev->i2c, dev->acc_address,
                          LSM303DLHC_REG_CTRL3_A, LSM303DLHC_CTRL3_A_I1_NONE);
     /* configure acc data ready pin */
-    gpio_init(acc_pin, GPIO_DIR_IN, GPIO_NOPULL);
+    gpio_init(dev->acc_pin, GPIO_DIR_IN, GPIO_NOPULL);
 
     /* configure magnetometer and temperature */
     /* enable temperature output and set sample rate */
-    tmp = LSM303DLHC_TEMP_EN | mag_sample_rate;
+    tmp = LSM303DLHC_TEMP_EN | params->mag_rate;
     res += i2c_write_reg(dev->i2c, dev->mag_address,
                          LSM303DLHC_REG_CRA_M, tmp);
     /* configure z-axis gain */
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                         LSM303DLHC_REG_CRB_M, mag_gain);
+                         LSM303DLHC_REG_CRB_M, params->mag_gain);
     /* set continuous mode */
     res += i2c_write_reg(dev->i2c, dev->mag_address,
                          LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_CONTINUOUS);
     i2c_release(dev->i2c);
     /* configure mag data ready pin */
-    gpio_init(mag_pin, GPIO_DIR_IN, GPIO_NOPULL);
+    gpio_init(dev->mag_pin, GPIO_DIR_IN, GPIO_NOPULL);
 
     return (res < 7) ? -1 : 0;
 }
