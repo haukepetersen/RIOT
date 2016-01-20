@@ -61,26 +61,21 @@ extern "C" {
 
 /**
  * @name Define the interface to the ISL29020 light sensor
- * @{
  */
 #define ISL29020_PARAMS_BOARD       {.i2c = I2C_DEV(0), \
                                      .addr = (0x44), \
                                      .range = ISL29020_RANGE_16K, \
                                      .mode = ISL29020_MODE_AMBIENT}
-/** @} */
 
 /**
  * @name Define the interface to the LPS331AP pressure sensor
- * @{
  */
 #define LPS331AP_PARAMS_BOARD       {.i2c = I2C_DEV(0), \
                                      .addr = (0x5c), \
                                      .rate = LPS331AP_RATE_7HZ}
-/** @} */
 
 /**
  * @name Define the interface for the L3G4200D gyroscope
- * @{
  */
 #define L3G4200D_PARAMS_BOARD       {.i2c = I2C_DEV(0), \
                                      .addr = (0x68), \
@@ -88,7 +83,6 @@ extern "C" {
                                      .int2_pin = GPIO_PIN(PORT_C, 0), \
                                      .mode = L3G4200D_MODE_200_25, \
                                      .scale = L3G4200D_SCALE_500DPS}
-/** @} */
 
 /**
  * @name Define the interface to the LSM303DLHC accelerometer and magnetometer
