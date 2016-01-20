@@ -29,10 +29,15 @@ extern "C" {
  * @brief   Direct mapped GPIO configuration values
  */
 typedef struct {
-    const char *name;       /**< name of the device connected to this pin */
     gpio_t pin;             /**< GPIO pin to initialize and expose */
     gpio_dir_t dir;         /**< use GPIO as input or output */
+    const char *name;       /**< string identifying the pin */
 } saul_gpio_params_t;
+
+/**
+ * @brief   Driver interface for SAUL controlled GPIO pins
+ */
+extern const saul_driver_t saul_gpio_driver;
 
 #ifdef __cplusplus
 }
