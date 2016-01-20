@@ -42,13 +42,6 @@ typedef struct saul_reg_t {
 } saul_reg_t;
 
 /**
- * @brief   Additional data to collect for each entry
- */
-typedef struct {
-    const char *name;           /**< string identifier for a device */
-} saul_reg_info_t;
-
-/**
  * @brief   Register a device with the SAUL registry
  *
  * @note    Make sure the registry entry the @p dev pointer is pointing to
