@@ -190,28 +190,32 @@ void auto_init(void)
 #endif
 
 /* initialize sensors and actuators */
-#ifdef MODULE_AUTO_INIT_SAUL
-    DEBUG("auto_init SAUL\n");
+#ifdef MODULE_SAUL_REG
 
 #ifdef MODULE_SAUL_GPIO
-    extern void auto_init_gpio(void);
-    auto_init_gpio();
+    DEBUG("Auto init some GPIOs via SAUL\n");
+    extern void saul_gpio_init(void);
+    saul_gpio_init();
 #endif
 #ifdef MODULE_LSM303DLHC
-    extern void auto_init_lsm303dlhc(void);
-    auto_init_lsm303dlhc();
+    DEBUG("Auto init LSM303DLHC via SAUL\n");
+    extern void lsm303dlhc_init_saul(void);
+    lsm303dlhc_init_saul();
 #endif
 #ifdef MODULE_LPS331AP
-    extern void auto_init_lps331ap(void);
-    auto_init_lps331ap();
+    DEBUG("Auto init LPS331AP via SAUL\n");
+    extern void lps331ap_init_saul(void);
+    lps331ap_init_saul();
 #endif
 #ifdef MODULE_ISL29020
-    extern void auto_init_isl29020(void);
-    auto_init_isl29020();
+    DEBUG("Auto init ISL29020 via SAUL\n");
+    extern void isl29020_init_saul(void);
+    isl29020_init_saul();
 #endif
 #ifdef MODULE_L3G4200D
-    extern void auto_init_l3g4200d(void);
-    auto_init_l3g4200d();
+    DEBUG("Auto init L3G4200D via SAUL\n");
+    extern void l3g4200d_init_saul(void);
+    l3g4200d_init_saul();
 #endif
 
 #endif /* MODULE_AUTO_INIT_SAUL */
