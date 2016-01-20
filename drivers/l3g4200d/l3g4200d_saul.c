@@ -22,6 +22,21 @@
 
 #include "saul.h"
 #include "l3g4200d.h"
+#include "l3g4200d_params.h"
+
+l3g4200d_t l3g4200d_devs[L3G4200D_NUMOF];
+
+int l3g4200d_init_saul(void)
+{
+    for (int i = 0; i < L3G4200D_NUMOF; i++) {
+        if (l3g4200d_init(&l3g4200d_devs[i], &l3g4200d_params[i]) < 0) {
+            return -1;
+        }
+        l3g4200d_saul[i].dev = &l3g4200d_devs[i];
+        saul_reg_add(&l3g4200d_saul[i]);
+    }
+    return 0;
+}
 
 static int read(void *dev, phydat_t *res)
 {

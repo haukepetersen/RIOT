@@ -33,20 +33,18 @@
 
 #define MAX_VAL         0x7fff
 
-int l3g4200d_init(l3g4200d_t *dev, i2c_t i2c, uint8_t address,
-                  gpio_t int1_pin, gpio_t int2_pin,
-                  l3g4200d_mode_t mode, l3g4200d_scale_t scale)
+int l3g4200d_init(l3g4200d_t *dev, const l3g4200d_params_t *params)
 {
     char tmp;
 
     /* write device descriptor */
-    dev->i2c = i2c;
-    dev->addr = address;
-    dev->int1 = int1_pin;
-    dev->int2 = int2_pin;
+    dev->i2c  = params->i2c;
+    dev->addr = params->addr;
+    dev->int1 = params->int1_pin;
+    dev->int2 = params->int2_pin;
 
     /* set scale */
-    switch (scale) {
+    switch (params->scale) {
         case L3G4200D_SCALE_250DPS:
             dev->scale = 250;
             break;
@@ -64,18 +62,18 @@ int l3g4200d_init(l3g4200d_t *dev, i2c_t i2c, uint8_t address,
     /* acquire exclusive access to the bus. */
     i2c_acquire(dev->i2c);
     /* initialize the I2C bus */
-    if (i2c_init_master(i2c, I2C_SPEED) < 0) {
+    if (i2c_init_master(dev->i2c, I2C_SPEED) < 0) {
         /* Release the bus for other threads. */
         i2c_release(dev->i2c);
         return -1;
     }
     /* configure CTRL_REG1 */
-    tmp = ((mode & 0xf) << L3G4200D_CTRL1_MODE_POS) | L3G4200D_CTRL1_ALLON;
+    tmp = ((params->mode & 0xf) << L3G4200D_CTRL1_MODE_POS) | L3G4200D_CTRL1_ALLON;
     if (i2c_write_reg(dev->i2c, dev->addr, L3G4200D_REG_CTRL1, tmp) != 1) {
         i2c_release(dev->i2c);
         return -1;
     }
-    tmp = ((scale & 0x3) << L3G4200D_CTRL4_FS_POS) | L3G4200D_CTRL4_BDU;
+    tmp = ((params->scale & 0x3) << L3G4200D_CTRL4_FS_POS) | L3G4200D_CTRL4_BDU;
     if (i2c_write_reg(dev->i2c, dev->addr, L3G4200D_REG_CTRL4, tmp) != 1) {
         i2c_release(dev->i2c);
         return -1;

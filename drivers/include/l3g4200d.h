@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2016 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -27,6 +27,7 @@
 
 #include "periph/i2c.h"
 #include "periph/gpio.h"
+#include "saul_reg.h"
 
 #ifdef __cplusplus
  extern "C" {
@@ -99,22 +100,20 @@ typedef struct {
 } l3g4200d_params_t;
 
 /**
- * @brief Initialize a gyro
+ * @brief   Exported SAUL interface for L3GD4200D devices
+ */
+extern const saul_driver_t l3g4200d_saul_driver;
+
+/**
+ * @brief   Initialize the given L3G4200D device
  *
  * @param[out] dev          device descriptor of sensor to initialize
- * @param[in]  i2c          I2C bus the gyro is connected to
- * @param[in]  address      gyro's I2C slave address
- * @param[in]  int1_pin     INT pin the gyro is connected to
- * @param[in]  int2_pin     DRDY pin the gyro is connected to
- * @param[in]  mode         bandwidth and sampling rate settings
- * @param[in]  scale        scaling of results
+ * @param[in]  params       configuration parameters used for initialization
  *
  * @return                  0 on success
  * @return                  -1 on error
  */
-int l3g4200d_init(l3g4200d_t *dev, i2c_t i2c, uint8_t address,
-                  gpio_t int1_pin, gpio_t int2_pin,
-                  l3g4200d_mode_t mode, l3g4200d_scale_t scale);
+int l3g4200d_init(l3g4200d_t *dev, const l3g4200d_params_t *params);
 
 /**
  * @brief Read angular speed value in degree per second from gyro
