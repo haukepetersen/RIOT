@@ -46,13 +46,13 @@
 #define TEMP_DIVIDER        (480U)
 
 
-int lps331ap_init(lps331ap_t *dev, i2c_t i2c, uint8_t address, lps331ap_rate_t rate)
+int lps331ap_init(lps331ap_t *dev, const lps331ap_params_t *params)
 {
     char tmp;
 
     /* save device specifics */
-    dev->i2c = i2c;
-    dev->address = address;
+    dev->i2c     = params->i2c;
+    dev->address = params->addr;
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->i2c);
@@ -65,7 +65,7 @@ int lps331ap_init(lps331ap_t *dev, i2c_t i2c, uint8_t address, lps331ap_rate_t r
 
     /* configure device, for simple operation only CTRL_REG1 needs to be touched */
     tmp = LPS331AP_CTRL_REG1_DBDU | LPS331AP_CTRL_REG1_PD |
-          (rate << LPS331AP_CTRL_REG1_ODR_POS);
+          (params->rate << LPS331AP_CTRL_REG1_ODR_POS);
     if (i2c_write_reg(dev->i2c, dev->address, LPS331AP_REG_CTRL_REG1, tmp) != 1) {
         i2c_release(dev->i2c);
         return -1;

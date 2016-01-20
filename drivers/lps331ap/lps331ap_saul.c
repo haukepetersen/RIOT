@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       LPS331ap adaption to the RIOT actuator/sensor interface
+ * @brief       LPS331AP adaption to the RIOT actuator/sensor interface
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  *
@@ -22,6 +22,21 @@
 
 #include "saul.h"
 #include "lps331ap.h"
+#include "lps331ap_params.h"
+
+lps331ap_t lps331ap_devs[LPS331AP_NUMOF];
+
+int lps331ap_init_saul(void)
+{
+    for (int i = 0; i < LPS331AP_NUMOF; i++) {
+        if (lps331ap_init(&lps331ap_devs[i], &lps331ap_params[i]) < 0) {
+            return -1;
+        }
+        lps331ap_saul[i].dev = &lps331ap_devs[i];
+        saul_reg_add(&lps331ap_saul[i]);
+    }
+    return 0;
+}
 
 static int read(void *dev, phydat_t *res)
 {
@@ -43,3 +58,4 @@ const saul_driver_t lps331ap_saul_driver = {
     .write = write,
     .type = SAUL_SENSE_PRESS,
 };
+

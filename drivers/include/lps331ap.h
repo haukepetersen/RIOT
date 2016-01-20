@@ -29,11 +29,12 @@ extern "C" {
 
 #include <stdint.h>
 #include "periph/i2c.h"
+#include "saul_reg.h"
 
  /**
   * @brief The sensors default I2C address
   */
-#define LPS331AP_DEFAULT_ADDRESS        0x5c
+#define LPS331AP_DEFAULT_ADDRESS        (0x5c)
 
 /**
  * @brief Device descriptor for LPS331AP sensors
@@ -63,17 +64,20 @@ typedef struct {
 } lps331ap_params_t;
 
 /**
+ * @brief   Exported SAUL driver interface for LPS331AP devices
+ */
+extern const saul_driver_t lps331ap_saul_driver;
+
+/**
  * @brief Initialize a given LPS331AP pressure sensor
  *
  * @param[out] dev      device descriptor of the sensor
- * @param[in]  i2c      I2C bus the sensor is connected to
- * @param[in]  address  the sensor's address on the I2C bus
- * @param[in]  rate     internal sampling rate of the sensor
+ * @param[in] params    configuration parameters
  *
  * @return              0 on success
  * @return              -1 on error
  */
-int lps331ap_init(lps331ap_t *dev, i2c_t i2c, uint8_t address, lps331ap_rate_t rate);
+int lps331ap_init(lps331ap_t *dev, const lps331ap_params_t *params);
 
 /**
  * @brief Read a temperature value from the given sensor, returned in m°C
