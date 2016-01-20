@@ -23,15 +23,21 @@
 
 #include <stdint.h>
 #include "periph/i2c.h"
+#include "saul_reg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
- /**
-  * @brief The sensors default I2C address
-  */
+/**
+ * @brief The sensors default I2C address
+ */
 #define ISL29020_DEFAULT_ADDRESS        0x44
+
+/**
+ * @brief SAUL driver interface
+ */
+extern const saul_driver_t isl29020_saul_driver;
 
 /**
  * @brief Device descriptor for ISL29020 sensors
@@ -74,16 +80,12 @@ typedef struct {
  * @brief Initialize a new ISL29020 device
  *
  * @param[in] dev       device descriptor of an ISL29020 device
- * @param[in] i2c       I2C device the sensor is connected to
- * @param[in] address   I2C address of the sensor
- * @param[in] range     measurement range
- * @param[in] mode      configure if sensor reacts to ambient or infrared light
+ * @param[in] params    initialization parameters
  *
  * @return              0 on success
  * @return              -1 on error
  */
-int isl29020_init(isl29020_t *dev, i2c_t i2c, uint8_t address,
-                  isl29020_range_t range, isl29020_mode_t mode);
+int isl29020_init(isl29020_t *dev, const isl29020_params_t *params);
 
 /**
  * @brief Read a lighting value from the sensor, the result is given in lux

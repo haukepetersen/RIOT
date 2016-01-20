@@ -22,6 +22,24 @@
 
 #include "saul.h"
 #include "isl29020.h"
+#include "isl29020_params.h"
+
+#ifdef MODULE_SAUL_REG
+
+isl29020_t isl29020_devs[ISL29020_NUMOF];
+
+int isl29020_init_saul(void)
+{
+    for (int i = 0; i < ISL29020_NUMOF; i++) {
+        if (isl29020_init(&isl29020_devs[i], &isl29020_params[i]) < 0) {
+            return -1;
+        }
+        isl29020_saul[i].dev = &(isl29020_devs[i]);
+        saul_reg_add(&(isl29020_saul[i]));
+    }
+    return 0;
+}
+#endif
 
 static int read(void *dev, phydat_t *res)
 {

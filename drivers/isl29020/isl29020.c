@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2016 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -26,25 +26,25 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-int isl29020_init(isl29020_t *dev, i2c_t i2c, uint8_t address,
-                  isl29020_range_t range, isl29020_mode_t mode)
+int isl29020_init(isl29020_t *dev, const isl29020_params_t *params)
 {
     int res;
     char tmp;
 
     /* initialize device descriptor */
-    dev->i2c = i2c;
-    dev->address = address;
-    dev->lux_fac = (float)((1 << (10 + (2 * range))) - 1) / 0xffff;
+    dev->i2c     = params->i2c;
+    dev->address = params->addr;
+    dev->lux_fac = (float)((1 << (10 + (2 * params->range))) - 1) / 0xffff;
 
     /* acquire exclusive access to the bus */
     i2c_acquire(dev->i2c);
     /* initialize the I2C bus */
-    i2c_init_master(i2c, I2C_SPEED_NORMAL);
+    i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
 
     /* configure and enable the sensor */
-    tmp = ISL29020_CMD_EN | ISL29020_CMD_MODE | ISL29020_RES_INT_16 | range | (mode << 5);
-    res = i2c_write_reg(dev->i2c, address, ISL29020_REG_CMD, tmp);
+    tmp = (ISL29020_CMD_EN | ISL29020_CMD_MODE | ISL29020_RES_INT_16 |
+           params->range | (params->mode << 5));
+    res = i2c_write_reg(dev->i2c, dev->address, ISL29020_REG_CMD, tmp);
     /* release the bus for other threads */
     i2c_release(dev->i2c);
     if (res < 1) {
