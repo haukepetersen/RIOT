@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Freie Universität Berlin
+ * Copyright (C) 2013-2016 Freie Universität Berlin
  * Copyright (C) 2015 INRIA
  *
  * This file is subject to the terms and conditions of the GNU Lesser
@@ -9,9 +9,48 @@
 
 /**
  * @defgroup    drivers Drivers
- * @brief       Drivers for external devices as radios, sensors, memory etc.
+ * @brief       This module contains all kind of device drivers for sensors,
+ *              actuators, network devices, etc.
  *
- * The module contains all kind of drivers for specific devices.
+ * As **devices** in RIOT we consider hardware, that is not part of the MCU core
+ * itself and that needs an interaction with an MCU (i.e. a device driver) to
+ * fulfill a meaningful function. Typical devices are sensors, actuators, and
+ * network devices that are connected to the MCU via some sort of bus system
+ * (e.g. SPI, I2C, plain GPIO, etc.).
+ *
+ *
+ *
+ * @section sec_model Driver model
+ *
+ *
+ * - periph drivers @ref drivers_periph
+ *
+ * @subsection sub_net Network devices
+ *
+ * - network devices: @ref drivers_netdev_netdev2
+ *
+ * @subsection sub_sense Sensors
+ *
+ * Physical values! RAW values are no really of interest!
+ *
+ * - sensors/actuators: @ref drivers_saul
+ *
+ * @subsection sub_act Actuators
+ *
+ * - sensors/actuators: @ref drivers_saul
+ *
+ *
+ * @section sec_struc Structure of drivers
+ *
+ * -
+ *
+ * Drivers must implement the following:
+ *
+ *
+ *
+ * @todo        hello
+ * @todo        foobar
+ *
  */
 
 /**
