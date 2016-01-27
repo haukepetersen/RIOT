@@ -104,6 +104,12 @@ typedef struct {
 } uart_conf_t;
 /** @} */
 
+typedef struct {
+    TIM_TypeDef *dev;
+    uint8_t rcc_bit;
+    uint8_t irqn;
+} timer_conf_t;
+
 /**
  * @brief   Configure the alternate function for the given pin
  *
