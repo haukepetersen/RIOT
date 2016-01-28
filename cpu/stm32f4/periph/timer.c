@@ -72,6 +72,9 @@ int timer_init(tim_t dev, unsigned int ticks_per_us, void (*callback)(int))
     /* start the timer */
     timer_start(dev);
 
+    printf("rcc reg is %p\n", rcc_reg(dev));
+    printf("rcc status 0x%08x\n", (unsigned)*rcc_reg(dev));
+    puts("timer init ok");
     return 0;
 }
 
@@ -86,6 +89,8 @@ int timer_set_absolute(tim_t dev, int channel, unsigned int value)
     if (channel >= 4) {
         return -1;
     }
+
+    printf("set timer %i ch %i to %i\n", (int)dev, channel, (int)value);
 
     tim(dev)->CCR[channel] = value;
     tim(dev)->SR &= ~(TIM_SR_CC1IF << channel);
