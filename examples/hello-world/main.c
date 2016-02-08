@@ -20,13 +20,41 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
+
+#include "board.h"
+#include "thread.h"
+#include "xtimer.h"
+
+#define PRINT_DELAY         (1500 * 1000U)
+#define TOGGLE_DELAY        (200 * 1000U)
+
+char stack[THREAD_STACKSIZE_MAIN];
+
+void *second_thread(void *arg)
+{
+    (void) arg;
+    uint32_t now = xtimer_now();
+
+    while (1) {
+        LED_RED_TOGGLE;
+        xtimer_usleep_until(&now, TOGGLE_DELAY);
+    }
+
+    return NULL;
+}
 
 int main(void)
 {
-    puts("Hello World!");
+    uint32_t now = xtimer_now();
 
-    printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
-    printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+    thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1, 0,
+                  second_thread, NULL, "toggle");
+
+    while (1) {
+        puts("Hello World!");
+        xtimer_usleep_until(&now, PRINT_DELAY);
+    }
 
     return 0;
 }
