@@ -20,6 +20,8 @@
 #ifndef PERIPH_CONF_H
 #define PERIPH_CONF_H
 
+#include "periph_cpu.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -72,6 +74,18 @@ extern "C" {
 #define UART_NUMOF          (1U)
 #define UART_PIN_RX         8
 #define UART_PIN_TX         6
+/** @} */
+
+/**
+ * @brief   I2C configuration
+ * @{
+ */
+static const i2c_conf_t i2c_config[] = {
+    /* device, SDA pin, SCL pin */
+    { NRF_TWIM0, 15, 16 }
+};
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
 #ifdef __cplusplus
