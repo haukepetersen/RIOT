@@ -36,6 +36,16 @@ extern "C" {
 #define CPU_FLASH_BASE                  (0x00000000)
 /** @} */
 
+/**
+ * @brief   Put the CPU in the low-power 'wait for event' state
+ */
+static inline void cpu_sleep(void)
+{
+    __SEV();
+    __WFE();
+    asm("nop");
+}
+
 #ifdef __cplusplus
 }
 #endif

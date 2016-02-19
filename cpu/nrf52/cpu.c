@@ -64,6 +64,9 @@ void cpu_init(void)
 
     while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0);
 #endif
+
+    /* enable wake up on events for __WFE CPU sleep */
+    SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
 }
 
 /**
