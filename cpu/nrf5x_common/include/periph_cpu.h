@@ -54,6 +54,14 @@ extern "C" {
 #define GPIO_PIN(x,y)       ((x & 0) | y)
 
 /**
+ * @brief   Use shared I2C driver functions
+ * @{
+ */
+#define PERIPH_I2C_NEEDS_WRITE_BYTE
+#define PERIPH_I2C_NEEDS_WRITE_REG
+/** @} */
+
+/**
  * @brief   Override GPIO pull register select values
  * @{
  */
@@ -76,6 +84,31 @@ typedef enum {
     GPIO_BOTH    = 3        /**< emit interrupt on both flanks */
 } gpio_flank_t;
 /** @} */
+
+/**
+ * @brief   Override I2C speed values
+ */
+#define HAVE_I2C_SPEED_T
+typedef enum {
+    I2C_SPEED_LOW       = 1,      /**< low speed mode:    ~10kbit/s */
+    I2C_SPEED_NORMAL    = TWI_FREQUENCY_FREQUENCY_K100,       /**< normal mode:       ~100kbit/s */
+    I2C_SPEED_FAST      = TWI_FREQUENCY_FREQUENCY_K250,         /**< fast mode:         ~400kbit/sj */
+    I2C_SPEED_FAST_PLUS = TWI_FREQUENCY_FREQUENCY_K400,    /**< fast plus mode:    ~1Mbit/s */
+    I2C_SPEED_HIGH      = 2    /**< high speed mode:   ~3.4Mbit/s */
+} i2c_speed_t;
+
+/**
+ * @brief   I2C configuration options
+ */
+typedef struct {
+#if defined(CPU_FAM_NRF51)
+    NRF_TWI_Type *dev;      /**< TWI master device */
+#else
+    NRF_TWIM_Type *dev;     /**< TWI master with easy DMA device */
+#endif
+    uint8_t sda_pin;        /**< SDA pin */
+    uint8_t scl_pin;        /**< SCL pin */
+} i2c_conf_t;
 
 #ifdef __cplusplus
 }
