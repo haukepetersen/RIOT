@@ -34,7 +34,14 @@ int main(void)
     puts("BH1750FVI ambient light sensor test\n");
 
     /* initialize the device */
-    bh1750fvi_init(&dev, (bh1750fvi_params_t *)(&bh1750fvi_params));
+    int res = bh1750fvi_init(&dev, (bh1750fvi_params_t *)(&bh1750fvi_params));
+    if (res == I2C_ERR_ADDR) {
+        puts("I2C addressing error - wrong device ID configured?");
+        return -1;
+    }
+    else if (res == I2C_ERR_DATA) {
+        puts("I2C data error");
+    }
 
     /* periodically sample the sensor */
     while(1) {

@@ -39,9 +39,8 @@ static const i2c_speed_t speed_vals[] = {
 
 static i2c_speed_t picked_speeds[I2C_NUMOF] = { 0 };
 
-static i2c_t get_dev(const char *devstr)
+static i2c_t get_dev(int num)
 {
-    int num = atoi(devstr);
     if ((num < 0) || (num >= I2C_NUMOF)) {
         puts("error: invalid device given");
         return I2C_UNDEF;
@@ -53,14 +52,14 @@ static uint8_t parse_byte(const char *str)
 {
     if ((strlen(str) > 2) && (str[0] == '0') && (str[1] == 'x')) {
         uint8_t tmp = 0;
-        for (int i = 2; i < strlen(str); i--) {
+        for (int i = 2; i < strlen(str); i++) {
             tmp <<= 4;
             if ((str[i] < '0') || (str[i] > 'f')) {
                 return 0;
             }
             tmp |= (uint8_t)(str[i] - '0');
         }
-        return (uint8_t)tmp;
+        return tmp;
     }
     else if ((str[0] >= '0' && str[0] <= '9')) {
         return (int8_t)atoi(str);
@@ -75,7 +74,7 @@ static size_t parse_data(int start, int limit, char **parts)
     size_t pos = 0;
 
     for (int i = start; i < limit; i++) {
-        buf[pos] = parse_byte(parts[i]);
+        buf[pos++] = parse_byte(parts[i]);
     }
 
     return pos;
@@ -105,7 +104,7 @@ static void dump_buffer(int len)
 static int finish_write(int res, uint8_t addr, size_t len)
 {
     if (res == I2C_OK) {
-        printf("successfully transfered %i byte to addr 0x%02x\n",
+        printf("Successfully transfered %i byte to addr 0x%02x\n",
                 (int)len, (int)addr);
         return 0;
     }
@@ -124,7 +123,7 @@ static int finish_write(int res, uint8_t addr, size_t len)
 static int finish_read(int res, uint8_t addr, size_t len)
 {
     if (res == 0) {
-        printf("Received byte from 0x%02x:\n", (int)addr);
+        printf("Received data from addr 0x%02x:\n", (int)addr);
         dump_buffer(len);
         return 0;
     }
@@ -142,26 +141,27 @@ static int finish_read(int res, uint8_t addr, size_t len)
 
 int cmd_init(int argc, char **argv)
 {
-    int dev;
+    int dev_num;
+    i2c_t dev;
 
     if (argc != 2) {
         printf("usage:\n%s: <device>\n", argv[0]);
         return 1;
     }
 
-    dev = atoi(argv[1]);
-    if (dev < 0 || dev >= I2C_NUMOF) {
-        puts("error: invalid device given");
+    dev_num = atoi(argv[1]);
+    dev = get_dev(dev_num);
+    if (dev == I2C_UNDEF) {
         return 1;
     }
 
-    picked_speeds[dev] = I2C_SPEED_FAST;
-    if (i2c_init(I2C_DEV(dev)) < 0) {
+    picked_speeds[dev_num] = I2C_SPEED_FAST;
+    if (i2c_init(dev) < 0) {
         puts("error: i2c_init failed");
         return 1;
     }
 
-    printf("I2C_DEV(%i) initialized, speed set to I2C_SPEED_FAST\n", dev);
+    printf("I2C_DEV(%i) initialized, speed set to I2C_SPEED_FAST\n", dev_num);
     return 0;
 }
 
@@ -199,6 +199,7 @@ int cmd_speed(int argc, char **argv)
 
 int cmd_write(int argc, char **argv)
 {
+    int dev_num;
     i2c_t dev;
     uint8_t addr;
     size_t len;
@@ -209,25 +210,30 @@ int cmd_write(int argc, char **argv)
         return 1;
     }
 
-    dev = get_dev(argv[1]);
+    dev_num = atoi(argv[1]);
+    dev = get_dev(dev_num);
     if (dev == I2C_UNDEF) {
         return 1;
     }
 
     addr = parse_byte(argv[2]);
     len = parse_data(3, argc, argv);
+
+    i2c_acquire(dev, picked_speeds[dev_num]);
     if (len == 1) {
         res = i2c_write_byte(dev, addr, buf[0]);
     }
     else {
         res = i2c_write_bytes(dev, addr, buf, len);
     }
+    i2c_release(dev);
 
     return finish_write(res, addr, len);
 }
 
 int cmd_write_reg(int argc, char **argv)
 {
+    int dev_num;
     i2c_t dev;
     uint8_t addr, reg;
     size_t len;
@@ -239,7 +245,8 @@ int cmd_write_reg(int argc, char **argv)
         return 1;
     }
 
-    dev = get_dev(argv[1]);
+    dev_num = atoi(argv[1]);
+    dev = get_dev(dev_num);
     if (dev == I2C_UNDEF) {
         return 1;
     }
@@ -247,18 +254,22 @@ int cmd_write_reg(int argc, char **argv)
     addr = parse_byte(argv[2]);
     reg = parse_byte(argv[3]);
     len = parse_data(4, argc, argv);
+
+    i2c_acquire(dev, picked_speeds[dev_num]);
     if (len == 1) {
         res = i2c_write_reg(dev, addr, reg, buf[0]);
     }
     else {
         res = i2c_write_regs(dev, addr, reg, buf, len);
     }
+    i2c_release(dev);
 
     return finish_write(res, addr, len);
 }
 
 int cmd_read(int argc, char **argv)
 {
+    int dev_num;
     i2c_t dev;
     uint8_t addr;
     size_t len;
@@ -269,20 +280,25 @@ int cmd_read(int argc, char **argv)
         return 1;
     }
 
-    dev = get_dev(argv[1]);
+    dev_num = atoi(argv[1]);
+    dev = get_dev(dev_num);
     if (dev == I2C_UNDEF) {
         return 1;
     }
 
     addr = parse_byte(argv[2]);
     len = (size_t)atoi(argv[3]);
+
+    i2c_acquire(dev, picked_speeds[dev_num]);
     res = i2c_read(dev, addr, buf, len);
+    i2c_release(dev);
 
     return finish_read(res, addr, len);
 }
 
 int cmd_read_reg(int argc, char **argv)
 {
+    int dev_num;
     i2c_t dev;
     uint8_t addr, reg;
     size_t len;
@@ -293,7 +309,8 @@ int cmd_read_reg(int argc, char **argv)
         return 1;
     }
 
-    dev = get_dev(argv[1]);
+    dev_num = atoi(argv[1]);
+    dev = get_dev(dev_num);
     if (dev == I2C_UNDEF) {
         return 1;
     }
@@ -301,7 +318,10 @@ int cmd_read_reg(int argc, char **argv)
     addr = parse_byte(argv[2]);
     reg = parse_byte(argv[3]);
     len = (size_t)atoi(argv[4]);
+
+    i2c_acquire(dev, picked_speeds[dev_num]);
     res = i2c_read_reg(dev, addr, reg, buf, len);
+    i2c_release(dev);
 
     return finish_read(res, addr, len);
 }

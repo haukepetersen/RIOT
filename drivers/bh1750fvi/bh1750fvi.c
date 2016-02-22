@@ -32,27 +32,28 @@ int bh1750fvi_init(bh1750fvi_t *dev, bh1750fvi_params_t *params)
     /* initialize the device descriptor */
     dev->i2c = params->i2c;
     dev->addr = params->addr;
+    dev->clk = params->clk;
 
     /* initialize the I2C bus */
-    i2c_acquire(dev->i2c);
-    i2c_init_master(dev->i2c, params->clk);
+    i2c_init(dev->i2c);
 
     /* send a power down command to make sure we can speak to the device */
+    if (i2c_acquire(dev->i2c, dev->clk) < 0) {
+        return -3;
+    }
     res = i2c_write_byte(dev->i2c, dev->addr, OP_POWER_DOWN);
     i2c_release(dev->i2c);
-    if (res < 0) {
-        return -1;
-    }
-    return 0;
+
+    return res;
 }
 
 uint16_t bh1750fvi_sample(bh1750fvi_t *dev)
 {
     uint32_t tmp;
-    char raw[2];
+    uint8_t raw[2];
 
     /* power on the device and send single H-mode measurement command */
-    i2c_acquire(dev->i2c);
+    i2c_acquire(dev->i2c, dev->clk);
     i2c_write_byte(dev->i2c, dev->addr, OP_POWER_ON);
     i2c_write_byte(dev->i2c, dev->addr, OP_SINGLE_HRES1);
     i2c_release(dev->i2c);
@@ -61,8 +62,8 @@ uint16_t bh1750fvi_sample(bh1750fvi_t *dev)
     xtimer_usleep(DELAY_HMODE);
 
     /* read the results */
-    i2c_acquire(dev->i2c);
-    i2c_read_bytes(dev->i2c, dev->addr, raw, 2);
+    i2c_acquire(dev->i2c, dev->clk);
+    i2c_read(dev->i2c, dev->addr, raw, 2);
     i2c_release(dev->i2c);
 
     /* and finally we calculate the actual LUX value */

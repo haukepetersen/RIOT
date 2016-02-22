@@ -22,7 +22,7 @@
 #include "mutex.h"
 #include "periph/i2c.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 /**
@@ -41,28 +41,41 @@ static inline NRF_TWIM_Type *dev(i2c_t bus)
 static inline int check_error(i2c_t bus)
 {
     dev(bus)->EVENTS_ERROR = 0;
-    if (dev(bus)->ERRORSRC) {
-#if ENABLE_DEBUG
-        if (dev(bus)->ERRORSRC & TWIM_ERRORSRC_ANACK_Msk) {
-            DEBUG("[i2c] read error: NACK on address byte\n");
-        }
-        else if (dev(bus)->ERRORSRC & TWIM_ERRORSRC_DNACK_Msk) {
-            DEBUG("[i2c] read error: NACK on data byte\n");
-        }
-        else {
-            DEBUG("[i2c] read error: Unknown error\n");
-        }
-#endif
-        dev(bus)->ERRORSRC = (TWIM_ERRORSRC_ANACK_Msk | TWIM_ERRORSRC_DNACK_Msk);
-        return -1;
+
+    if (dev(bus)->ERRORSRC & TWIM_ERRORSRC_ANACK_Msk) {
+        dev(bus)->ERRORSRC = TWIM_ERRORSRC_ANACK_Msk;
+        DEBUG("[i2c] check_error: NACK on address byte\n");
+        return I2C_ERR_ADDR;
     }
-    return 0;
+    if (dev(bus)->ERRORSRC & TWIM_ERRORSRC_DNACK_Msk) {
+        dev(bus)->ERRORSRC = TWIM_ERRORSRC_DNACK_Msk;
+        DEBUG("[i2c] check_error: NACK on data byte\n");
+        return I2C_ERR_DATA;
+    }
+
+    DEBUG("[i2c] check_error: no error\n");
+    return I2C_OK;
 }
 
 static int finish(i2c_t bus)
 {
-    while ((!(dev(bus)->EVENTS_STOPPED)) || (!(dev(bus)->EVENTS_ERROR))) {
+    DEBUG("[i2c] waiting for STOPPED or ERROR EVENT\n");
+    check_error(bus);
+
+    while ((!(dev(bus)->EVENTS_STOPPED)) && (!(dev(bus)->EVENTS_ERROR))
+            && (!(dev(bus)->EVENTS_LASTTX))) {
         cpu_sleep();
+        //DEBUG("wait\n");
+    }
+
+    if ((dev(bus)->EVENTS_LASTTX)) {
+        DEBUG("[i2c] finish: go LASTTX event\n");
+    }
+    if ((dev(bus)->EVENTS_STOPPED)) {
+        DEBUG("[i2c] finish: stop event occurred\n");
+    }
+    if (dev(bus)->EVENTS_ERROR) {
+        DEBUG("[i2c] finish: error event occurred\n");
     }
 
     /* clear events */
@@ -91,6 +104,8 @@ int i2c_acquire(i2c_t bus, i2c_speed_t speed)
         return -1;
     }
 
+    DEBUG("[i2c] enabling bus %i\n", (int)bus);
+
     mutex_lock(&locks[bus]);
     dev(bus)->ENABLE = TWI_ENABLE_ENABLE_Enabled;
     dev(bus)->FREQUENCY = speed;
@@ -100,10 +115,10 @@ int i2c_acquire(i2c_t bus, i2c_speed_t speed)
 
 void i2c_release(i2c_t bus)
 {
-    dev(bus)->TASKS_STOP;
-    while (!(dev(bus)->EVENTS_STOPPED));
     dev(bus)->ENABLE = TWI_ENABLE_ENABLE_Disabled;
     mutex_unlock(&locks[bus]);
+
+    DEBUG("[i2c] released bus %i\n", (int)bus);
 }
 
 
@@ -149,12 +164,11 @@ int i2c_write_bytes(i2c_t bus, uint8_t addr, uint8_t *data, size_t len)
     return finish(bus);
 }
 
-
 int i2c_write_regs(i2c_t bus, uint8_t addr, uint8_t reg,
                    uint8_t *data, size_t len)
 {
     DEBUG("[i2c] write %i byte to reg 0x%02x addr 0x%02x\n",
-           (int)len, addr, reg);
+           (int)len, reg, addr);
 
     dev(bus)->ADDRESS = addr;
     dev(bus)->TXD.PTR = (uint32_t)&reg;
@@ -162,7 +176,7 @@ int i2c_write_regs(i2c_t bus, uint8_t addr, uint8_t reg,
     dev(bus)->SHORTS = TWIM_SHORTS_LASTTX_SUSPEND_Msk;
     dev(bus)->TASKS_STARTTX = 1;
 
-    while (!(dev(bus)->EVENTS_LASTTX) || !(dev(bus)->EVENTS_ERROR)) {
+    while (!(dev(bus)->EVENTS_LASTTX) && !(dev(bus)->EVENTS_ERROR)) {
         cpu_sleep();
     }
     dev(bus)->EVENTS_LASTTX = 0;
