@@ -36,9 +36,6 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-/* guard file in case no I2C device is defined */
-#if I2C_0_EN || I2C_1_EN
-
 /* static function definitions */
 static void _i2c_init(I2C_TypeDef *i2c, int ccr);
 static void _pin_config(gpio_t pin_scl, gpio_t pin_sda);
@@ -80,6 +77,29 @@ static char err_flag[] = {
 #endif
 };
 
+/**
+ * @brief data structure for saving the bus state
+ */
+typedef struct {
+    mutex_t lock;
+} i2c_state_t;
+
+typedef struct {
+    I2C_TypeDef *dev;
+    DMA_TypeDef *dma;
+    DMA_Channel_TypeDef *dma_rx;
+    DMA_Channel_TypeDef *dma_tx;
+} i2c_conf_t;
+
+/**
+ * @brief static mapping of RIOT I2C devices to hardware I2C devices
+ */
+static const i2c_conf_t i2c_conf[] = {
+#if I2C_0_EN
+    {I2C_0_DEV, I2C_0_DMA_DEV, I2C_0_DMA_RX_CH, I2C_0_DMA_TX_CH}
+#endif
+};
+
 int i2c_init_master(i2c_t dev, i2c_speed_t speed)
 {
     I2C_TypeDef *i2c;
@@ -106,8 +126,12 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
             pin_scl = I2C_0_SCL_PIN;
             pin_sda = I2C_0_SDA_PIN;
             I2C_0_CLKEN();
-            NVIC_SetPriority(I2C_0_ERR_IRQ, I2C_IRQ_PRIO);
+            I2C_0_DMA_CLKEN();
+
+            NVIC_EnableIRQ(I2C_0_DMA_RX_IRQ);
+            NVIC_EnableIRQ(I2C_0_DMA_TX_IRQ);
             NVIC_EnableIRQ(I2C_0_ERR_IRQ);
+
             break;
 #endif
 #if I2C_1_EN
@@ -126,6 +150,30 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
 
     /* disable peripheral */
     i2c->CR1 &= ~I2C_CR1_PE;
+
+    /* initialize state variables */
+    mutex_init(&(i2c_state[dev].lock));
+    mutex_lock(&(i2c_state[dev].lock));
+
+    /* configure DMA RX channel: highest priority, 8-bit data,
+       memory increment, write to memory, transfer complete interrupt enable */
+    i2c_conf[dev].dma_rx->CCR = (DMA_CCR1_PL | DMA_CCR1_MINC | DMA_CCR1_TCIE);
+    i2c_conf[dev].dma_rx->CPAR = i2c_conf[dev].dev->DR;
+    /* configure DMA TX channel: highest priority, 8-bit data,
+       memory increment, write to peripheral, TC interrupt */
+    i2c_conf[dev].dma_tx->CCR = (DMA_CCR1_PL | DMA_CCR1_MINC | DMA_CCR1_DIR | DMA_CCR1_TCIE);
+    i2c_conf[dev].dma_tx->CPAR = i2c_conf[dev].dev->DR;
+
+    /* disable device */
+    i2c_conf[dev].dev->CR1 = 0;
+    /* configure I2C clock and enable error interrupt */
+    i2c_conf[dev].dev->CR2 = (I2C_APBCLK / 1000000) | I2C_CR2_ITERREN;
+    i2c_conf[dev].dev->CCR = ccr;
+    i2c_conf[dev].dev->TRISE = (I2C_APBCLK / 1000000) + 1;
+    /* configure device */
+    i2c_conf[dev].dev->OAR1 = 0;              /* makes sure we are in 7-bit address mode */
+    /* enable device */
+    i2c_conf[dev].dev->CR1 |= I2C_CR1_PE;
 
     /* configure pins */
     _pin_config(pin_scl, pin_sda);
@@ -206,126 +254,49 @@ int i2c_read_byte(i2c_t dev, uint8_t address, char *data)
 
 int i2c_read_bytes(i2c_t dev, uint8_t address, char *data, int length)
 {
-    int i = 0;
-    I2C_TypeDef *i2c;
-
-    switch (dev) {
-#if I2C_0_EN
-        case I2C_0:
-            i2c = I2C_0_DEV;
-            break;
-#endif
-#if I2C_1_EN
-        case I2C_1:
-            i2c = I2C_1_DEV;
-            break;
-#endif
-        default:
-            return -1;
+    if (dev >= I2C_NUMOF) {
+        return -1;
     }
 
-    DEBUG("Send Slave address and wait for ADDR == 1\n");
-    _start(i2c, address, I2C_FLAG_READ, &err_flag[dev]);
-
-    if (err_flag[dev]) {
-        return -2;
-    }
-
-    DEBUG("Clear ADDR\n");
-    _clear_addr(i2c);
-
-    switch (length) {
-        case 1:
-            break;
-
-        case 2:
-            DEBUG("Set POS and ACK bit\n");
-            i2c->CR1 |= (I2C_CR1_POS | I2C_CR1_ACK);
-            DEBUG("Crit block: clear ACK flag\n");
-            i2c->CR1 &= ~(I2C_CR1_ACK);
-            DEBUG("Wait for transfer to be completed\n");
-            while (!(i2c->SR1 & I2C_SR1_BTF)) ;
-
-            break;
-
-        default:
-            i2c->CR1 |= (I2C_CR1_ACK);
-
-            while (i < (length - 3)) {
-                DEBUG("Wait until byte was received\n");
-                while (!(i2c->SR1 & I2C_SR1_RXNE)) ;
-                DEBUG("Copy byte from DR\n");
-                data[i++] = (char)i2c->DR;
-            }
-
-            DEBUG("Reading the last 3 bytes, waiting for BTF flag\n");
-            while (!(i2c->SR1 & I2C_SR1_BTF)) ;
-
-            DEBUG("Read N-3 byte\n");
-            data[i++] = (char)i2c->DR;
-    }
-
-    DEBUG("Clear ACK\n");
-    i2c->CR1 &= ~(I2C_CR1_ACK);
-
-    DEBUG("Setting STOP=1\n");
-    i2c->CR1 |= (I2C_CR1_STOP);
-
-    while (i < length) {
-        DEBUG("Wait for RXNE == 1\n");
-        while (!(i2c->SR1 & I2C_SR1_RXNE)) ;
-
-        DEBUG("Read byte\n");
-        data[i++] = (char)i2c->DR;
-    }
-
-    DEBUG("wait for STOP bit to be cleared again\n");
-    while (i2c->CR1 & I2C_CR1_STOP) ;
-
-    DEBUG("reset POS = 0 and ACK = 1\n");
-    i2c->CR1 &= ~(I2C_CR1_POS);
-    i2c->CR1 |= (I2C_CR1_ACK);
-
+    /* configure and enable DMA channel */
+    DEBUG("Setting RX DMA channel\n");
+    i2c_conf[dev].dma_rx->CNDTR = length;
+    i2c_conf[dev].dma_rx->CMAR = (uint32_t)data;
+    i2c_conf[dev].dma_rx->CCR |= DMA_CCR1_EN;
+    /* enable DMA and set LAST bit */
+    DEBUG("enable DMA and LAST bit\n");
+    i2c_conf[dev].dev->CR2 |= (I2C_CR2_DMAEN | I2C_CR2_LAST);
+    /* send start condition */
+    _start(i2c_conf[dev].dev, address, I2C_FLAG_READ);
+    /* wait for transfer to be complete */
+    DEBUG("Locking mutex\n");
+    mutex_lock(&(i2c_state[dev].lock));
+    DEBUG("mutex unlocked\n");
+    /* program STOP bit */
+    _stop(i2c_conf[dev].dev);
     return length;
 }
 
 int i2c_read_reg(i2c_t dev, uint8_t address, uint8_t reg, char *data)
 {
+    DEBUG("BLAH\n");
     return i2c_read_regs(dev, address, reg, data, 1);
 
 }
 
 int i2c_read_regs(i2c_t dev, uint8_t address, uint8_t reg, char *data, int length)
 {
-    I2C_TypeDef *i2c;
-
-    switch (dev) {
-#if I2C_0_EN
-        case I2C_0:
-            i2c = I2C_0_DEV;
-            break;
-#endif
-#if I2C_1_EN
-        case I2C_1:
-            i2c = I2C_1_DEV;
-            break;
-#endif
-        default:
-            return -1;
+    DEBUG("FOO\n");
+    if (dev >= I2C_NUMOF) {
+        return -1;
     }
 
     /* send start condition and slave address */
     DEBUG("Send slave address and clear ADDR flag\n");
-    _start(i2c, address, I2C_FLAG_WRITE, &err_flag[dev]);
-    _clear_addr(i2c);
+    _start(i2c_conf[dev].dev, address, I2C_FLAG_WRITE);
     DEBUG("Write reg into DR\n");
-    i2c->DR = reg;
-    _stop(i2c, &err_flag[dev]);
-
-    if (err_flag[dev]) {
-        return -2;
-    }
-
+    i2c_conf[dev].dev->DR = reg;
+    _stop(i2c_conf[dev].dev);
     DEBUG("Now start a read transaction\n");
     return i2c_read_bytes(dev, address, data, length);
 }
@@ -337,40 +308,29 @@ int i2c_write_byte(i2c_t dev, uint8_t address, char data)
 
 int i2c_write_bytes(i2c_t dev, uint8_t address, char *data, int length)
 {
-    I2C_TypeDef *i2c;
-
-    switch (dev) {
-#if I2C_0_EN
-        case I2C_0:
-            i2c = I2C_0_DEV;
-            break;
-#endif
-#if I2C_1_EN
-        case I2C_1:
-            i2c = I2C_1_DEV;
-            break;
-#endif
-        default:
-            return -1;
+    if (dev >= I2C_NUMOF) {
+        return -1;
     }
 
+    /* configure DMA TX channel */
+    DEBUG("Configuring TX DMA channel\n");
+    i2c_conf[dev].dma_tx->CNDTR = length;
+    i2c_conf[dev].dma_tx->CMAR = (uint32_t)data;
+    i2c_conf[dev].dma_tx->CCR |= DMA_CCR1_EN;
+    /* enable DMA */
+    DEBUG("Enable DMA in I2C module\n");
+    i2c_conf[dev].dev->CR2 &= ~I2C_CR2_LAST;
+    i2c_conf[dev].dev->CR2 |= I2C_CR2_DMAEN;
     /* start transmission and send slave address */
-    DEBUG("sending start sequence\n");
-    _start(i2c, address, I2C_FLAG_WRITE, &err_flag[dev]);
-    _clear_addr(i2c);
-    /* send out data bytes */
-    _write(i2c, data, length, &err_flag[dev]);
-    /* end transmission */
-    DEBUG("Ending transmission\n");
-    _stop(i2c, &err_flag[dev]);
-    DEBUG("STOP condition was send out\n");
-
-    if (err_flag[dev]) {
-        return -2;
-    }
-    else {
-        return length;
-    }
+    _start(i2c_conf[dev].dev, address, I2C_FLAG_WRITE);
+    /* wait on mutex for transfer to be finished */
+    DEBUG("lock mutex\n");
+    mutex_lock(&(i2c_state[dev].lock));
+    DEBUG("mutex: unlocked\n");
+    /* finish transfer */
+    _stop(i2c_conf[dev].dev);
+    /* return number of bytes send */
+    return length;
 }
 
 int i2c_write_reg(i2c_t dev, uint8_t address, uint8_t reg, char data)
@@ -380,40 +340,29 @@ int i2c_write_reg(i2c_t dev, uint8_t address, uint8_t reg, char data)
 
 int i2c_write_regs(i2c_t dev, uint8_t address, uint8_t reg, char *data, int length)
 {
-    I2C_TypeDef *i2c;
-
-    switch (dev) {
-#if I2C_0_EN
-        case I2C_0:
-            i2c = I2C_0_DEV;
-            break;
-#endif
-#if I2C_1_EN
-        case I2C_1:
-            i2c = I2C_1_DEV;
-            break;
-#endif
-        default:
-            return -1;
+    if (dev >= I2C_NUMOF) {
+        return -1;
     }
 
+    /* disable DMA for now */
+    i2c_conf[dev].dev->CR2 &= ~I2C_CR2_DMAEN;
+    /* configure DMA TX channel */
+    i2c_conf[dev].dma_tx->CNDTR = length;
+    i2c_conf[dev].dma_tx->CMAR = (uint32_t)data;
+    i2c_conf[dev].dma_tx->CCR |= DMA_CCR1_EN;
     /* start transmission and send slave address */
-    _start(i2c, address, I2C_FLAG_WRITE, &err_flag[dev]);
-    _clear_addr(i2c);
-    /* send register address and wait for complete transfer to be finished*/
-    _write(i2c, (char *)(&reg), 1, &err_flag[dev]);
-    /* write data to register */
-    _write(i2c, data, length, &err_flag[dev]);
+    _start(i2c_conf[dev].dev, address, I2C_FLAG_WRITE);
+    /* send address byte */
+    i2c_conf[dev].dev->DR = (uint8_t)address;
+    /* enable DMA */
+    i2c_conf[dev].dev->CR2 &= ~I2C_CR2_LAST;
+    i2c_conf[dev].dev->CR2 |= I2C_CR2_DMAEN;
+    /* wait on mutex for transfer to be finished */
+    mutex_lock(&(i2c_state[dev].lock));
     /* finish transfer */
-    _stop(i2c, &err_flag[dev]);
-
-    if (err_flag[dev]) {
-        return -2;
-    }
-    else {
-        /* return number of bytes send */
-        return length;
-    }
+    _stop(i2c_conf[dev].dev);
+    /* return number of bytes send */
+    return length;
 }
 
 void i2c_poweron(i2c_t dev)
@@ -450,54 +399,38 @@ void i2c_poweroff(i2c_t dev)
     }
 }
 
-static void _start(I2C_TypeDef *dev, uint8_t address, uint8_t rw_flag, char *err)
+static void _start(I2C_TypeDef *dev, uint8_t address, uint8_t rw_flag)
 {
-    /* flag that there's no error (yet) */
-    *err = 0x00;
-    /* wait for device to be ready */
-    DEBUG("Wait for device to be ready\n");
-    while (dev->SR2 & I2C_SR2_BUSY) ;
+    /* wait for bus to be ready */
+    DEBUG("Wait for bus to be ready -> BUSY not set\n");
+    while (dev->SR2 & I2C_SR2_BUSY);
     /* generate start condition */
     DEBUG("Generate start condition\n");
     dev->CR1 |= I2C_CR1_START;
     DEBUG("Wait for SB flag to be set\n");
-    while (!(dev->SR1 & I2C_SR1_SB)) ;
+    while (!(dev->SR1 & I2C_SR1_SB));
     /* send address and read/write flag */
     DEBUG("Send address\n");
     dev->DR = (address << 1) | rw_flag;
     /* clear ADDR flag by reading first SR1 and then SR2 */
     DEBUG("Wait for ADDR flag to be set\n");
-    while (!(dev->SR1 & I2C_SR1_ADDR) && !(*err)) ;
-}
-
-static inline void _clear_addr(I2C_TypeDef *dev)
-{
+    while (!(dev->SR1 & I2C_SR1_ADDR));
+    DEBUG("Clear ADDR flag\n");
     dev->SR1;
     dev->SR2;
 }
 
-static inline void _write(I2C_TypeDef *dev, char *data, int length, char *err)
-{
-    DEBUG("Looping through bytes\n");
-    for (int i = 0; i < length && !(*err); i++) {
-        /* write data to data register */
-        dev->DR = (uint8_t)data[i];
-        DEBUG("Written %i byte to data reg, now waiting for DR to be empty again\n", i);
-        /* wait for transfer to finish */
-        while (!(dev->SR1 & I2C_SR1_TXE) && !(*err)) ;
-        DEBUG("DR is now empty again\n");
-    }
-
-}
-
-static inline void _stop(I2C_TypeDef *dev, char *err)
+static inline void _stop(I2C_TypeDef *dev)
 {
     /* make sure last byte was send */
-    while (!(dev->SR1 & I2C_SR1_BTF) && !(*err)) ;
+    DEBUG("Waiting for last byte to be transferred\n");
+    while (!(dev->SR1 & I2C_SR1_BTF));
     /* send STOP condition */
+    DEBUG("Sending STOP condition\n");
     dev->CR1 |= I2C_CR1_STOP;
-    /* wait until transmission is complete */
-    while (dev->SR2 & I2C_SR2_BUSY) ;
+    /* wait until stop is cleared by hardware */
+    DEBUG("Waiting for STOP bit to be cleared\n");
+    while (dev->SR1 & I2C_CR1_STOP);
 }
 
 static inline void i2c_irq_handler(i2c_t i2c_dev, I2C_TypeDef *dev)
@@ -537,6 +470,28 @@ static inline void i2c_irq_handler(i2c_t i2c_dev, I2C_TypeDef *dev)
 void I2C_0_ERR_ISR(void)
 {
     i2c_irq_handler(I2C_0, I2C_0_DEV);
+}
+
+void I2C_0_DMA_RX_ISR(void)
+{
+    printf("RX_ISR %08x\n", (unsigned int)I2C_0_DMA_DEV->ISR);
+    /* disable DMA channel */
+    I2C_0_DMA_RX_CH->CCR &= ~(DMA_CCR1_EN);
+    /* clear interrupt flag */
+    I2C_0_DMA_DEV->IFCR |= (0xf << I2C_0_DMA_RX_OFF);
+    /* wake-up thread */
+    mutex_unlock(&(i2c_state[I2C_0].lock));
+}
+
+void I2C_0_DMA_TX_ISR(void)
+{
+    printf("TX_ISR %08x\n", (unsigned int)I2C_0_DMA_DEV->ISR);
+    /* disable DMA channel */
+    I2C_0_DMA_TX_CH->CCR &= ~(DMA_CCR1_EN);
+    /* clear interrupt flags */
+    I2C_0_DMA_DEV->IFCR |= (0xf << I2C_0_DMA_TX_OFF);
+    /* return to thread mode */
+    mutex_unlock(&(i2c_state[I2C_0].lock));
 }
 #endif
 
