@@ -137,9 +137,6 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     UART->IFLS = UART_IFLS_RXSEL_1_8;
     UART->IFLS = UART_IFLS_TXSEL_4_8;
 
-    UART->CTL = UART_CTL_RXE;
-    UART->CTL = UART_CTL_TXE;
-
     _uart_start();
 
     uart_config[0].rx_cb = rx_cb;
