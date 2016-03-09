@@ -43,7 +43,7 @@
 static uart_isr_ctx_t uart_config[UART_NUMOF];
 
 /*---------------------------------------------------------------------------*/
-static void stop(void)
+static void _uart_stop(void)
 {
     UART->CTL &= ~UART_CTL_UARTEN;
 
@@ -53,7 +53,7 @@ static void stop(void)
     while(UART->FR & UART_FR_BUSY) ;
     UART->LCRH &= ~UART_LCRH_FEN;
 }
-static void start(void)
+static void _uart_start(void)
 {
     UART->ECR = 0xF;
 
@@ -63,8 +63,8 @@ static void start(void)
 }
 static void reset(void)
 {
-    stop();
-    start();
+    _uart_stop();
+    _uart_start();
 }
 
 void isr_uart(void)
@@ -137,7 +137,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     UART->CTL = UART_CTL_RXE;
     UART->CTL = UART_CTL_TXE;
 
-    start();
+    _uart_start();
 
     uart_config[0].rx_cb = rx_cb;
     uart_config[0].arg = arg;
