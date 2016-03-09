@@ -17,6 +17,8 @@
 #ifndef CPU_CONF_H
 #define CPU_CONF_H
 
+#include "cpu_conf_common.h"
+
 #include <cc26x0.h>
 
 #include "cc26x0-ioc.h"
