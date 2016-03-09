@@ -47,8 +47,8 @@ static void _uart_stop(void)
 {
     UART->CTL &= ~UART_CTL_UARTEN;
 
-    UART->CTL |= UART_CTL_RXE;
-    UART->CTL |= UART_CTL_TXE;
+    UART->CTL &= ~(UART_CTL_RXE);
+    UART->CTL &= ~(UART_CTL_TXE);
 
     while(UART->FR & UART_FR_BUSY) ;
     UART->LCRH &= ~UART_LCRH_FEN;
@@ -58,6 +58,9 @@ static void _uart_start(void)
     UART->ECR = 0xF;
 
     UART->LCRH |= UART_LCRH_FEN;
+
+    UART->CTL |= UART_CTL_RXE;
+    UART->CTL |= UART_CTL_TXE;
 
     UART->CTL |= UART_CTL_UARTEN;
 }
