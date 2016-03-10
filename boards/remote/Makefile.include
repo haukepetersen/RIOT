@@ -2,6 +2,9 @@
 export CPU       =  cc2538
 export CPU_MODEL = cc2538sf53
 
+# include dependencies
+include $(RIOTBOARD)/$(BOARD)/Makefile.dep
+
 # define the default port depending on the host OS
 PORT_LINUX  ?= /dev/ttyUSB1
 PORT_DARWIN ?= $(shell ls -1 /dev/tty.usbserial-* | head -n 2 | tail -n 1)

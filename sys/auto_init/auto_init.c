@@ -200,6 +200,11 @@ void auto_init(void)
     auto_init_netdev2_tap();
 #endif
 
+#ifdef MODULE_CC2538
+    extern void auto_init_cc2538(void);
+    auto_init_cc2538();
+#endif
+
 #endif /* MODULE_AUTO_INIT_GNRC_NETIF */
 
 #ifdef MODULE_GNRC_IPV6_NETIF
