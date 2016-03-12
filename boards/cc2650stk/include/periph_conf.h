@@ -31,21 +31,33 @@ extern "C" {
 #define TIMER_NUMOF         (sizeof(timer_conf) / sizeof(timer_conf[0]))
 
 #define TIMER_0_IRQn_1      GPTIMER_0A_IRQN
+#define TIMER_0_IRQn_2      GPTIMER_0B_IRQN
 // TODO won't compile without; can't remove. don't see how
 void isr_timer0_chan0(void);
+void isr_timer0_chan1(void);
 #define TIMER_0_ISR_1       isr_timer0_chan0
+#define TIMER_0_ISR_2       isr_timer0_chan1
 
 #define TIMER_1_IRQn_1      GPTIMER_1A_IRQN
+#define TIMER_1_IRQn_2      GPTIMER_1B_IRQN
 void isr_timer1_chan0(void);
+void isr_timer1_chan1(void);
 #define TIMER_1_ISR_1       isr_timer1_chan0
+#define TIMER_1_ISR_2       isr_timer1_chan1
 
 #define TIMER_2_IRQn_1      GPTIMER_2A_IRQN
+#define TIMER_2_IRQn_2      GPTIMER_2B_IRQN
 void isr_timer2_chan0(void);
+void isr_timer2_chan1(void);
 #define TIMER_2_ISR_1       isr_timer2_chan0
+#define TIMER_2_ISR_2       isr_timer2_chan1
 
 #define TIMER_3_IRQn_1      GPTIMER_3A_IRQN
+#define TIMER_3_IRQn_2      GPTIMER_3B_IRQN
 void isr_timer3_chan0(void);
+void isr_timer3_chan1(void);
 #define TIMER_3_ISR_1       isr_timer3_chan0
+#define TIMER_3_ISR_2       isr_timer3_chan1
 
 static const timer_conf_t timer_conf[] = {
     {
