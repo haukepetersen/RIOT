@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+#define XTIMER_MASK         (0xFFFF0000)
 
 #define BUTTON1_DIO         GPIO_PIN(0,4)
 #define BUTTON2_DIO         GPIO_PIN(0,0)
