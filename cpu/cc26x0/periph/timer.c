@@ -53,7 +53,7 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
 
     gpt->CTL = 0;
 
-    gpt->CFG  = GPT_CFG_32T;
+    gpt->CFG  = GPT_CFG_16T;
     gpt->TAMR = GPT_TXMR_TXMR_PERIODIC | GPT_TXMR_TXCDIR_UP | GPT_TXMR_TXMIE;
 
     // oh crap. this seems to be ignored in concatenated mode
