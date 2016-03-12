@@ -77,7 +77,7 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     port->PUPDR |=  (((mode >> 2) & 0x3) << (2 * pin_num));
     /* set output mode */
     port->OTYPER &= ~(1 << pin_num);
-    port->OTYPER &=  (((mode >> 4) & 0x1) << (2 * pin_num));
+    port->OTYPER |=  (((mode >> 4) & 0x1) << pin_num);
     /* finally set pin speed to maximum and reset output */
     port->OSPEEDR |= (3 << (2 * pin_num));
     port->BRR = (1 << pin_num);
