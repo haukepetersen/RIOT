@@ -56,7 +56,6 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
     gpt->CFG  = GPT_CFG_16T;
     gpt->TAMR = GPT_TXMR_TXMR_PERIODIC | GPT_TXMR_TXCDIR_UP | GPT_TXMR_TXMIE;
 
-    // oh crap. this seems to be ignored in concatenated mode
     gpt->TAPR = (RCOSC48M_FREQ / freq) - 1;
 
     timer_irq_enable(dev);
@@ -78,8 +77,7 @@ int timer_set_absolute(tim_t dev, int channel, unsigned int value)
 
     gpt_reg_t *gpt = timer_conf[dev].gpt;
 
-    /* TODO this is a workaround because the prescaler doesn't work */
-    gpt->TAMATCHR = value * gpt->TAPR;
+    gpt->TAMATCHR = value;
     gpt->IMR |= GPT_IMR_TAMIM;
 
     return 1;
@@ -94,8 +92,7 @@ int timer_clear(tim_t dev, int channel)
 
 unsigned int timer_read(tim_t dev)
 {
-    /* TODO this is a workaround because the prescaler doesn't work */
-    return timer_conf[dev].gpt->TAR / timer_conf[dev].gpt->TAPR;
+    return timer_conf[dev].gpt->TAR;
 }
 
 void timer_stop(tim_t dev)
