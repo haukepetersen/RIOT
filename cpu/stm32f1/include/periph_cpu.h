@@ -92,6 +92,21 @@ typedef enum {
 } gpio_af_out_t;
 
 /**
+ * @brief   Define the SPI CLK devider values for APB1
+ *          (assume APB1 clock speed is 36MHz and APB2clk = APB1clk * 2)
+ *
+ * @note    calculate with: value = (int)ceil(sqrt(CLOCK_APB1 / (spi_clk)) / 2)
+ */
+#define HAVE_SPI_CLK_T
+typedef enum {
+    SPI_CLK_100KHZ  = 0x7,  /**< 140 KHz */
+    SPI_CLK_400KHZ  = 0x5,  /**< 562 KHz */
+    SPI_CLK_1MHZ    = 0x4,  /**< 1.125 MHz */
+    SPI_CLK_5MHZ    = 0x2,  /**< 4.5 MHz */
+    SPI_CLK_10MHZ   = 0x1,  /**< 9 MHz */
+} spi_clk_t;
+
+/**
  * @brief   Configure the alternate function for the given pin
  *
  * @note    This is meant for internal use in STM32F1 peripheral drivers only

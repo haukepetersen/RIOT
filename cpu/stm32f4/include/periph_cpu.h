@@ -57,8 +57,8 @@ typedef uint32_t gpio_t;
  * @brief   Peripheral buses
  */
 enum {
-    BUS_APB1 = 1,
-    BUS_APB2 = 0
+    BUS_APB1 = 0,
+    BUS_APB2 = 1
 };
 
 /**
@@ -125,6 +125,21 @@ typedef struct {
     uint8_t abpbus;         /**< APB bus, 0 := APB1, 1:= APB2 */
     uint32_t rccmask;         /**< bit in the RCC peripheral enable register */
 } spi_conf_t;
+
+/**
+ * @brief   Define the SPI CLK devider values for APB1
+ *          (assume APB1 clock speed is 42MHz and APB2clk = APB1clk * 2)
+ *
+ * @note    calculate with: value = (int)ceil(sqrt(CLOCK_APB1 / (spi_clk)) / 2)
+ */
+#define HAVE_SPI_CLK_T
+typedef enum {
+    SPI_CLK_100KHZ  = 0x7,  /**< 164 KHz */
+    SPI_CLK_400KHZ  = 0x6,  /**< 328 KHz */
+    SPI_CLK_1MHZ    = 0x4,  /**< 1.3125 MHz */
+    SPI_CLK_5MHZ    = 0x2,  /**< 5.25 MHz */
+    SPI_CLK_10MHZ   = 0x1,  /**< 10.5 MHz */
+} spi_clk_t;
 
 /**
  * @brief   Configure the alternate function for the given pin
