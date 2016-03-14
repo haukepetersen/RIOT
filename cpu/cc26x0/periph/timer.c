@@ -138,9 +138,19 @@ void TIMER_0_ISR_1(void)
     _interrupt(0, 0);
 }
 
+void TIMER_0_ISR_2(void)
+{
+    _interrupt(0, 1);
+}
+
 void TIMER_1_ISR_1(void)
 {
     _interrupt(1, 0);
+}
+
+void TIMER_1_ISR_2(void)
+{
+    _interrupt(1, 1);
 }
 
 void TIMER_2_ISR_1(void)
@@ -148,7 +158,17 @@ void TIMER_2_ISR_1(void)
     _interrupt(2, 0);
 }
 
+void TIMER_2_ISR_2(void)
+{
+    _interrupt(2, 1);
+}
+
 void TIMER_3_ISR_1(void)
 {
     _interrupt(3, 0);
+}
+
+void TIMER_3_ISR_2(void)
+{
+    _interrupt(3, 1);
 }
