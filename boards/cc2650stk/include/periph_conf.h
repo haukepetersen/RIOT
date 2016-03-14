@@ -24,6 +24,8 @@
 extern "C" {
 #endif
 
+#define XTIMER_MASK                 (0xFFFF0000)
+
 /**
  * @name timer peripheral configuration
  * @{
