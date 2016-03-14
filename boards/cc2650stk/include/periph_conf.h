@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 #define XTIMER_MASK                 (0xFFFF0000)
+#define XTIMER_SHIFT_ON_COMPARE     (7)
 
 /**
  * @name timer peripheral configuration
