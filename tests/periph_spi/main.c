@@ -192,7 +192,7 @@ int cmd_transfer(int argc, char **argv)
     spi_release(config[line].dev);
 
     /* print results */
-    print_bytes("Send bytes", (uint8_t *)argv[2], len);
+    print_bytes("Sent bytes", (uint8_t *)argv[2], len);
     print_bytes("Received bytes", buf, len);
 
     return 0;
