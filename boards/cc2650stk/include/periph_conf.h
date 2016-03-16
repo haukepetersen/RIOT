@@ -1,16 +1,17 @@
 /*
  * Copyright (C) 2016 Leon George
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
+
 /**
  * @ingroup     boards_cc2650stk
  * @{
  *
  * @file
- * @brief       peripheral MCU configuration for the CC2650STK board
+ * @brief       Peripheral MCU configuration for the CC2650STK board
  *
  * @author      Leon M. George <leon@georgemail.eu>
  */
@@ -24,66 +25,25 @@
 extern "C" {
 #endif
 
-#define XTIMER_MASK                 (0xFFFF0000)
-#define XTIMER_SHIFT_ON_COMPARE     (7)
-
 /**
- * @name timer peripheral configuration
+ * @brief   Timer configuration
  * @{
  */
-#define TIMER_NUMOF         (sizeof(timer_conf) / sizeof(timer_conf[0]))
-
-#define TIMER_0_IRQn_1      GPTIMER_0A_IRQN
-#define TIMER_0_IRQn_2      GPTIMER_0B_IRQN
-// TODO won't compile without; can't remove. don't see how
-void isr_timer0_chan0(void);
-void isr_timer0_chan1(void);
-#define TIMER_0_ISR_1       isr_timer0_chan0
-#define TIMER_0_ISR_2       isr_timer0_chan1
-
-#define TIMER_1_IRQn_1      GPTIMER_1A_IRQN
-#define TIMER_1_IRQn_2      GPTIMER_1B_IRQN
-void isr_timer1_chan0(void);
-void isr_timer1_chan1(void);
-#define TIMER_1_ISR_1       isr_timer1_chan0
-#define TIMER_1_ISR_2       isr_timer1_chan1
-
-#define TIMER_2_IRQn_1      GPTIMER_2A_IRQN
-#define TIMER_2_IRQn_2      GPTIMER_2B_IRQN
-void isr_timer2_chan0(void);
-void isr_timer2_chan1(void);
-#define TIMER_2_ISR_1       isr_timer2_chan0
-#define TIMER_2_ISR_2       isr_timer2_chan1
-
-#define TIMER_3_IRQn_1      GPTIMER_3A_IRQN
-#define TIMER_3_IRQn_2      GPTIMER_3B_IRQN
-void isr_timer3_chan0(void);
-void isr_timer3_chan1(void);
-#define TIMER_3_ISR_1       isr_timer3_chan0
-#define TIMER_3_ISR_2       isr_timer3_chan1
-
-static const timer_conf_t timer_conf[] = {
+static const timer_conf_t timer_config[] = {
     {
-        GPT0,
-        TIMER_0_IRQn_1,
-        TIMER_0_ISR_1,
+        .dev  = GPT0,
+        .num  = 0
     },
     {
-        GPT1,
-        TIMER_1_IRQn_1,
-        TIMER_1_ISR_1,
-    },
-    {
-        GPT2,
-        TIMER_2_IRQn_1,
-        TIMER_2_ISR_1,
-    },
-    {
-        GPT3,
-        TIMER_3_IRQn_1,
-        TIMER_3_ISR_1,
-    },
+        .dev  = GPT1,
+        .num  = 1
+    }
 };
+
+#define TIMER_0_ISR         isr_timer0_chan0
+#define TIMER_1_ISR         isr_timer1_chan0
+
+#define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
 
 
@@ -98,10 +58,9 @@ static const timer_conf_t timer_conf[] = {
 #define UART_0_TX_DIO       29
 /** @} */
 
-#define CCFG_BACKDOOR_ENABLE       0 /* impossible to use due to the board design */
 
 #ifdef __cplusplus
-} /* end extern "C" */
+}
 #endif
 
 #endif /* PERIPH_CONF_H_ */

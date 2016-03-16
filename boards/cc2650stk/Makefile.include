@@ -1,21 +1,16 @@
-export CPU        = cc26x0
-export CPU_MODEL ?= cc26x0f128
-
-ifeq (,$(UNIFLASH_PATH))
-$(error UNIFLASH_PATH not set)
-endif
+export CPU       = cc26x0
+export CPU_MODEL = cc26x0f128
 
 # set default port depending on operating system
-PORT_LINUX ?= /dev/ttyACM0
-PORT_DARWIN ?= $(shell ls -1 /dev/tty.SLAB_USBtoUART* | head -n 1)
+PORT_LINUX  ?= /dev/ttyACM0
+PORT_DARWIN ?= $(firstword $(sort $(wildcard /dev/tty.SLAB_USBtoUART*)))
 
 # setup serial terminal
 include $(RIOTBOARD)/Makefile.include.serial
 
-# TODO debug probe needs to be in correct mode
+# configure the flash tool
+ifeq (,$(UNIFLASH_PATH))
+$(error Please point the environment var UNIFLASH_PATH to your uniflash path)
+endif
 export FLASHER = $(UNIFLASH_PATH)/uniflash.sh
 export FFLAGS  = -ccxml $(RIOTBOARD)/$(BOARD)/dist/cc26x0stk.ccxml -program $(ELFFILE)
-
-export OFLAGS = -O ihex --gap-fill 0xff
-
-export OBJDUMPFLAGS += --disassemble --source --disassembler-options=force-thumb
