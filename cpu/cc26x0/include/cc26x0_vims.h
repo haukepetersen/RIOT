@@ -1,10 +1,11 @@
 /*
  * Copyright (C) 2016 Leon George
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
+
 /**
  * @ingroup         cpu_cc26x0_definitions
  * @{
@@ -170,10 +171,10 @@ typedef struct {
 /** @addtogroup cpu_specific_peripheral_memory_map
   * @{
   */
-#define FLASH_BASE                           0x40030000 /**< base address of FLASH memory */
+#define FLASH_BASEADDR                           0x40030000 /**< base address of FLASH memory */
 /*@}*/
 
-#define FLASH                                ((flash_regs_t *)(FLASH_BASE + 0x4))
+#define FLASH                                ((flash_regs_t *)(FLASH_BASEADDR + 0x4))
 
 
 typedef struct {

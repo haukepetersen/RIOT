@@ -1,11 +1,11 @@
 /*
  * Copyright (C) 2016 Leon George
- * (who won't go after you should you copy any part of this file ;-)
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
+
 /**
  * @ingroup     driver_periph
  * @{
@@ -22,7 +22,6 @@
 #include "sched.h"
 #include "thread.h"
 #include "periph/gpio.h"
-#include "periph_conf.h"
 
 #define GPIO_ISR_CHAN_NUMOF             (32)
 

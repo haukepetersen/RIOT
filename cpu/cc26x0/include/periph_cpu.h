@@ -1,10 +1,11 @@
 /*
  * Copyright (C) 2016 Leon George
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
+
 /**
  * @ingroup         cpu_cc26x0
  * @{
@@ -18,8 +19,7 @@
 #ifndef PERIPH_CPU_H_
 #define PERIPH_CPU_H_
 
-#include "cc26x0-gpt.h"
-#include "cc26x0-ioc.h"
+#include "cpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,11 +32,6 @@ typedef enum {
     GPIO_BOTH = IOCFG_EDGEDET_BOTH
 } gpio_flank_t;
 
-typedef struct {
-    gpt_reg_t *gpt;
-    int irqn;
-    void *isr;
-} timer_conf_t;
 
 #define HAVE_GPIO_PP_T
 typedef enum {
@@ -44,6 +39,15 @@ typedef enum {
     GPIO_PULLDOWN = IOCFG_PULLCTL_DOWN,
     GPIO_PULLUP = IOCFG_PULLCTL_UP,
 } gpio_pp_t;
+
+/**
+ * @brief   Timer configuration options
+ */
+typedef struct {
+    gpt_reg_t *dev;
+    uint8_t num;
+    uint8_t irqn;
+} timer_conf_t;
 
 #ifdef __cplusplus
 }

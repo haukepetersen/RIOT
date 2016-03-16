@@ -1,21 +1,19 @@
 /*
  * Copyright (C) 2016 Leon George
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
+
 /**
- * @addtogroup cpu_cc26x0
+ * @ingroup         cpu_cc26x0_defs
  * @{
  *
  * @file
- * @brief           driver for the cc26x0 GPT controller
+ * @brief           CMSIS style definitions for the CC26x0 GPT moduls
  *
  * @author          Leon George <leon@georgemail.eu>
- *
- * @defgroup cc26x0-gpt CC26x0 general-purpose timers
- * @{
  */
 
 #ifndef CC26x0_GPT_H
@@ -27,15 +25,9 @@
 extern "C" {
 #endif
 
-/** @addtogroup cpu_specific_peripheral_memory_map
- * @{
+/**
+ * @brief   GPT register map
  */
-#define GPT0_BASE               0x40010000
-#define GPT1_BASE               0x40011000
-#define GPT2_BASE               0x40012000
-#define GPT3_BASE               0x40013000
-/** @} */
-
 typedef struct {
     reg32_t CFG;
     reg32_t TAMR;
@@ -70,10 +62,25 @@ typedef struct {
     reg32_t ANDCCP;
 } gpt_reg_t;
 
+/**
+ * @brief   GPT base register addresses
+ * @{
+ */
+#define GPT0_BASE               (0x40010000)
+#define GPT1_BASE               (0x40011000)
+#define GPT2_BASE               (0x40012000)
+#define GPT3_BASE               (0x40013000)
+/** @} */
+
+/**
+ * @brief   GPT instances
+ * @{
+ */
 #define GPT0 ((gpt_reg_t *) (GPT0_BASE))
 #define GPT1 ((gpt_reg_t *) (GPT1_BASE))
 #define GPT2 ((gpt_reg_t *) (GPT2_BASE))
 #define GPT3 ((gpt_reg_t *) (GPT3_BASE))
+/** @} */
 
 #define GPT_CFG_32T         0
 #define GPT_CFG_32RTC       1
@@ -192,9 +199,8 @@ typedef struct {
 #define NUM_CHANNELS_PER_GPT    1
 
 #ifdef __cplusplus
-} /* end extern "C" */
+}
 #endif
 
 #endif /* CC26x0_GPT_H */
-
 /** @} */

@@ -114,7 +114,6 @@ typedef struct {
     reg32_t VOLT_TRIM;
     reg32_t OSC_CONF;
     reg32_t __reserved15;
-    reg32_t VOLT_TRIM;
     reg32_t CAP_TRIM;
     reg32_t MISC_OTP_DATA_1;
     reg32_t PWD_CURR_20C;

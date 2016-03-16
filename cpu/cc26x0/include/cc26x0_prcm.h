@@ -1,10 +1,11 @@
 /*
  * Copyright (C) 2016 Leon George
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
+
 /**
  * @ingroup         cpu_cc26x0_definitions
  * @{
@@ -17,8 +18,6 @@
 #define CC26x0_PRCM_H
 
 #include <cc26x0.h>
-
-#include <cc26x0-aux.h>
 
 #ifdef __cplusplus
 extern "C" {
