@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 
 #include "cpu.h"
 #include "sched.h"
@@ -61,7 +62,8 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     dev(tim)->TAMR = (GPT_TXMR_TXMR_PERIODIC | GPT_TXMR_TXCDIR_UP | GPT_TXMR_TXMIE);
 
     /* set the timer speed */
-    dev(tim)->TAPR = (RCOSC48M_FREQ / freq) - 1;
+    dev(tim)->TAPR = (CLOCK_CORECLOCK / freq) - 1;
+
     /* enable global timer interrupt and start the timer */
     timer_irq_enable(tim);
     dev(tim)->CTL = GPT_CTL_TAEN;
@@ -80,7 +82,7 @@ int timer_set_absolute(tim_t tim, int channel, unsigned int value)
         return -1;
     }
 
-    dev(tim)->TAMATCHR = value;
+    dev(tim)->TAMATCHR = (uint16_t)(value);
     dev(tim)->ICLR = GPT_ICLR_TAMCINT;
     dev(tim)->IMR |= GPT_IMR_TAMIM;
 
@@ -100,7 +102,7 @@ int timer_clear(tim_t tim, int channel)
 
 unsigned int timer_read(tim_t tim)
 {
-    return dev(tim)->TAR;
+    return (unsigned int)dev(tim)->TAR;
 }
 
 void timer_stop(tim_t tim)
@@ -126,7 +128,6 @@ void timer_irq_disable(tim_t tim)
 static inline void isr_handler(tim_t tim)
 {
     uint32_t mis = dev(tim)->MIS;
-    dev(tim)->ICLR = mis;
 
     if (mis & GPT_IMR_TAMIM) {
         dev(tim)->IMR &= ~GPT_IMR_TAMIM;
