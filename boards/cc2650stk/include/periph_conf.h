@@ -26,6 +26,14 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Clock configuration
+ * @{
+ */
+/* the main clock is fixed to 48MHZ */
+#define CLOCK_CORECLOCK     (48000000U)
+/** @} */
+
+/**
  * @brief   Timer configuration
  * @{
  */
@@ -48,14 +56,18 @@ static const timer_conf_t timer_config[] = {
 
 
 /**
- * @name UART configuration
+ * @brief   UART configuration
+ *
+ * The used CC26x0 CPU only supports a single UART device, so all we need to
+ * configure are the RX and TX pins.
+ *
+ * Optionally we can enable hardware flow control, by setting UART_HW_FLOW_CTRL
+ * to 1 and defining pins for UART_CTS_PIN and UART_RTS_PIN.
  * @{
  */
-#define UART_NUMOF          1
-
-/* UART 0 pin configuration */
-#define UART_0_RX_DIO       28
-#define UART_0_TX_DIO       29
+#define UART_NUMOF          (1)
+#define UART_RX_PIN         (28)
+#define UART_TX_PIN         (29)
 /** @} */
 
 
