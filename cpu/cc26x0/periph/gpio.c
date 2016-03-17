@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       low-level GPIO driver implementation
+ * @brief       Low-level GPIO driver implementation
  *
  * @author      Leon M. George <leon@georgemail.eu>
  *
@@ -25,12 +25,7 @@
 
 #define GPIO_ISR_CHAN_NUMOF             (32)
 
-typedef struct {
-    void (*cb)(void *arg);
-    void *arg;
-} gpio_ctx_t;
-
-static gpio_ctx_t gpio_chan[GPIO_ISR_CHAN_NUMOF];
+static gpio_isr_ctx_t gpio_chan[GPIO_ISR_CHAN_NUMOF];
 
 int gpio_init(gpio_t pin, gpio_dir_t dir, gpio_pp_t pullup)
 {

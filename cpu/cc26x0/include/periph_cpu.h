@@ -25,6 +25,9 @@
 extern "C" {
 #endif
 
+/**
+ * @brief   Override the GPIO flank values
+ */
 #define HAVE_GPIO_FLANK_T
 typedef enum {
     GPIO_FALLING = IOCFG_EDGEDET_FALLING,
@@ -32,7 +35,9 @@ typedef enum {
     GPIO_BOTH = IOCFG_EDGEDET_BOTH
 } gpio_flank_t;
 
-
+/**
+ * @brief   Override GPIO push-pull values
+ */
 #define HAVE_GPIO_PP_T
 typedef enum {
     GPIO_NOPULL = 0,

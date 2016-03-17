@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       low-level UART driver implementation
+ * @brief       Low-level UART driver implementation
  *
  * @author      Leon M. George <leon@georgemail.eu>
  *
