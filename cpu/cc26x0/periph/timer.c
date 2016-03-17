@@ -81,6 +81,7 @@ int timer_set_absolute(tim_t tim, int channel, unsigned int value)
     }
 
     dev(tim)->TAMATCHR = value;
+    dev(tim)->ICLR = GPT_ICLR_TAMCINT;
     dev(tim)->IMR |= GPT_IMR_TAMIM;
 
     return 0;
