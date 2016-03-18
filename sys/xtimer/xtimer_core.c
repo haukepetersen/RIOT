@@ -428,6 +428,8 @@ static void _timer_callback(void)
 
     _in_handler = 1;
 
+    puts("cb");
+
     DEBUG("_timer_callback() now=%" PRIu32 " (%" PRIu32 ")pleft=%" PRIu32 "\n", xtimer_now(),
             _lltimer_mask(xtimer_now()), _lltimer_mask(0xffffffff-xtimer_now()));
 

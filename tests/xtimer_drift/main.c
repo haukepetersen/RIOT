@@ -40,7 +40,7 @@
  */
 #define TEST_HZ (64)
 #define TEST_INTERVAL (1000000 / TEST_HZ)
-#define TEST_MSG_RX_USLEEP (200)
+#define TEST_MSG_RX_USLEEP (2000000)
 
 char slacker_stack1[THREAD_STACKSIZE_DEFAULT];
 char slacker_stack2[THREAD_STACKSIZE_DEFAULT];
@@ -80,6 +80,7 @@ void *slacker_thread(void *arg)
         tmsg->msg.type = 12345;
         tmsg->msg.content.ptr = (void*)tmsg;
         xtimer_set_msg(&tmsg->timer, tmsg->interval, &tmsg->msg, thread_getpid());
+        puts("a");
     }
 }
 
@@ -94,6 +95,7 @@ void *worker_thread(void *arg)
 
     while (1) {
         msg_t m;
+        puts("msg_recv");
         msg_receive(&m);
         uint32_t now = xtimer_now();
         if (start == 0) {
@@ -112,6 +114,7 @@ void *worker_thread(void *arg)
             printf("now=%" PRIu32 ".%06" PRIu32 " (%u hours %u min), diff=%" PRId32 "\n",
                 sec, us, hr, min, diff);
         }
+        puts("hopp");
         ++loop_counter;
     }
 }

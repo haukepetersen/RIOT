@@ -23,15 +23,18 @@
 #include "thread.h"
 #include "periph/gpio.h"
 
-#define GPIO_ISR_CHAN_NUMOF             (32)
+#define GPIO_ISR_CHAN_NUMOF     (32)
+
+#define DOE_SHIFT               (29U)
 
 static gpio_isr_ctx_t gpio_chan[GPIO_ISR_CHAN_NUMOF];
 
-int gpio_init(gpio_t pin, gpio_dir_t dir, gpio_pp_t pullup)
+int gpio_init(gpio_t pin, gpio_mode_t mode)
 {
     if ((pin < 0) || (pin > 31))
         return -1;
 
+    /* enable GPIO clock */
     PRCM->PDCTL0 |= PDCTL0_PERIPH_ON;
     while(!(PRCM->PDSTAT0 & PDSTAT0_PERIPH_ON)) ;
 
@@ -39,24 +42,19 @@ int gpio_init(gpio_t pin, gpio_dir_t dir, gpio_pp_t pullup)
     PRCM->CLKLOADCTL |= CLKLOADCTL_LOAD;
     while (!(PRCM->CLKLOADCTL & CLKLOADCTL_LOADDONE)) ;
 
-    IOC->CFG[pin] = 0;
 
-    if (dir == GPIO_DIR_OUT) {
-        GPIO->DOE |= (1 << pin);
-        GPIO->DOUTCLR = (1 << pin);
-    }
-    else {
-        IOC->CFG[pin] |= pullup;
-        IOC->CFG[pin] |= IOCFG_INPUT_ENABLE;
-    }
+    IOC->CFG[pin] = mode;
+    GPIO->DOE &= ~(1 << pin);
+    GPIO->DOE |=  ((~(mode >> DOE_SHIFT) & 0x1) << pin);
+    GPIO->DOUTCLR = (1 << pin);
+
     return 0;
 }
 
-int gpio_init_int(gpio_t pin,
-                   gpio_pp_t pullup, gpio_flank_t flank,
+int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
                    gpio_cb_t cb, void *arg)
 {
-    int init = gpio_init(pin, GPIO_DIR_IN, pullup);
+    int init = gpio_init(pin, GPIO_IN);
     if (init != 0)
         return init;
 

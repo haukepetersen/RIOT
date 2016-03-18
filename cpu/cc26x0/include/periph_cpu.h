@@ -26,6 +26,19 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Override GPIO mode values
+ */
+#define HAVE_GPIO_MODE_T
+typedef enum {
+    GPIO_IN    = (IOCFG_INPUT_ENABLE | IOCFG_PULLCTL_OFF),      /**< input w/o pull R */
+    GPIO_IN_PD = (IOCFG_INPUT_ENABLE | IOCFG_PULLCTL_DOWN),     /**< input with pull-down */
+    GPIO_IN_PU = (IOCFG_INPUT_ENABLE | IOCFG_PULLCTL_UP),       /**< input with pull-up */
+    GPIO_OUT   = (IOCFG_PULLCTL_OFF),                           /**< push-pull output */
+    GPIO_OD    = (IOCFG_IOMODE_OPEN_DRAIN | IOCFG_PULLCTL_OFF), /**< open-drain w/o pull R */
+    GPIO_OD_PU = (IOCFG_IOMODE_OPEN_DRAIN | IOCFG_PULLCTL_UP)   /**< open-drain with pull-up */
+} gpio_mode_t;
+
+/**
  * @brief   Override the GPIO flank values
  */
 #define HAVE_GPIO_FLANK_T
