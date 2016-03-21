@@ -131,6 +131,30 @@ typedef int(*saul_read_t)(void *dev, phydat_t *res);
 typedef int(*saul_write_t)(void *dev, phydat_t *data);
 
 /**
+ * @brief   Event callback
+ *
+ * @param[in] type      type of event
+ * @param[in] arg       argument as given to the register function
+ * @param[in] data      the reading of the sensor which triggered the event
+ */
+typedef void (*saul_cb_t)(void *dev, saul_evt_t type, phydat_t *data);
+
+/**
+ * @brief   Register an event callback
+ *
+ * Interrupt vs thread context
+ *
+ * @param[in] dev       device to observe
+ * @param[in] type      type of event
+ * @param[in] cb        callback
+ *
+ * @return  0 on success
+ * @return  -ENOTSUP if the device does not offer the given event
+ * @return  -ECANCELED on other errors
+ */
+typedef int(*saul_register_t)(void *dev, saul_cb_t type, saul_cb_t cb);
+
+/**
  * @brief   Definition of the RIOT actuator/sensor interface
  */
 typedef struct {
