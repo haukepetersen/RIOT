@@ -137,7 +137,15 @@ typedef int(*saul_write_t)(void *dev, phydat_t *data);
  * @param[in] arg       argument as given to the register function
  * @param[in] data      the reading of the sensor which triggered the event
  */
-typedef void (*saul_cb_t)(void *dev, saul_evt_t type, phydat_t *data);
+typedef void (*saul_evt_cb_t)(void *dev, saul_evt_t type, phydat_t *data);
+
+
+struct saul_evt_t {
+    struct saul_evt_t *next;
+    phydat_cb_t *applies;
+    saul_evt_cb_t *trigger;
+    void *arg;
+};
 
 /**
  * @brief   Register an event callback

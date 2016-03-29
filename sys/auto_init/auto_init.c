@@ -84,6 +84,10 @@
 #include "random.h"
 #endif
 
+#ifdef MODULE_SAUL_POLL
+#include "saul_poll.h"
+#endif
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -150,7 +154,10 @@ void auto_init(void)
     extern void dht_auto_init(void);
     dht_auto_init();
 #endif
-
+#ifdef MODULE_SAUL_POLL
+    DEBUG("Auto init SAUL poll module\n");
+    saul_poll();
+#endif
 
 /* initialize network devices */
 #ifdef MODULE_AUTO_INIT_GNRC_NETIF
