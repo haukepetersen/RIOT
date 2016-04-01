@@ -51,12 +51,12 @@ static char printer_stack[THREAD_STACKSIZE_MAIN];
 
 static int parse_dev(char *arg)
 {
-    int dev = atoi(arg);
+    unsigned dev = atoi(arg);
     if (dev == UART_STDIO_DEV) {
         printf("Error: The selected UART_DEV(%i) is used for the shell!\n", dev);
         return -2;
     }
-    if (dev < 0 || (uart_t) dev >= UART_NUMOF) {
+    if ((uart_t) dev >= UART_NUMOF) {
         printf("Error: Invalid UART_DEV device specified (%i).\n", dev);
         return -1;
     }
