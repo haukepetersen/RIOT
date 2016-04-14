@@ -36,7 +36,7 @@ static void usage(void)
 static void checked_write(int handle, void *buffer, int nbyte)
 {
     if (write(handle, buffer, nbyte) != nbyte) {
-        fprintf(stderr, "write to fd %i failed: %s\n", handle, strerror(errno)));
+        fprintf(stderr, "write to fd %i failed: %s\n", handle, strerror(errno));
     }
 }
 
