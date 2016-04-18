@@ -13,6 +13,13 @@
 extern "C" {
 #endif
 
+#define MIA_UDP_POS             (34U)
+#define MIA_UDP_SRC             (MIA_UDP_POS + 0U)
+#define MIA_UDP_DST             (MIA_UDP_POS + 2U)
+#define MIA_UDP_LEN             (MIA_UDP_POS + 4U)
+#define MIA_UDP_CSUM            (MIA_UDP_POS + 6U)
+
+
 void mia_udp_process(void);
 
 int mia_udp_send(uint8_t *ip, uint16_t src, uint16_t dst);

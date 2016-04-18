@@ -7,12 +7,33 @@
 
 #include "net/mia.h"
 #include "net/mia/ip.h"
+#include "net/mia/udp.h"
 
 extern const mia_bind_t mia_udp_bindings[];
+
+static const mia_bind_t udp_bind_internal[] = {
+#ifdef MODULE_MIA_DHCP
+    { DHCP_CLI_PORT, mia_dhcp_process },
+#endif
+#ifdef MODULE_MIA_COAP
+    { COAP_PORT, mia_coap_process },
+#endif
+    { 0, NULL }
+};
 
 void mia_udp_process(void)
 {
     int i = 0;
+
+    while (udp_bind_internal[i].port != 0) {
+        if (udp_bind_internal[i].port == mia_ntos(MIA_UDP_DST)) {
+            udp_bind_internal[i].cb();
+            return;
+        }
+        i++;
+    }
+
+    i = 0;
     while (mia_udp_bindings[i].port != 0) {
         if (mia_udp_bindings[i].port == mia_ntos(MIA_UDP_DST)) {
             mia_udp_bindings[i].cb();

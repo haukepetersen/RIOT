@@ -41,7 +41,7 @@
 #define PING_DELAY          (1000 * 1000U)
 #define DHCP_DELAY          (200 * 1000U)
 
-#define NOT_NATIVE 0
+#define NOT_NATIVE 1
 
 #if NOT_NATIVE
 #include "enc28j60.h"
@@ -236,8 +236,6 @@ static void udp_echo(void)
 const mia_bind_t mia_udp_bindings[] = {
     { 443, udp_print },
     { 80, udp_echo },
-    { DHCP_CLI_PORT, mia_dhcp_process },
-    { COAP_PORT, mia_coap_process },
     { 0, NULL }
 };
 

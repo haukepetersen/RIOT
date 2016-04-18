@@ -1,4 +1,24 @@
+/*
+ * Copyright (C) 2016 Freie Universität Berlin
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
 
+/**
+ * @defgroup    sys_mia Minimalistic IP Application Stack
+ * @ingroup     mia
+ * @brief       MIA - a minimal IPv4 network stack
+ *
+ * This is MIA. It can do Ethernet, IPv4, and UDP only.
+ *
+ * @{
+ * @file
+ * @brief       MIA's main interface definition
+ *
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ */
 
 #ifndef MIA_H
 #define MIA_H
@@ -13,6 +33,9 @@
 extern "C" {
 #endif
 
+/**
+ * @brief   Basic stack configuration parameters
+ */
 #define MIA_MSG_ISR         (0xabcd)
 #define MIA_MSG_QUEUESIZE   (8U)
 
@@ -43,41 +66,6 @@ extern "C" {
  * @brief   Base protocol field offsets
  * @{
  */
-
-#define MIA_ARP_POS             (14U)
-#define MIA_ARP_HTYPE           (MIA_ARP_POS + 0U)
-#define MIA_ARP_PTYPE           (MIA_ARP_POS + 2U)
-#define MIA_ARP_HLEN            (MIA_ARP_POS + 4U)
-#define MIA_ARP_PLEN            (MIA_ARP_POS + 5U)
-#define MIA_ARP_OPER            (MIA_ARP_POS + 6U)
-#define MIA_ARP_SHA             (MIA_ARP_POS + 8U)
-#define MIA_ARP_SPA             (MIA_ARP_POS + 14U)
-#define MIA_ARP_THA             (MIA_ARP_POS + 18U)
-#define MIA_ARP_TPA             (MIA_ARP_POS + 24U)
-
-#define MIA_IP_POS              (14U)
-#define MIA_IP_VER              (MIA_IP_POS + 0U)
-#define MIA_IP_LEN              (MIA_IP_POS + 2U)
-#define MIA_IP_TTL              (MIA_IP_POS + 8U)
-#define MIA_IP_PROTO            (MIA_IP_POS + 9U)
-#define MIA_IP_CSUM             (MIA_IP_POS + 10U)
-#define MIA_IP_SRC              (MIA_IP_POS + 12U)
-#define MIA_IP_DST              (MIA_IP_POS + 16U)
-
-#define MIA_ICMP_POS            (34U)
-#define MIA_ICMP_TYPE           (MIA_ICMP_POS + 0U)
-#define MIA_ICMP_CODE           (MIA_ICMP_POS + 1U)
-#define MIA_ICMP_CSUM           (MIA_ICMP_POS + 2U)
-#define MIA_ICMP_ECHO_ID        (MIA_ICMP_POS + 4U)
-#define MIA_ICMP_ECHO_SEQ       (MIA_ICMP_POS + 6U)
-#define MIA_ICMP_ECHO_DATA      (MIA_ICMP_POS + 8U)
-
-#define MIA_UDP_POS             (34U)
-#define MIA_UDP_SRC             (MIA_UDP_POS + 0U)
-#define MIA_UDP_DST             (MIA_UDP_POS + 2U)
-#define MIA_UDP_LEN             (MIA_UDP_POS + 4U)
-#define MIA_UDP_CSUM            (MIA_UDP_POS + 6U)
-
 #define MIA_APP_POS             (42U)
 /** @} */
 
