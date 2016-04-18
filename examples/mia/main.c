@@ -52,9 +52,9 @@
 #if NOT_NATIVE
 static enc28j60_params_t encp = {
     SPI_1,
-    GPIO_PIN(PORT_B, 12),
-    GPIO_PIN(PORT_B, 11),
-    GPIO_PIN(PORT_B, 10),
+    GPIO_PIN(1, 12),
+    GPIO_PIN(1, 11),
+    GPIO_PIN(1, 10),
 };
 
 static enc28j60_t dev;

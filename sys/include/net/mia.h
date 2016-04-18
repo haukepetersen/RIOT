@@ -13,6 +13,9 @@
  *
  * This is MIA. It can do Ethernet, IPv4, and UDP only.
  *
+ * Restrictions:
+ * - only a single instance (network interface)
+ *
  * @{
  * @file
  * @brief       MIA's main interface definition
