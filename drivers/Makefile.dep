@@ -184,6 +184,11 @@ ifneq (,$(filter dynamixel,$(USEMODULE)))
   USEMODULE += uart_half_duplex
 endif
 
+ifneq (,$(filter ds18b20,$(USEMODULE)))
+    USEMODULE += onewire
+    USEMODULE += xtimer
+endif
+
 ifneq (,$(filter enc28j60,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_gpio_irq
@@ -487,6 +492,11 @@ ifneq (,$(filter pca9685,$(USEMODULE)))
 
   # efm32 CPU doesn't support PWM_RIGHT
   FEATURES_BLACKLIST += arch_efm32
+endif
+
+ifneq (,$(filter onewire,$(USEMODULE)))
+    USEMODULE += xtimer
+    FEATURES_REQUIRED += periph_gpio
 endif
 
 ifneq (,$(filter pcd8544,$(USEMODULE)))
