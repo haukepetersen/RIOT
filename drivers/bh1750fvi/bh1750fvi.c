@@ -28,17 +28,21 @@
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-int bh1750fvi_init(bh1750fvi_t *dev, bh1750fvi_params_t *params)
+void bh1750fvi_setup(bh1750fvi_t *dev, bh1750fvi_params_t *params)
 {
-    int res;
-
     /* initialize the device descriptor */
     dev->i2c = params->i2c;
     dev->addr = params->addr;
+}
+
+int bh1750fvi_init(bh1750fvi_t *dev)
+{
+    int res;
+    bh1750fvi_params_t p = (bh1750fvi_params_t *)dev->saul.root.p;
 
     /* initialize the I2C bus */
     i2c_acquire(dev->i2c);
-    i2c_init_master(dev->i2c, params->clk);
+    i2c_init_master(dev->i2c, p->clk);
 
     /* send a power down command to make sure we can speak to the device */
     res = i2c_write_byte(dev->i2c, dev->addr, OP_POWER_DOWN);
@@ -75,3 +79,39 @@ uint16_t bh1750fvi_sample(bh1750fvi_t *dev)
     tmp /= RES_DIV;
     return (uint16_t)(tmp);
 }
+
+static int read(saul_t *dev, phydat_t *res)
+{
+    res->val[0] = bh1750fvi_sample((bh1750fvi_t *)dev);
+    memset(res->val[1], 0, 2 * sizeof(uint16_t));
+    res->unit = UNIT_LUX;
+    res->scale = 0;
+    return 1;
+}
+
+const saul_driver_t bh1750fvi_api_saul = {
+    .read = read,
+    .write = saul_notsup,
+};
+
+static void setup(void *mem, dev_params_t *params, unsigned pos)
+{
+    bh1750fvi_t *dev = (bh1750fvi_t *)saul_basesetup(mem, params,
+                        sizeof(bh1750fvi_t), pos, &bh1750fvi_api_saul);
+    bh1750fvi_setup(dev, (bh1750fvi_params_t *)params);
+}
+
+static int init(dev_t *root)
+{
+    bh1750fvi_t *dev = (bh1750fvi_t *)root;
+    return bh1750fvi_init(dev);
+}
+
+const dev_core_t bh1750fvi_core = {
+    .type.full  = DEV_SENSE_LIGHT_BH1750FVI,
+    .psize      = sizeof(bh1750fvi_params_t),
+    .setup      = setup,
+    .init       = init,
+    .get        = dev_notsup,
+    .set        = dev_notsup
+};

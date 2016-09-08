@@ -139,8 +139,15 @@ typedef int(*saul_write_t)(void *dev, phydat_t *data);
 typedef struct {
     saul_read_t read;       /**< read function pointer */
     saul_write_t write;     /**< write function pointer */
-    uint8_t type;           /**< device class the device belongs to */
 } saul_driver_t;
+
+typedef struct {
+    dev_t root;
+    saul_driver_t *driver;
+} saul_t;
+
+void saul_basesetup(void *mem, dev_params_t *params, size_t dev_len,
+                    unsigned pos, saul_driver_t *api)
 
 /**
  * @brief   Default not supported function

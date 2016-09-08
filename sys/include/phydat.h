@@ -100,6 +100,7 @@ enum {
     UNIT_PA,        /**< Pascal */
     /* light */
     UNIT_CD,        /**< Candela */
+    UNIT_LUX,       /**< LUX */
     /* logical */
     UNIT_BOOL,      /**< boolean value [0|1] */
     UNIT_PERCENT,   /**< out of 100 */

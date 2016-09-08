@@ -28,3 +28,11 @@ int saul_notsup(void *dev, phydat_t *dat)
     (void)dat;
     return -ENOTSUP;
 }
+
+void saul_basesetup(void *mem, dev_params_t *params, size_t dev_len,
+                    unsigned pos, saul_driver_t *api)
+{
+    saul_t *dev = dev_basesetup(mem, dev_len, pos);
+    dev.root.p = params;
+    dev.driver = api;
+}

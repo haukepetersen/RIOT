@@ -60,6 +60,7 @@ enum {
  * @brief   Device descriptor for BH1570FVI devices
  */
 typedef struct {
+    saul_t saul;
     i2c_t i2c;          /**< I2C bus the device is connected to */
     uint8_t addr;       /**< slave address of the device */
 } bh1750fvi_t;
