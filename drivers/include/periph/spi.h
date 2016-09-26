@@ -179,7 +179,7 @@ uint8_t spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont, uint8_t out);
  * @param[in] length    Number of bytes to transfer
  */
 void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
-                        uint8_t *out, uint8_t *in, size_t len);
+                        const void *out, void *in, size_t len);
 
 /**
  * @brief Transfer one byte to/from a given register address
@@ -211,7 +211,7 @@ uint8_t spi_transfer_reg(spi_t bus, spi_cs_t cs, uint8_t reg, uint8_t out);
  * @param[in] length    Number of bytes to transfer
  */
 void spi_transfer_regs(spi_t bus, spi_cs_t cs,
-                       uint8_t reg, uint8_t *out, uint8_t *in, size_t len);
+                       uint8_t reg, const void *out, void *in, size_t len);
 
 #ifdef __cplusplus
 }
