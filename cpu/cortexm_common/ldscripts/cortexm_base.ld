@@ -84,6 +84,12 @@ SECTIONS
         KEEP (*crtend.o(.dtors))
 
         . = ALIGN(4);
+
+        _sdevs = .;
+        KEEP (*(.devs))
+        . = ALIGN(4);
+        _edevs = .;
+
         _efixed = .;            /* End of text section */
     } > rom
 
