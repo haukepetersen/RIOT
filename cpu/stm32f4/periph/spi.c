@@ -35,7 +35,7 @@
 /**
  * @brief   The STM32F4 only has one hardware chip select line
  */
-#define HWCS_LINE           (0)
+#define HWCS_LINE           (SPI_HWCS(0))
 
 /**
  * @brief Array holding one pre-initialized mutex for each SPI device
@@ -77,37 +77,40 @@ static inline void clk_dis(spi_t bus)
     }
 }
 
-int spi_init(spi_t bus, spi_cs_t cs)
+int spi_init(spi_t bus)
 {
-    if (bus >= SPI_NUMOF) {
-        return -1;
-    }
+    assert(bus < SPI_NUMOF);
 
-    gpio_init(spi_config[bus].mosi_pin, GPIO_DIR_OUT, GPIO_NOPULL);
-    gpio_init(spi_config[bus].miso_pin, GPIO_DIR_IN, GPIO_NOPULL);
-    gpio_init(spi_config[bus].sclk_pin, GPIO_DIR_OUT, GPIO_NOPULL);
+    gpio_init(spi_config[bus].mosi_pin, GPIO_OUT);
+    gpio_init(spi_config[bus].miso_pin, GPIO_IN);
+    gpio_init(spi_config[bus].sclk_pin, GPIO_OUT);
     gpio_init_af(spi_config[bus].mosi_pin, spi_config[bus].af);
     gpio_init_af(spi_config[bus].mosi_pin, spi_config[bus].af);
     gpio_init_af(spi_config[bus].sclk_pin, spi_config[bus].af);
 
+    return SPI_OK;
+}
+
+int spi_init_cs(spi_t bus, spi_cs_t cs)
+{
+    assert(bus < SPI_NUMOF);
+
     if (cs == HWCS_LINE) {
-        gpio_init((gpio_t)cs, GPIO_DIR_OUT, GPIO_NOPULL);
+        gpio_init((gpio_t)cs, GPIO_OUT);
         gpio_init_af((gpio_t)cs, spi_config[bus].af);
     }
     else {
-        gpio_init((gpio_t)cs, GPIO_DIR_OUT, GPIO_NOPULL);
+        gpio_init((gpio_t)cs, GPIO_OUT);
         gpio_set((gpio_t)cs);
     }
 
-    return 0;
+    return SPI_OK;
 }
 
-int spi_acquire(spi_t bus, spi_mode_t mode, spi_clk_t clk, spi_cs_t cs)
+int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
 {
     /* check device and clock speed for validity */
-    if (bus >= SPI_NUMOF || clk > 0x0f) {
-        return -1;
-    }
+    assert(bus < SPI_NUMOF && clk <= 0x0f);
 
     /* lock bus */
     mutex_lock(&locks[bus]);
@@ -129,31 +132,39 @@ void spi_release(spi_t bus)
     mutex_unlock(&locks[bus]);
 }
 
-void spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont,
-                       uint8_t out, uint8_t *in)
-{
-    spi_transfer_bytes(bus, cs, cont, &out, in, 1);
-}
-
 void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
-                        uint8_t *out, uint8_t *in, size_t len)
+                        const void *out, void *in, size_t len)
 {
+    uint8_t *inbuf = (uint8_t *)in;
+    uint8_t *outbuf = (uint8_t *)out;
+
+    /* make sure at least one input or one output buffer is given */
+    assert(outbuf || inbuf);
+
+    /* active the given chip select line */
     dev(bus)->CR1 |= (SPI_CR1_SPE);     /* this pulls the HW CS line low */
     if (cs != HWCS_LINE) {
         gpio_clear((gpio_t)cs);
     }
 
-    for (size_t i = 0; i < len; i++) {
-        uint8_t tmp = (out) ? out[i] : 0;
-        while (!(dev(bus)->SR & SPI_SR_TXE));
-        dev(bus)->DR = tmp;
-        while (!(dev(bus)->SR & SPI_SR_RXNE));
-        tmp = dev(bus)->DR;
-        if (in) {
-            in[i] = tmp;
+    /* transfer data, use shortpath if only sending data */
+    if (!inbuf) {
+        for (size_t i = 0; i < len; i++) {
+            while (!(dev(bus)->SR & SPI_SR_TXE));
+            dev(bus)->DR = outbuf[i];
+        }
+    }
+    else {
+        for (size_t i = 0; i < len; i++) {
+            uint8_t tmp = (outbuf) ? outbuf[i] : 0;
+            while (!(dev(bus)->SR & SPI_SR_TXE));
+            dev(bus)->DR = tmp;
+            while (!(dev(bus)->SR & SPI_SR_RXNE));
+            inbuf[i] = dev(bus)->DR;
         }
     }
 
+    /* release the chip select if not specified differently */
     if (!cont) {
         if (cs != HWCS_LINE) {
             gpio_set((gpio_t)cs);
@@ -162,18 +173,4 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
             dev(bus)->CR1 &= ~(SPI_CR1_SPE);    /* pull HW CS line high */
         }
     }
-}
-
-void spi_transfer_reg(spi_t bus, spi_cs_t cs,
-                      uint8_t reg, uint8_t out, uint8_t *in)
-{
-    spi_transfer_bytes(bus, cs, true, &reg, NULL, 1);
-    spi_transfer_bytes(bus, cs, false, &out, in, 1);
-}
-
-void spi_transfer_regs(spi_t bus, spi_cs_t cs,
-                       uint8_t reg, uint8_t *out, uint8_t *in, size_t len)
-{
-    spi_transfer_bytes(bus, cs, true, &reg, NULL, 1);
-    spi_transfer_bytes(bus, cs, false, out, in, len);
 }

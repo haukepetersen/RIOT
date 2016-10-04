@@ -107,12 +107,15 @@ typedef unsigned int spi_t;
 typedef gpio_t spi_cs_t;
 #endif
 
-typedef enum {
-    SPI_OK          = -1,
-    SPI_NODEV       = -2,
-    SPI_NOCS        = -3,
-    SPI_NOMODE      = -4,
-    SPI_NOCLK       = -5
+/**
+ * @brief   Status codes used by the SPI driver interface
+ */
+enum {
+    SPI_OK          =  0,   /**< everything went as planned */
+    SPI_NODEV       = -1,   /**< invalid SPI bus specified */
+    SPI_NOCS        = -2,   /**< invalid chip select line specified */
+    SPI_NOMODE      = -3,   /**< selected mode is not supported */
+    SPI_NOCLK       = -4    /**< selected clock value is not supported */
 };
 
 /**
@@ -262,7 +265,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
  * @param[in] out       Byte to send, set NULL if only receiving data
  * @param[out] in       Byte to read, set NULL if only sending
  *
- * @return              The value that was read from the given register address
+ * @return              value that was read from the given register address
  */
 uint8_t spi_transfer_reg(spi_t bus, spi_cs_t cs, uint8_t reg, uint8_t out);
 
