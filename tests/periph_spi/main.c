@@ -27,48 +27,16 @@
 #include "shell.h"
 #include "periph/spi.h"
 
-#define LINE_LIMIT              (10U)
+#define BUF_SIZE                (512U)
 
-#define BUF_SIZE                (256U)
+static uint8_t buf[BUF_SIZE];
 
-typedef struct {
+static struct {
     spi_t dev;
     spi_mode_t mode;
     spi_clk_t clk;
     spi_cs_t cs;
-} spi_line_t;
-
-static spi_line_t config[LINE_LIMIT];
-
-static uint8_t buf[BUF_SIZE];
-
-
-static void print_config_help(const char *cmd)
-{
-    printf("usage: %s <config> <dev> <mode> <clk> <cs port> <cs pin>\n", cmd);
-    puts("\tdev:");
-    for (int i = 0; i < (int)SPI_NUMOF; i++) {
-        printf("\t\t%i: SPI_DEV(%i)\n", i, i);
-    }
-    puts("\tconfig:");
-    puts("\t\tConfiguration channel to save this to");
-    puts("\tmode:");
-    puts("\t\t0: POL:0, PHASE:0 - on first rising edge");
-    puts("\t\t1: POL:0, PHASE:1 - on second rising edge");
-    puts("\t\t2: POL:1, PHASE:0 - on first falling edge");
-    puts("\t\t3: POL:1, PHASE:1 - on second falling edge");
-    puts("\tclk:");
-    puts("\t\t0: 100 KHz");
-    puts("\t\t1: 400 KHz");
-    puts("\t\t2: 1 MHz");
-    puts("\t\t3: 5 MHz");
-    puts("\t\t4: 10 MHz");
-    puts("\tcs port:");
-    puts("\t\tPort of the CS pin, set to -1 for hardware chip select");
-    puts("\t\tcs pin:");
-    puts("\t\tPin used for chip select. If hardware chip select is enabled,\n"
-         "\t\tthis value specifies the internal HWCS line");
-}
+} spiconf;
 
 void print_bytes(char* title, uint8_t* data, size_t len)
 {
@@ -94,102 +62,129 @@ void print_bytes(char* title, uint8_t* data, size_t len)
 
 int cmd_config(int argc, char **argv)
 {
-    int line, tmp, ump;
+    int tmp, ump;
 
-    if (argc < 7) {
-        print_config_help(argv[0]);
+    if (argc < 5) {
+        printf("usage: %s <dev> <mode> <clk> <cs port> <cs pin>\n", argv[0]);
+        puts("\tdev:");
+        for (int i = 0; i < (int)SPI_NUMOF; i++) {
+            printf("\t\t%i: SPI_DEV(%i)\n", i, i);
+        }
+        puts("\tmode:");
+        puts("\t\t0: POL:0, PHASE:0 - on first rising edge");
+        puts("\t\t1: POL:0, PHASE:1 - on second rising edge");
+        puts("\t\t2: POL:1, PHASE:0 - on first falling edge");
+        puts("\t\t3: POL:1, PHASE:1 - on second falling edge");
+        puts("\tclk:");
+        puts("\t\t0: 100 KHz");
+        puts("\t\t1: 400 KHz");
+        puts("\t\t2: 1 MHz");
+        puts("\t\t3: 5 MHz");
+        puts("\t\t4: 10 MHz");
+        puts("\tcs port:");
+        puts("\t\tPort of the CS pin, set to -1 for hardware chip select");
+        puts("\t\tcs pin:");
+        puts("\t\tPin used for chip select. If hardware chip select is enabled,\n"
+             "\t\tthis value specifies the internal HWCS line");
         return 1;
     }
 
-    line = atoi(argv[1]);
-    if (line < 0 || line >= LINE_LIMIT) {
-        puts("error: invalid configuration channel");
+    /* parse the given SPI device */
+    tmp = atoi(argv[1]);
+    if (tmp < 0 || tmp >= SPI_NUMOF) {
+        puts("error: invalid SPI device specified");
         return 1;
     }
+    spiconf.dev = SPI_DEV(tmp);
 
-    tmp = atoi(argv[3]);                /* parse SPI mode */
+    /* parse the SPI mode */
+    tmp = atoi(argv[2]);
     switch (tmp) {
-        case 0: config[line].mode = SPI_MODE_0; break;
-        case 1: config[line].mode = SPI_MODE_1; break;
-        case 2: config[line].mode = SPI_MODE_2; break;
-        case 3: config[line].mode = SPI_MODE_3; break;
+        case 0: spiconf.mode = SPI_MODE_0; break;
+        case 1: spiconf.mode = SPI_MODE_1; break;
+        case 2: spiconf.mode = SPI_MODE_2; break;
+        case 3: spiconf.mode = SPI_MODE_3; break;
         default:
             puts("error: invalid SPI mode specified");
             return 1;
     }
 
-    tmp = atoi(argv[4]);                /* parse bus clock speed */
+    /* parse the targeted clock speed */
+    tmp = atoi(argv[3]);
     switch (tmp) {
-        case 0: config[line].clk = SPI_CLK_100KHZ; break;
-        case 1: config[line].clk = SPI_CLK_400KHZ; break;
-        case 2: config[line].clk = SPI_CLK_1MHZ;   break;
-        case 3: config[line].clk = SPI_CLK_5MHZ;   break;
-        case 4: config[line].clk = SPI_CLK_10MHZ;  break;
+        case 0: spiconf.clk = SPI_CLK_100KHZ; break;
+        case 1: spiconf.clk = SPI_CLK_400KHZ; break;
+        case 2: spiconf.clk = SPI_CLK_1MHZ;   break;
+        case 3: spiconf.clk = SPI_CLK_5MHZ;   break;
+        case 4: spiconf.clk = SPI_CLK_10MHZ;  break;
         default:
             puts("error: invalid bus speed specified");
             return 1;
     }
 
-    tmp = atoi(argv[5]);
-    ump = atoi(argv[6]);
+    /* parse chip select port and pin */
+    tmp = atoi(argv[4]);
+    ump = atoi(argv[5]);
     if (ump < 0 || tmp < -1) {
-        puts("error: invalid port/pin combination specified");
+        puts("error: invalid CS port/pin combination specified");
     }
     if (tmp == -1) {                    /* hardware chip select line */
-        config[line].cs = SPI_HWCS(ump);
+        spiconf.cs = SPI_HWCS(ump);
     }
     else {
-        config[line].cs = (spi_cs_t)GPIO_PIN(tmp, ump);
+        spiconf.cs = (spi_cs_t)GPIO_PIN(tmp, ump);
     }
 
-    tmp = atoi(argv[2]);                /* parse SPI dev */
-    if (tmp < 0 || tmp >= SPI_NUMOF) {
-        puts("error: invalid SPI device specified");
+    /* test setup */
+    tmp = spi_init_cs(spiconf.dev, spiconf.cs);
+    if (tmp != SPI_OK) {
+        puts("error: unable to initialize the given chip select line");
         return 1;
     }
-    config[line].dev = SPI_DEV(tmp);
-
-    if (spi_init_pins(config[line].dev, config[line].cs) < 0) {
-        puts("error: unable to initialize the given SPI device");
-        config[line].dev = SPI_UNDEF;
+    tmp = spi_acquire(spiconf.dev, spiconf.cs, spiconf.mode, spiconf.clk);
+    if (tmp == SPI_NOMODE) {
+        puts("error: given SPI mode is not supported");
         return 1;
     }
+    else if (tmp == SPI_NOCLK) {
+        puts("error: targeted clock speed is not supported");
+        return 1;
+    }
+    else if (tmp != SPI_OK) {
+        puts("error: unable to acquire bus with given parameters");
+        return 1;
+    }
+    spi_release(spiconf.dev);
 
     return 0;
 }
 
 int cmd_transfer(int argc, char **argv)
 {
-    int line;
     size_t len;
 
     if (argc < 2) {
-        printf("usage: %s <config> <data>\n", argv[0]);
+        printf("usage: %s <data>\n", argv[0]);
     }
 
-    line = atoi(argv[1]);
-    if (line < 0 || line >= LINE_LIMIT) {
-        puts("error: invalid configuration channel specified");
-        return 1;
-    }
-    if (config[line].dev == SPI_UNDEF) {
-        puts("error: the given configuration channel is not initialized");
+    if (spiconf.dev == SPI_UNDEF) {
+        puts("error: SPI is not initialized, please initialize bus first");
         return 1;
     }
 
     /* get bus access */
-    if (spi_acquire(config[line].dev, config[line].mode,
-                    config[line].clk, config[line].cs) < 0) {
-        puts("error: unable to acquire the bus with the given configuration");
+    if (spi_acquire(spiconf.dev, spiconf.mode,
+                    spiconf.clk, spiconf.cs) != SPI_OK) {
+        puts("error: unable to acquire the SPI bus");
+        return 1;
     }
 
     /* transfer data */
-    len = strlen(argv[2]);
-    spi_transfer_bytes(config[line].dev, config[line].cs, false,
-                       (uint8_t *)argv[2], buf, len);
+    len = strlen(argv[1]);
+    spi_transfer_bytes(spiconf.dev, spiconf.cs, false, argv[2], buf, len);
 
     /* release the bus */
-    spi_release(config[line].dev);
+    spi_release(spiconf.dev);
 
     /* print results */
     print_bytes("Sent bytes", (uint8_t *)argv[2], len);
@@ -198,26 +193,28 @@ int cmd_transfer(int argc, char **argv)
     return 0;
 }
 
-
 static const shell_command_t shell_commands[] = {
     { "config", "Setup a particular SPI configuration", cmd_config },
-    { "send", "Transfer string to slave (only in master mode)", cmd_transfer },
+    { "send", "Transfer string to slave", cmd_transfer },
     { NULL, NULL, NULL }
 };
 
 int main(void)
 {
-    /* un-initialize the configuration lines */
-    for (size_t line = 0; line < LINE_LIMIT; line++) {
-        config[line].dev = SPI_UNDEF;
-    }
-
-    puts("\nRIOT low-level SPI driver test");
-    puts("This application enables you to test a platforms SPI driver \n"
-         "implementation. Type 'help' to show the available commands.\n");
+    puts("Manual SPI peripheral driver test");
+    puts("Refer to the README.md file for more information.\n");
 
     printf("There are %i SPI devices configured for your platform:\n",
            (int)SPI_NUMOF);
+
+    /* reset local SPI configuration */
+    spiconf.dev = SPI_UNDEF;
+
+    /* do base initialization of configured SPI devices
+       TODO: remove once spi_init calls are moved into board_init/kernel_init */
+    for (int i = 0; i < (int)SPI_NUMOF; i++) {
+        spi_init(SPI_DEV(i));
+    }
 
     /* run the shell */
     char line_buf[SHELL_DEFAULT_BUFSIZE];
