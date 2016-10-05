@@ -24,6 +24,12 @@
  * reflected by the cpi_cs_t type, which overloads the gpio_t type with platform
  * specific values for defining platform dependent hardware chip select lines.
  *
+ * Some devices have however very uncommon requirements on the usage and the
+ * timings of their chip select line. For those cases this interface allows to
+ * manage the chip select line manually from the user code (e.g. by calling
+ * gpio_set/clear explicitly) while deactivating the SPI driver internal chip
+ * select handling by passing @ref GPIO_UNDEF as CS parameter.
+ *
  * In the time, when the SPI bus is not used, the SPI unit should be in
  * low-power mode to save energy.
  *
@@ -206,9 +212,9 @@ int spi_init_cs(spi_t bus, spi_cs_t cs);
  * other transaction is complete (spi_relase was called).
  *
  * @param[in] bus       SPI device to access
+ * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
  * @param[in] mode      mode to use for the new transaction
  * @param[in] clk       bus clock speed to use for the transaction
- * @param[in] cs        chip select pin to use
  *
  * @return              SPI_OK on success
  * @return              SPI_NODEV on invalid device
@@ -232,7 +238,7 @@ void spi_release(spi_t bus);
  * @brief Transfer one byte on the given SPI bus
  *
  * @param[in] bus       SPI device to use
- * @param[in] cs        CS pin/line to use
+ * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
  * @param[in] cont      if true, keep device selected after transfer
  * @param[in] out       byte to send out, set NULL if only receiving
  *
@@ -244,7 +250,7 @@ uint8_t spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont, uint8_t out);
  * @brief   Transfer a number bytes using the given SPI bus
  *
  * @param[in]  bus      SPI device to use
- * @param[in]  cs       chip select pin/line to use
+ * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
  * @param[in]  cont     if true, keep device selected after transfer
  * @param[in]  out      buffer to send data from, set NULL if only receiving
  * @param[out] in       buffer to read into, set NULL if only sending
@@ -260,7 +266,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
  * implement a register based access scheme.
  *
  * @param[in]  bus      SPI device to use
- * @param[in]  cs       chip select pin/line to use
+ * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
  * @param[in] reg       Register address to transfer data to/from
  * @param[in] out       Byte to send, set NULL if only receiving data
  * @param[out] in       Byte to read, set NULL if only sending
@@ -276,7 +282,7 @@ uint8_t spi_transfer_reg(spi_t bus, spi_cs_t cs, uint8_t reg, uint8_t out);
  * implement a register based access scheme.
  *
  * @param[in]  bus      SPI device to use
- * @param[in]  cs       chip select pin/line to use
+ * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
  * @param[in]  reg      register address to transfer data to/from
  * @param[in]  out      buffer to send data from, set NULL if only receiving
  * @param[out] in       buffer to read into, set NULL if only sending
