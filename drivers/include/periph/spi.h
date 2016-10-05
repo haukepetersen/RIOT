@@ -211,14 +211,15 @@ int spi_init_cs(spi_t bus, spi_cs_t cs);
  * is active when this function is called, this function will block until the
  * other transaction is complete (spi_relase was called).
  *
+ * @note    This function expects the @p bus and the @p cs parameters to be
+ *          valid (they are checked in spi_init and spi_init_cs before)
+ *
  * @param[in] bus       SPI device to access
  * @param[in] cs        chip select pin/line to use, may be GPIO_UNDEF
  * @param[in] mode      mode to use for the new transaction
  * @param[in] clk       bus clock speed to use for the transaction
  *
  * @return              SPI_OK on success
- * @return              SPI_NODEV on invalid device
- * @return              SPI_NOCS on invalid CS pin/line
  * @return              SPI_NOMODE if given mode is not supported
  * @return              SPI_NOCLK if given clock speed is not supported
  */
