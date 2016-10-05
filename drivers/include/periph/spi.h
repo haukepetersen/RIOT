@@ -181,9 +181,31 @@ typedef enum {
  * Errors (e.g. invalid @p bus parameter) are not signaled through a return
  * value, but should be signaled using the assert() function internally.
  *
+ * @note    This function MUST not be called more than once per bus!
+ *
  * @param[in] bus       SPI device to initialize
  */
 void spi_init(spi_t bus);
+
+/**
+ * @brief   Initialize the used SPI bus pins, i.e. MISO, MOSI, and CLK
+ *
+ *
+ * After calling spi_init, the pins must be initialized (i.e. spi_init is
+ * calling) this function internally. In normal cases, this function will not be
+ * used. But there are some devices (e.g. CC110x), that use SPI bus lines also
+ * for other purposes and need the option to dynamically re-configure one or
+ * more of the used pins. So they can take control over certain pins and return
+ * control back to the SPI driver using this function.
+ *
+ * The pins used are configured in the board's periph_conf.h.
+ *
+ * @param[in] bus       SPI device the pins are configure for
+ *
+ * @return              SPI_OK on success
+ * @return              SPI_NODEV on invalid device
+ */
+int spi_init_pins(spi_t bus);
 
 /**
  * @brief   Initialize the given chip select pin
