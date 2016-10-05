@@ -106,20 +106,20 @@ extern "C" {
 static const uart_conf_t uart_config[] = {
     /* device, RX pin, TX pin, mux, RX pad, TX pad */
     {
-        &SERCOM0->USART,
-        GPIO_PIN(PA,5),
-        GPIO_PIN(PA,4),
-        GPIO_MUX_D,
-        UART_PAD_RX_1,
-        UART_PAD_TX_0
+        .dev    = &SERCOM0->USART,
+        .rx_pin = GPIO_PIN(PA,5),
+        .tx_pin = GPIO_PIN(PA,4),
+        .mux    = GPIO_MUX_D,
+        .rx_pad = UART_PAD_RX_1,
+        .tx_pad = UART_PAD_TX_0
     },
     {
-        &SERCOM5->USART,
-        GPIO_PIN(PA,23),
-        GPIO_PIN(PA,22),
-        GPIO_MUX_D,
-        UART_PAD_RX_1,
-        UART_PAD_TX_0
+        .dev    = &SERCOM5->USART,
+        .rx_pin = GPIO_PIN(PA,23),
+        .tx_pin = GPIO_PIN(PA,22),
+        .mux    = GPIO_MUX_D,
+        .rx_pad = UART_PAD_RX_1,
+        .tx_pad = UART_PAD_TX_0
     }
 };
 
