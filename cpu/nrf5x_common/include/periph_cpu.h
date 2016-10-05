@@ -63,6 +63,11 @@ extern "C" {
  */
 #define GPIO_MODE(oe, ic, pr)   (oe | (ic << 1) | (pr << 2))
 
+/**
+ * @brief   No support for HW chip select so far...
+ */
+#define SPI_HWCS(x)         (GPIO_UNDEF)
+
 #ifndef DOXYGEN
 /**
  * @brief   Override GPIO modes
@@ -142,7 +147,7 @@ typedef enum {
 
 typedef struct {
     NRF_SPI_Type *dev;
-    uint8_t csk;
+    uint8_t sclk;
     uint8_t mosi;
     uint8_t miso;
 } spi_conf_t;

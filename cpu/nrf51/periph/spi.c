@@ -21,56 +21,65 @@
 
 #include "cpu.h"
 #include "mutex.h"
+#include "assert.h"
 #include "periph/spi.h"
 #include "periph_conf.h"
-
-/* guard this file in case no SPI device is defined */
-#if SPI_NUMOF
 
 /**
  * @brief   array holding one pre-initialized mutex for each SPI device
  */
-static mutex_t locks[] =  {
-#if SPI_0_EN
-    [SPI_0] = MUTEX_INIT,
-#endif
-#if SPI_1_EN
-    [SPI_1] = MUTEX_INIT,
-#endif
-};
+static mutex_t locks[SPI_NUMOF];
 
 static inline NRF_SPI_Type *dev(spi_t bus)
 {
     return spi_config[bus].dev;
 }
 
-int spi_init(spi_t bus, spi_cs_t cs)
+void spi_init(spi_t bus)
 {
-    if ((bus >= SPI_NUMOF) || (cs == SPI_CS_UNDEF)) {
-        return -1;
+    assert(bus < SPI_NUMOF);
+
+    /* initialize mutex */
+    mutex_init(&locks[bus]);
+    /* initialize pins */
+    spi_init_pins(bus);
+}
+
+int spi_init_pins(spi_t bus)
+{
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
     }
 
-    mutex_lock(&locks[bus]);
-
     /* set pin direction */
-    NRF_GPIO->DIRSET = ((1 << spi_config[bus].sck) |
+    NRF_GPIO->DIRSET = ((1 << spi_config[bus].sclk) |
                         (1 << spi_config[bus].mosi));
     NRF_GPIO->DIRCLR =  (1 << spi_config[bus].miso);
     /* select pins for the SPI device */
-    dev(bus)->PSELSCK  = spi_config[bus].sck;
+    dev(bus)->PSELSCK  = spi_config[bus].sclk;
     dev(bus)->PSELMOSI = spi_config[bus].mosi;
     dev(bus)->PSELMISO = spi_config[bus].miso;
 
-    mutex_unlock(&locks[bus]);
-
-    return 0;
+    return SPI_OK;
 }
 
-int spi_acquire(spi_t bus, spi_mode_t mode, spi_clk_t clk, spi_cs_t cs)
+int spi_init_cs(spi_t bus, spi_cs_t cs)
 {
-    if ((bus >= SPI_NUMOF) || (cs == SPI_CS_UNDEF)) {
-        return -1;
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
     }
+    if (cs == SPI_CS_UNDEF) {
+        return SPI_NOCS;
+    }
+
+    gpio_init((gpio_t)cs, GPIO_OUT);
+
+    return SPI_OK;
+}
+
+int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
+{
+    assert((bus < SPI_NUMOF) && (cs != SPI_CS_UNDEF));
 
     mutex_lock(&locks[bus]);
     /* power on the bus */
@@ -81,7 +90,7 @@ int spi_acquire(spi_t bus, spi_mode_t mode, spi_clk_t clk, spi_cs_t cs)
     /* enable the bus */
     dev(bus)->ENABLE = 1;
 
-    return 0;
+    return SPI_OK;
 }
 
 void spi_release(spi_t bus)
@@ -89,50 +98,36 @@ void spi_release(spi_t bus)
     /* power off everything */
     dev(bus)->ENABLE = 0;
     dev(bus)->POWER = 0;
-    mutex_unlock(&locks[dev]);
+    mutex_unlock(&locks[bus]);
 }
 
 void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
-                        uint8_t *out, uint8_t *in, size_t len)
+                        const void *out, void *in, size_t len)
 {
-    gpio_clear((gpio_t)cs);
+    uint8_t *in_buf = (uint8_t *)in;
+    uint8_t *out_buf = (uint8_t *)out;
 
-    for (unsigned i = 0; i < length; i++) {
-        uint8_t tmp = (out) ? out[i] : 0;
+    assert(out_buf || in_buf);
 
-        spi[dev]->EVENTS_READY = 0;
-        spi[dev]->TXD = (uint8_t)tmp;
-        while (spi[dev]->EVENTS_READY != 1);
-        tmp = (uint8_t)spi[dev]->RXD;
+    if (cs != SPI_CS_UNDEF) {
+        gpio_clear((gpio_t)cs);
+    }
 
-        if (in) {
-            in[i] = tmp;
+
+    for (int i = 0; i < (int)len; i++) {
+        uint8_t tmp = (out_buf) ? out_buf[i] : 0;
+
+        dev(bus)->EVENTS_READY = 0;
+        dev(bus)->TXD = (uint8_t)tmp;
+        while (dev(bus)->EVENTS_READY != 1);
+        tmp = (uint8_t)dev(bus)->RXD;
+
+        if (in_buf) {
+            in_buf[i] = tmp;
         }
     }
 
-    if (!cont) {
+    if ((cs != SPI_CS_UNDEF) && !cont) {
         gpio_set((gpio_t)cs);
     }
 }
-
-void spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont,
-                       uint8_t out, uint8_t *in)
-{
-    spi_transfer_bytes(bus, cs, cont, &out, in, 1);
-}
-
-void spi_transfer_reg(spi_t bus, spi_cs_t cs,
-                      uint8_t reg, uint8_t out, uint8_t *in)
-{
-    spi_transfer_bytes(bus, cs, true, &reg, NULL, 1);
-    spi_transfer_bytes(bus, cs, false, &out, in, 1);
-}
-
-void spi_transfer_regs(spi_t bus, spi_cs_t cs,
-                       uint8_t reg, uint8_t *out, uint8_t *in, size_t len)
-{
-    spi_transfer_bytes(bus, cs, true, &reg, NULL, 1);
-    spi_transfer_bytes(bus, cs, false, out, in, len);
-}
-
-#endif /* SPI_NUMOF */
