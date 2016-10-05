@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2016 Freie Universität Berlin
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
@@ -30,291 +30,165 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#if SPI_0_EN  || SPI_1_EN
-
-/**
- * @brief Internal helper function to do the actual work for spi_poweroff
- */
-static void _spi_poweroff(SercomSpi* spi_dev);
-
-/**
- * @brief Internal helper function to do the actual work for spi_poweron
- */
-static void _spi_poweron(SercomSpi* spi_dev);
 
 /**
  * @brief Array holding one pre-initialized mutex for each SPI device
  */
-static mutex_t locks[] =  {
-#if SPI_0_EN
-    [SPI_0] = MUTEX_INIT,
-#endif
-#if SPI_1_EN
-    [SPI_1] = MUTEX_INIT,
-#endif
-#if SPI_2_EN
-    [SPI_2] = MUTEX_INIT
-#endif
-};
+static mutex_t locks[SPI_NUMOF];
 
-int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
+/**
+ * @brief   Shortcut for accessing the used SPI SERCOM device
+ */
+static inline SercomSpi *dev(spi_t bus)
 {
-    SercomSpi* spi_dev = 0;
-    uint8_t sercom_gclk_id = 0;
-    gpio_t pin_sclk = 0;
-    gpio_t pin_miso = 0;
-    gpio_t pin_mosi = 0;
-    gpio_mux_t mux_sclk = 0;
-    gpio_mux_t mux_miso = 0;
-    gpio_mux_t mux_mosi = 0;
-    spi_mosipad_t mosi_pad = 0;
-    spi_misopad_t miso_pad = 0;
-    uint32_t   cpha = 0;
-    uint32_t   cpol = 0;
-    uint32_t   f_baud = 0;
-    switch (speed)
-    {
-    case SPI_SPEED_100KHZ:
-        f_baud = 100000;
-        break;
-    case SPI_SPEED_400KHZ:
-        f_baud = 400000;
-        break;
-    case SPI_SPEED_1MHZ:
-        f_baud = 1000000;
-        break;
-    case SPI_SPEED_5MHZ:
-#if CLOCK_CORECLOCK >= 5000000
-        f_baud = 5000000;
-        break;
-#else
-        return -1;
-#endif
-    case SPI_SPEED_10MHZ:
-#if CLOCK_CORECLOCK >= 10000000
-        f_baud = 10000000;
-        break;
-#else
-        return -1;
-#endif
-    }
-    switch (conf)
-    {
-    case SPI_CONF_FIRST_RISING:         /**< first data bit is transacted on the first rising SCK edge */
-        cpha = 0;
-        cpol = 0;
-        break;
-    case SPI_CONF_SECOND_RISING:        /**< first data bit is transacted on the second rising SCK edge */
-        cpha = SERCOM_SPI_CTRLA_CPHA;
-        cpol = 0;
-        break;
-    case SPI_CONF_FIRST_FALLING:        /**< first data bit is transacted on the first falling SCK edge */
-        cpha = 0;
-        cpol = SERCOM_SPI_CTRLA_CPOL;
-        break;
-    case SPI_CONF_SECOND_FALLING:       /**< first data bit is transacted on the second falling SCK edge */
-        cpha = SERCOM_SPI_CTRLA_CPHA;
-        cpol = SERCOM_SPI_CTRLA_CPOL;
-        break;
-    }
-    switch (dev)
-    {
-#if SPI_0_EN
-    case SPI_0:
-        spi_dev = &SPI_0_DEV;
-        sercom_gclk_id = SPI_0_GCLK_ID;
-        pin_sclk = SPI_0_SCLK;
-        mux_sclk = SPI_0_SCLK_MUX;
-        pin_miso = SPI_0_MISO;
-        mux_miso = SPI_0_MISO_MUX;
-        pin_mosi = SPI_0_MOSI;
-        mux_mosi = SPI_0_MOSI_MUX;
-        mosi_pad = SPI_0_MOSI_PAD;
-        miso_pad = SPI_0_MISO_PAD;
-        break;
-#endif
-#if SPI_1_EN
-    case SPI_1:
-        spi_dev = &SPI_1_DEV;
-        sercom_gclk_id = SPI_1_GCLK_ID;
-        pin_sclk = SPI_1_SCLK;
-        mux_sclk = SPI_1_SCLK_MUX;
-        pin_miso = SPI_1_MISO;
-        mux_miso = SPI_1_MISO_MUX;
-        pin_mosi = SPI_1_MOSI;
-        mux_mosi = SPI_1_MOSI_MUX;
-        mosi_pad = SPI_1_MOSI_PAD;
-        miso_pad = SPI_1_MISO_PAD;
-        break;
-#endif
-    default:
-        return -1;
+    return spi_config[bus].dev;
+}
+
+static inline void poweron(spi_t bus)
+{
+    PM->APBCMASK.reg |= (PM_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
+}
+
+static inline void poweroff(spi_t bus)
+{
+    PM->APBCMASK.reg &= ~(PM_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
+}
+
+void spi_init(spi_t bus)
+{
+    /* make sure given bus is good */
+    assert(bus < SPI_NUMOF);
+
+    /* initialize the device lock */
+    mutex_init(&locks[bus]);
+
+    /* configure pins and their muxes */
+    spi_init_pins(bus);
+
+    /* wake up device */
+    poweron(bus);
+
+    /* reset all device configuration */
+    dev(bus)->CTRLA.reg |= SERCOM_SPI_CTRLA_SWRST;
+    while ((dev(bus)->CTRLA.reg & SERCOM_SPI_CTRLA_SWRST) ||
+           (dev(bus)->SYNCBUSY.reg & SERCOM_SPI_SYNCBUSY_SWRST));
+
+    /* configure base clock: using GLK GEN 0 */
+    GCLK->CLKCTRL.reg = (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 |
+                         (SERCOM0_GCLK_ID_CORE + sercom_id(dev(bus))));
+    while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
+
+    /* enable receiver and configure character size to 8-bit
+     * no synchronization needed, as SERCOM device is not enabled */
+    dev(bus)->CTRLB.reg = (SERCOM_SPI_CTRLB_CHSIZE(0) | SERCOM_SPI_CTRLB_RXEN);
+
+    /* put device back to sleep */
+    poweroff(bus);
+}
+
+int spi_init_pins(spi_t bus)
+{
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
     }
 
-    /* Use the same sequence as ArduinoCore
-     *  - setup pins
-     *  - disable SPI
-     *  - init SPI (reset, init clock NVIC, CTRLA, CTRLB)
-     *  - init cpha/cpol, BAUD.reg
-     *  - enable SPI
-     */
-    gpio_init(pin_miso, GPIO_IN_PD);
-    gpio_init_sercom(pin_sclk, mux_sclk);
-    gpio_init_sercom(pin_miso, mux_miso);
-    gpio_init_sercom(pin_mosi, mux_mosi);
+    gpio_init(spi_config[bus].miso_pin, GPIO_IN);
+    gpio_init(spi_config[bus].mosi_pin, GPIO_OUT);
+    gpio_init(spi_config[bus].clk_pin, GPIO_OUT);
+    gpio_init_mux(spi_config[bus].miso_pin, spi_config[bus].miso_mux);
+    gpio_init_mux(spi_config[bus].mosi_pin, spi_config[bus].mosi_mux);
+    gpio_init_mux(spi_config[bus].clk_pin, spi_config[bus].clk_mux);
 
-    /* Disable spi to write confs */
-    _spi_poweroff(spi_dev);
+    return SPI_OK;
+}
 
-    /* reset */
-    // Setting the Software Reset bit to 1
-    spi_dev->CTRLA.bit.SWRST = 1;
+int spi_init_cs(spi_t bus, spi_cs_t cs)
+{
+    /* check bus and cs parameters */
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
+    }
+    if (cs == SPI_HWCS(0)) {
+        return SPI_NOCS;
+    }
 
-    // Wait both bits Software Reset from CTRLA and SYNCBUSY are equal to 0
-    while (spi_dev->CTRLA.bit.SWRST || spi_dev->SYNCBUSY.bit.SWRST) {}
+    gpio_init((gpio_t)cs, GPIO_OUT);
 
-    /* Turn on power manager for sercom */
-    PM->APBCMASK.reg |= (PM_APBCMASK_SERCOM0 << (sercom_gclk_id - GCLK_CLKCTRL_ID_SERCOM0_CORE_Val));
+    return SPI_OK;
+}
 
-    /* Setup clock */
-    /* SPI using CLK GEN 0 */
-    GCLK->CLKCTRL.reg = (GCLK_CLKCTRL_CLKEN |
-                         GCLK_CLKCTRL_GEN_GCLK0 |
-                         GCLK_CLKCTRL_ID(sercom_gclk_id));
-    while (GCLK->STATUS.bit.SYNCBUSY) {}
+int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
+{
+    /* safe guard against invalid device and invalid chip select value (we
+     * currently don't support hw chip select...) */
+    assert((bus < SPI_NUMOF) && cs != SPI_HWCS(0));
 
-    /* ???? init NVIC. Maybe not needed in master mode. */
+    /* get exclusive access to the device */
+    mutex_lock(&locks[bus]);
+    /* power on the device */
+    poweron(bus);
 
-    /* Master mode */
-    spi_dev->CTRLA.reg |= SERCOM_SPI_CTRLA_MODE_SPI_MASTER;
-    while (spi_dev->SYNCBUSY.reg) {}// ???? not needed
+    /* configure bus clock, in synchronous mode its calculated from
+     * BAUD.reg = (f_ref / (2 * f_bus) - 1)
+     * with f_ref := CLOCK_CORECLOCK as defined by the board */
+    dev(bus)->BAUD.reg = (uint8_t)(((uint32_t)CLOCK_CORECLOCK) / (2 * clk) - 1);
 
-    spi_dev->BAUD.bit.BAUD = (uint8_t) (((uint32_t)CLOCK_CORECLOCK) / (2 * f_baud) - 1); /* Synchronous mode*/
+    /* configure device to be master and set mode and pads,
+     *
+     * NOTE: we could configure the pads already during spi_init, but for
+     * efficiency reason we do that here, so we can do all in one single write
+     * to the CTRLA register */
+    dev(bus)->CTRLA.reg = (SERCOM_SPI_CTRLA_MODE_SPI_MASTER |
+                           SERCOM_SPI_CTRLA_DOPO(spi_config[bus].mosi_pad) |
+                           SERCOM_SPI_CTRLA_DIPO(spi_config[bus].miso_pad) |
+                           (mode <<  SERCOM_SPI_CTRLA_CPOL_Pos));
+    /* also no synchronization needed here, as CTRLA is write-synchronized */
 
-    spi_dev->CTRLA.reg |= SERCOM_SPI_CTRLA_DOPO(mosi_pad)
-                       |  SERCOM_SPI_CTRLA_DIPO(miso_pad)
-                       |  cpha
-                       |  cpol;
-    while (spi_dev->SYNCBUSY.reg) {}	// ???? not needed
+    /* finally enable the device */
+    dev(bus)->CTRLA.reg |= SERCOM_SPI_CTRLA_ENABLE;
+    while (dev(bus)->SYNCBUSY.reg & SERCOM_SPI_SYNCBUSY_ENABLE) {}
 
-    /* datasize 0 => 8 bits */
-    spi_dev->CTRLB.reg = (SERCOM_SPI_CTRLB_CHSIZE(0) | SERCOM_SPI_CTRLB_RXEN);
-    while (spi_dev->SYNCBUSY.reg) {}	// ???? Only wait for clear of spi_dev->SYNCBUSY.bit.CTRLB
-
-    /* enable */
-    _spi_poweron(spi_dev);
     return 0;
 }
 
-int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char))
+void spi_release(spi_t bus)
 {
-    /* TODO */
-    return -1;
+    assert(bus < SPI_NUMOF);
+
+    /* disable device and put it back to sleep */
+    dev(bus)->CTRLA.reg &= ~(SERCOM_SPI_CTRLA_ENABLE);
+    while (dev(bus)->SYNCBUSY.reg & SERCOM_SPI_SYNCBUSY_ENABLE) {}
+    poweroff(bus);
+    /* release access to the device */
+    mutex_unlock(&locks[bus]);
 }
 
-void spi_transmission_begin(spi_t dev, char reset_val)
+void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
+                        const void *out, void *in, size_t len)
 {
-    /* TODO*/
-}
+    uint8_t tmp;
+    uint8_t *out_buf = (uint8_t *)out;
+    uint8_t *in_buf = (uint8_t *)in;
 
-int spi_acquire(spi_t dev)
-{
-    if ((unsigned int)dev >= SPI_NUMOF) {
-        return -1;
-    }
-    mutex_lock(&locks[dev]);
-    return 0;
-}
+    assert((bus < SPI_NUMOF) && (cs != SPI_HWCS(0)));
+    assert(out || in);
 
-int spi_release(spi_t dev)
-{
-    if ((unsigned int)dev >= SPI_NUMOF) {
-        return -1;
-    }
-    mutex_unlock(&locks[dev]);
-    return 0;
-}
-
-int spi_transfer_byte(spi_t dev, char out, char *in)
-{
-    SercomSpi* spi_dev = 0;
-    char tmp;
-
-    switch(dev)
-    {
-#if SPI_0_EN
-    case SPI_0:
-        spi_dev = &(SPI_0_DEV);
-        break;
-#endif
-#if SPI_1_EN
-    case SPI_1:
-        spi_dev = &(SPI_1_DEV);
-        break;
-#endif
+    if (cs != GPIO_UNDEF) {
+        gpio_clear((gpio_t)cs);
     }
 
-    while (!spi_dev->INTFLAG.bit.DRE) {} /* while data register is not empty*/
-    spi_dev->DATA.bit.DATA = out;
-
-    while (!spi_dev->INTFLAG.bit.DRE || !spi_dev->INTFLAG.bit.RXC) {} /* while receive is not complete*/
-    tmp = (char)spi_dev->DATA.bit.DATA;
-
-    if (in != NULL)
-    {
-        in[0] = tmp;
+    for (int i = 0; i < (int)len; i++) {
+        tmp = (out_buf) ? out_buf[i] : 0;
+        while (!(dev(bus)->INTFLAG.reg & SERCOM_SPI_INTFLAG_DRE)) {}
+        dev(bus)->DATA.reg = tmp;
+        while (!(dev(bus)->INTFLAG.reg & SERCOM_SPI_INTFLAG_RXC)) {}
+        tmp = (uint8_t)dev(bus)->DATA.reg;
+        if (in_buf) {
+            in_buf[i] = tmp;
+        }
     }
-    return 1;
-}
 
-static void _spi_poweron(SercomSpi* spi_dev)
-{
-    if (spi_dev == NULL) {
-        return;
-    }
-    spi_dev->CTRLA.reg |= SERCOM_SPI_CTRLA_ENABLE;
-    while (spi_dev->SYNCBUSY.bit.ENABLE) {}
-}
-
-void spi_poweron(spi_t dev)
-{
-    switch(dev) {
-#if SPI_0_EN
-    case SPI_0:
-        _spi_poweron(&SPI_0_DEV);
-        break;
-#endif
-#if SPI_1_EN
-    case SPI_1:
-        _spi_poweron(&SPI_1_DEV);
-        break;
-#endif
+    if ((!cont) && (cs != GPIO_UNDEF)) {
+        gpio_set((gpio_t)cs);
     }
 }
-
-static void _spi_poweroff(SercomSpi* spi_dev)
-{
-    if (spi_dev == NULL) {
-        return;
-    }
-    spi_dev->CTRLA.bit.ENABLE = 0; /* Disable spi */
-    while (spi_dev->SYNCBUSY.bit.ENABLE) {}
-}
-
-void spi_poweroff(spi_t dev)
-{
-    switch(dev) {
-#if SPI_0_EN
-    case SPI_0:
-        _spi_poweroff(&SPI_0_DEV);
-        break;
-#endif
-#if SPI_1_EN
-    case SPI_1:
-        _spi_poweroff(&SPI_1_DEV);
-        break;
-#endif
-    }
-}
-
-#endif /* SPI_0_EN || SPI_1_EN */

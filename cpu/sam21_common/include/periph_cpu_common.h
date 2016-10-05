@@ -34,7 +34,7 @@ extern "C" {
  * @brief   Use shared SPI functions
  * @{
  */
-#define PERIPH_SPI_NEEDS_TRANSFER_BYTES
+#define PERIPH_SPI_NEEDS_TRANSFER_BYTE
 #define PERIPH_SPI_NEEDS_TRANSFER_REG
 #define PERIPH_SPI_NEEDS_TRANSFER_REGS
 /** @} */

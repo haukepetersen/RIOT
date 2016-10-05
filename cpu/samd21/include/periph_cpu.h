@@ -19,6 +19,8 @@
 #ifndef CPU_PERIPH_H
 #define CPU_PERIPH_H
 
+#include <limits.h>
+
 #include "periph_cpu_common.h"
 
 #ifdef __cplusplus
@@ -44,6 +46,13 @@ enum {
  */
 #define GPIO_MODE(pr, ie, pe)   (pr | (ie << 1) | (pe << 2))
 
+/**
+ * @brief   Override SPI hardware chip select macro
+ *
+ * As of now, we do not support HW CS, so we always set it to a fixed value
+ */
+#define SPI_HWCS(x)     (UINT_MAX - 1)
+
 #ifndef DOXYGEN
 /**
  * @brief   Override GPIO modes
@@ -58,6 +67,33 @@ typedef enum {
     GPIO_OD    = 0xfe,                  /**< not supported by HW */
     GPIO_OD_PU = 0xff                   /**< not supported by HW */
 } gpio_mode_t;
+/** @} */
+
+/**
+ * @brief   Override SPI modes
+ * @{
+ */
+#define HAVE_SPI_MODE_T
+typedef enum {
+    SPI_MODE_0 = 0x0,       /**< CPOL=0, CPHA=0 */
+    SPI_MODE_1 = 0x1,       /**< CPOL=0, CPHA=1 */
+    SPI_MODE_2 = 0x2,       /**< CPOL=1, CPHA=0 */
+    SPI_MODE_3 = 0x3        /**< CPOL=1, CPHA=1 */
+} spi_mode_t;
+/** @} */
+
+/**
+ * @brief   Override SPI clock speed values
+ * @{
+ */
+#define HAVE_SPI_CLK_T
+typedef enum {
+    SPI_CLK_100KHZ =   100000U, /**< drive the SPI bus with 100KHz */
+    SPI_CLK_400KHZ =   400000U, /**< drive the SPI bus with 400KHz */
+    SPI_CLK_1MHZ   =  1000000U, /**< drive the SPI bus with 1MHz */
+    SPI_CLK_5MHZ   =  5000000U, /**< drive the SPI bus with 5MHz */
+    SPI_CLK_10MHZ  = 10000000U  /**< drive the SPI bus with 10MHz */
+} spi_clk_t;
 /** @} */
 #endif /* ndef DOXYGEN */
 
@@ -91,13 +127,28 @@ typedef struct {
 } uart_conf_t;
 
 /**
+ * @brief   SPI device configuration
+ */
+typedef struct {
+    SercomSpi *dev;         /**< pointer to the used SPI device */
+    gpio_t miso_pin;        /**< used MISO pin */
+    gpio_t mosi_pin;        /**< used MOSI pin */
+    gpio_t clk_pin;         /**< used CLK pin */
+    gpio_mux_t miso_mux;    /**< alternate function for MISO pin (mux) */
+    gpio_mux_t mosi_mux;    /**< alternate function for MOSI pin (mux) */
+    gpio_mux_t clk_mux;     /**< alternate function for CLK pin (mux) */
+    spi_misopad_t miso_pad; /**< pad to use for MISO line */
+    spi_mosipad_t mosi_pad; /**< pad to use for MOSI and CLK line */
+} spi_conf_t;
+
+/**
  * @brief   Return the numeric id of a SERCOM device derived from its address
  *
  * @param[in] sercom    SERCOM device
  *
  * @return              numeric id of the given SERCOM device
  */
-static inline int _sercom_id(SercomUsart *sercom)
+static inline int sercom_id(void *sercom)
 {
     return ((((uint32_t)sercom) >> 10) & 0x7) - 2;
 }
