@@ -40,15 +40,15 @@ static struct {
 
 void print_bytes(char* title, uint8_t* data, size_t len)
 {
-    printf("%4s", title);
+    printf("%4s\n", title);
     for (size_t i = 0; i < len; i++) {
         printf("  %2i ", (int)i);
     }
-    printf("\n    ");
+    printf("\n ");
     for (size_t i = 0; i < len; i++) {
         printf(" 0x%02x", (int)data[i]);
     }
-    printf("\n    ");
+    printf("\n ");
     for (size_t i = 0; i < len; i++) {
         if (data[i] < ' ' || data[i] > '~') {
             printf("  ?? ");
@@ -83,7 +83,7 @@ int cmd_config(int argc, char **argv)
         puts("\t\t4: 10 MHz");
         puts("\tcs port:");
         puts("\t\tPort of the CS pin, set to -1 for hardware chip select");
-        puts("\t\tcs pin:");
+        puts("\tcs pin:");
         puts("\t\tPin used for chip select. If hardware chip select is enabled,\n"
              "\t\tthis value specifies the internal HWCS line");
         return 1;
@@ -181,13 +181,13 @@ int cmd_transfer(int argc, char **argv)
 
     /* transfer data */
     len = strlen(argv[1]);
-    spi_transfer_bytes(spiconf.dev, spiconf.cs, false, argv[2], buf, len);
+    spi_transfer_bytes(spiconf.dev, spiconf.cs, false, argv[1], buf, len);
 
     /* release the bus */
     spi_release(spiconf.dev);
 
     /* print results */
-    print_bytes("Sent bytes", (uint8_t *)argv[2], len);
+    print_bytes("Sent bytes", (uint8_t *)argv[1], len);
     print_bytes("Received bytes", buf, len);
 
     return 0;
