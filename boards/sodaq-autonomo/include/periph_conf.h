@@ -133,7 +133,7 @@ static const uart_conf_t uart_config[] = {
         .mux    = GPIO_MUX_C,
         .rx_pad = UART_PAD_RX_1,
         .tx_pad = UART_PAD_TX_2,
-    },
+    }
 };
 
 /* interrupt function name mapping */
