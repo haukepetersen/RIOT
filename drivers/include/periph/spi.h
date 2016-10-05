@@ -212,7 +212,7 @@ int spi_init_cs(spi_t bus, spi_cs_t cs);
  * other transaction is complete (spi_relase was called).
  *
  * @param[in] bus       SPI device to access
- * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
+ * @param[in] cs        chip select pin/line to use, may be GPIO_UNDEF
  * @param[in] mode      mode to use for the new transaction
  * @param[in] clk       bus clock speed to use for the transaction
  *
@@ -238,7 +238,7 @@ void spi_release(spi_t bus);
  * @brief Transfer one byte on the given SPI bus
  *
  * @param[in] bus       SPI device to use
- * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
+ * @param[in] cs        chip select pin/line to use, may be GPIO_UNDEF
  * @param[in] cont      if true, keep device selected after transfer
  * @param[in] out       byte to send out, set NULL if only receiving
  *
@@ -265,11 +265,10 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
  * This function is a shortcut function for easier handling of SPI devices that
  * implement a register based access scheme.
  *
- * @param[in]  bus      SPI device to use
- * @param[in]  cs       chip select pin/line to use, may be GPIO_UNDEF
- * @param[in] reg       Register address to transfer data to/from
- * @param[in] out       Byte to send, set NULL if only receiving data
- * @param[out] in       Byte to read, set NULL if only sending
+ * @param[in] bus       SPI device to use
+ * @param[in] cs        chip select pin/line to use, may be GPIO_UNDEF
+ * @param[in] reg       register address to transfer data to/from
+ * @param[in] out       byte to send, set NULL if only receiving data
  *
  * @return              value that was read from the given register address
  */
