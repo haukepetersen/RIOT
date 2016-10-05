@@ -210,12 +210,6 @@ int main(void)
     /* reset local SPI configuration */
     spiconf.dev = SPI_UNDEF;
 
-    /* do base initialization of configured SPI devices
-       TODO: remove once spi_init calls are moved into board_init/kernel_init */
-    for (int i = 0; i < (int)SPI_NUMOF; i++) {
-        spi_init(SPI_DEV(i));
-    }
-
     /* run the shell */
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
