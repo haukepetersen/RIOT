@@ -178,12 +178,12 @@ typedef enum {
  * It uses the board specific initialization parameters as defined in the
  * board's `periph_conf.h`.
  *
- * @param[in] bus       SPI device to initialize
+ * Errors (e.g. invalid @p bus parameter) are not signaled through a return
+ * value, but should be signaled using the assert() function internally.
  *
- * @return              SPI_OK on success
- * @return              SPI_NODEV on invalid device
+ * @param[in] bus       SPI device to initialize
  */
-int spi_init(spi_t bus);
+void spi_init(spi_t bus);
 
 /**
  * @brief   Initialize the given chip select pin
