@@ -86,11 +86,9 @@ void spi_init(spi_t bus)
     poweroff(bus);
 }
 
-int spi_init_pins(spi_t bus)
+void spi_init_pins(spi_t bus)
 {
-    if (bus >= SPI_NUMOF) {
-        return SPI_NODEV;
-    }
+    assert(bus < SPI_NUMOF);
 
     gpio_init(spi_config[bus].miso_pin, GPIO_IN);
     gpio_init(spi_config[bus].mosi_pin, GPIO_OUT);
@@ -98,8 +96,6 @@ int spi_init_pins(spi_t bus)
     gpio_init_mux(spi_config[bus].miso_pin, spi_config[bus].miso_mux);
     gpio_init_mux(spi_config[bus].mosi_pin, spi_config[bus].mosi_mux);
     gpio_init_mux(spi_config[bus].clk_pin, spi_config[bus].clk_mux);
-
-    return SPI_OK;
 }
 
 int spi_init_cs(spi_t bus, spi_cs_t cs)

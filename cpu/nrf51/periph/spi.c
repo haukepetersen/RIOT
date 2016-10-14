@@ -45,11 +45,9 @@ void spi_init(spi_t bus)
     spi_init_pins(bus);
 }
 
-int spi_init_pins(spi_t bus)
+void spi_init_pins(spi_t bus)
 {
-    if (bus >= SPI_NUMOF) {
-        return SPI_NODEV;
-    }
+    assert(bus < SPI_NUMOF);
 
     /* set pin direction */
     NRF_GPIO->DIRSET = ((1 << spi_config[bus].sclk) |
@@ -59,8 +57,6 @@ int spi_init_pins(spi_t bus)
     dev(bus)->PSELSCK  = spi_config[bus].sclk;
     dev(bus)->PSELMOSI = spi_config[bus].mosi;
     dev(bus)->PSELMISO = spi_config[bus].miso;
-
-    return SPI_OK;
 }
 
 int spi_init_cs(spi_t bus, spi_cs_t cs)
