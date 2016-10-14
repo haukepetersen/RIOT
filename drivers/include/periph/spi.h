@@ -201,11 +201,8 @@ void spi_init(spi_t bus);
  * The pins used are configured in the board's periph_conf.h.
  *
  * @param[in] bus       SPI device the pins are configure for
- *
- * @return              SPI_OK on success
- * @return              SPI_NODEV on invalid device
  */
-int spi_init_pins(spi_t bus);
+void spi_init_pins(spi_t bus);
 
 /**
  * @brief   Initialize the given chip select pin
