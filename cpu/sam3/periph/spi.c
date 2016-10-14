@@ -24,45 +24,31 @@
 
 #include "cpu.h"
 #include "mutex.h"
+#include "assert.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
 
 /**
  * @brief   Array holding one pre-initialized mutex for each SPI device
  */
-static mutex_t locks[] =  {
-#if SPI_0_EN
-    [SPI_0] = MUTEX_INIT,
-#endif
-#if SPI_1_EN
-    [SPI_1] = MUTEX_INIT,
-#endif
-#if SPI_2_EN
-    [SPI_2] = MUTEX_INIT
-#endif
-};
+static mutex_t locks[SPI_NUMOF];
 
 static inline Spi *dev(spi_t bus)
 {
     return spi_config[bus].dev;
 }
 
-static inline clk_en(spi_t bus)
+void spi_init(spi_t bus)
 {
-    PMC->PMC_PCER0 |= (1 << spi_config[bus].id);
+    assert(bus < SPI_NUMOF);
+
+    /* initialize device lock */
+    mutex_init(&locks[bus]);
 }
 
-static inline clk_dis(spi_t bus)
+void spi_init_pins(spi_t bus)
 {
-    PMC->PMC_PCER0 &= ~(1 << spi_config[bus].id);
-}
-
-
-int spi_init_pins(spi_t bus, spi_cs_t cs)
-{
-    if ((bus >= SPI_NUMOF) || (cs == SPI_CS_UNDEF)) {
-        return -1;
-    }
+    assert(bus < SPI_NUMOF);
 
     gpio_init(spi_config[bus].clk, GPIO_OUT);
     gpio_init(spi_config[bus].mosi, GPIO_OUT);
@@ -70,75 +56,83 @@ int spi_init_pins(spi_t bus, spi_cs_t cs)
     gpio_init_mux(spi_config[bus].clk, spi_config[bus].mux);
     gpio_init_mux(spi_config[bus].mosi, spi_config[bus].mux);
     gpio_init_mux(spi_config[bus].miso, spi_config[bus].mux);
+}
+
+int spi_init_cs(spi_t bus, spi_cs_t cs)
+{
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
+    }
+    if (cs == SPI_HWCS(0)) {
+        return SPI_NOCS;
+    }
 
     gpio_init((gpio_t)cs, GPIO_OUT);
     gpio_set((gpio_t)cs);
+
+    return SPI_OK;
 }
 
-int spi_acquire(spi_t bus, spi_mode_t mode, spi_clk_t clk, spi_cs_t cs)
+int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
 {
-    if ((bus >= SPI_NUMOF) || (cs == SPI_CS_UNDEF)) {
-        return -1;
-    }
+    assert(bus <= SPI_NUMOF);
 
     /* lock bus */
     mutex_lock(&locks[bus]);
     /* enable SPI device clock */
-    clk_en(bus);
+    PMC->PMC_PCER0 |= (1 << spi_config[bus].id);
     /* set mode and speed */
-    dev(bus)->SPI_CSR[0] = (clk | mode);
+    dev(bus)->SPI_CSR[0] = ((CLOCK_CORECLOCK / clk) | mode);
     dev(bus)->SPI_MR = (SPI_MR_MSTR | SPI_MR_MODFDIS);
-    dev(bus)->SPI_CR |= SPI_CR_SPIEN;
+    dev(bus)->SPI_CR = SPI_CR_SPIEN;
 
-    return 0;
+    return SPI_OK;
 }
 
 void spi_release(spi_t bus)
 {
+    /* disable device and turn off clock signal */
     dev(bus)->SPI_CR = 0;
-    clk_dis(bus);
+    PMC->PMC_PCER0 &= ~(1 << spi_config[bus].id);
+    /* release device lock */
     mutex_unlock(&locks[bus]);
 }
 
-void spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont,
-                       uint8_t out, uint8_t *in)
-{
-    spi_transfer_bytes(bus, cs, cont, &out, in, 1);
-}
-
 void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
-                        uint8_t *out, uint8_t *in, size_t len)
+                        const void *out, void *in, size_t len)
 {
+    uint8_t *out_buf = (uint8_t *)out;
+    uint8_t *in_buf = (uint8_t *)in;
+
+    assert(in_buf || out_buf);
+
     gpio_clear((gpio_t)cs);
 
-    for (size_t i = 0; i < len; i++) {
-        uint8_t tmp = (out) ? out[i] : 0;
-
-        while (!(dev(bus)->SPI_SR & SPI_SR_TDRE));
-        dev(bus)->SPI_TDR = tmp;
-        while (!(dev(bus)->SPI_SR & SPI_SR_RDRF));
-        tmp = (uint8_t)dev(bus)->SPI_RDR;
-
-        if (in) {
-            in[i] = tmp;
+    if (out_buf) {
+        for (size_t i = 0; i < len; i++) {
+            while(!(dev(bus)->SPI_SR & SPI_SR_TDRE)) {}
+            dev(bus)->SPI_TDR = out_buf[i];
+        }
+        while (!(dev(bus)->SPI_SR & SPI_SR_RDRF)) {}
+        dev(bus)->SPI_RDR;
+    }
+    else if (in_buf) {
+        for (size_t i = 0; i < len; i++) {
+            dev(bus)->SPI_TDR = 0;
+            while (!(dev(bus)->SPI_SR & SPI_SR_RDRF)) {}
+            in_buf[i] = dev(bus)->SPI_RDR;
+        }
+    }
+    else {
+        for (size_t i = 0; i < len; i++) {
+            while (!(dev(bus)->SPI_SR & SPI_SR_TDRE));
+            dev(bus)->SPI_TDR = out_buf[i];
+            while (!(dev(bus)->SPI_SR & SPI_SR_RDRF));
+            in_buf[i] = dev(bus)->SPI_RDR;
         }
     }
 
     if (!cont) {
         gpio_set((gpio_t)cs);
     }
-}
-
-void spi_transfer_reg(spi_t bus, spi_cs_t cs,
-                      uint8_t reg, uint8_t out, uint8_t *in)
-{
-    spi_transfer_bytes(bus, cs, true, &reg, NULL, 1);
-    spi_transfer_bytes(bus, cs, false, &out, in, 1);
-}
-
-void spi_transfer_regs(spi_t bus, spi_cs_t cs,
-                       uint8_t reg, uint8_t *out, uint8_t *in, size_t len)
-{
-    spi_transfer_bytes(bus, cs, true, &reg, NULL, 1);
-    spi_transfer_bytes(bus, cs, false, out, in, len);
 }

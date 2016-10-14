@@ -24,7 +24,6 @@
 
 #include "cpu.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,7 +49,7 @@ typedef uint32_t gpio_t;
  * @brief Declare needed generic SPI functions
  * @{
  */
-#define PERIPH_SPI_NEEDS_TRANSFER_BYTES
+#define PERIPH_SPI_NEEDS_TRANSFER_BYTE
 #define PERIPH_SPI_NEEDS_TRANSFER_REG
 #define PERIPH_SPI_NEEDS_TRANSFER_REGS
 /** @} */
@@ -127,7 +126,7 @@ typedef enum {
     GPIO_MUX_B = 1,         /**< alternate function B */
 } gpio_mux_t;
 
-#ifndef HAVE_SPI_MODE_T
+#define HAVE_SPI_MODE_T
 typedef enum {
     SPI_MODE_0 = (SPI_CSR_NCPHA),                   /**< CPOL=0, CPHA=0 */
     SPI_MODE_1 = (0),                               /**< CPOL=0, CPHA=1 */
@@ -135,13 +134,13 @@ typedef enum {
     SPI_MODE_3 = (SPI_CSR_CPOL)                     /**< CPOL=1, CPHA=1 */
 } spi_mode_t;
 
-#ifndef HAVE_SPI_CLK_T
+#define HAVE_SPI_CLK_T
 typedef enum {
-    SPI_CLK_100KHZ = (CLOCK_CORECLOCK / 100000),    /**< 100KHz */
-    SPI_CLK_400KHZ = (CLOCK_CORECLOCK / 400000),    /**< 400KHz */
-    SPI_CLK_1MHZ   = (CLOCK_CORECLOCK / 1000000),   /**< 1MHz */
-    SPI_CLK_5MHZ   = (CLOCK_CORECLOCK / 5000000),   /**< 5MHz */
-    SPI_CLK_10MHZ  = (CLOCK_CORECLOCK / 10000000)   /**< 10MHz */
+    SPI_CLK_100KHZ = (100000),                      /**< 100KHz */
+    SPI_CLK_400KHZ = (400000),                      /**< 400KHz */
+    SPI_CLK_1MHZ   = (1000000),                     /**< 1MHz */
+    SPI_CLK_5MHZ   = (5000000),                     /**< 5MHz */
+    SPI_CLK_10MHZ  = (10000000)                     /**< 10MHz */
 } spi_clk_t;
 
 /**
