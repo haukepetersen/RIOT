@@ -16,8 +16,8 @@
  * @author          Hauke Petersen <hauke.peterse@fu-berlin.de>
  */
 
-#ifndef CPU_PERIPH_H
-#define CPU_PERIPH_H
+#ifndef CPU_PERIPH_COMMON_H
+#define CPU_PERIPH_COMMON_H
 
 #include "cpu.h"
 
@@ -31,11 +31,7 @@ extern "C" {
  * @{
  */
 #if defined(CPU_FAM_NRF51)
-#define GPIO_BASE           (NRF_GPIO)
-#define UART_IRQN           (UART0_IRQn)
 #elif defined(CPU_FAM_NRF52)
-#define GPIO_BASE           (NRF_P0)
-#define UART_IRQN           (UARTE0_UART0_IRQn)
 #else
 #error "nrf5x_common: no valid value for CPU_FAM_XX defined"
 #endif
@@ -64,9 +60,9 @@ extern "C" {
 #define GPIO_MODE(oe, ic, pr)   (oe | (ic << 1) | (pr << 2))
 
 /**
- * @brief   No support for HW chip select so far...
+ * @brief   No support for HW chip select...
  */
-#define SPI_HWCS(x)         (GPIO_UNDEF)
+#define SPI_HWCS(x)         (SPI_CS_UNDEF)
 
 #ifndef DOXYGEN
 /**
@@ -156,5 +152,5 @@ typedef struct {
 }
 #endif
 
-#endif /* CPU_PERIPH_H */
+#endif /* CPU_PERIPH_COMMON_H */
 /** @} */

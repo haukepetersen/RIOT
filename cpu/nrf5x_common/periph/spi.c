@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     cpu_nrf51822
+ * @ingroup     cpu_nrf5x_common
  * @{
  *
  * @file
@@ -15,6 +15,7 @@
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Frank Holtz <frank-riot2015@holtznet.de>
+ * @author      Jan Wagner <mail@jwagner.eu>
  *
  * @}
  */
@@ -50,13 +51,13 @@ void spi_init_pins(spi_t bus)
     assert(bus < SPI_NUMOF);
 
     /* set pin direction */
-    NRF_GPIO->DIRSET = ((1 << spi_config[bus].sclk) |
+    GPIO_BASE->DIRSET = ((1 << spi_config[bus].sclk) |
                         (1 << spi_config[bus].mosi));
-    NRF_GPIO->DIRCLR =  (1 << spi_config[bus].miso);
+    GPIO_BASE->DIRCLR =  (1 << spi_config[bus].miso);
     /* select pins for the SPI device */
-    dev(bus)->PSELSCK  = spi_config[bus].sclk;
-    dev(bus)->PSELMOSI = spi_config[bus].mosi;
-    dev(bus)->PSELMISO = spi_config[bus].miso;
+    SPI_SCKSEL  = spi_config[bus].sclk;
+    SPI_MOSISEL = spi_config[bus].mosi;
+    SPI_MISOSEL = spi_config[bus].miso;
 }
 
 int spi_init_cs(spi_t bus, spi_cs_t cs)
@@ -69,6 +70,7 @@ int spi_init_cs(spi_t bus, spi_cs_t cs)
     }
 
     gpio_init((gpio_t)cs, GPIO_OUT);
+    gpio_set((gpio_t)cs);
 
     return SPI_OK;
 }
@@ -78,8 +80,10 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
     assert((bus < SPI_NUMOF) && (cs != SPI_CS_UNDEF));
 
     mutex_lock(&locks[bus]);
-    /* power on the bus */
+#ifdef CPU_FAM_NRF51
+    /* power on the bus (NRF51 only) */
     dev(bus)->POWER = 1;
+#endif
     /* configure bus */
     dev(bus)->CONFIG = mode;
     dev(bus)->FREQUENCY = clk;
@@ -93,7 +97,9 @@ void spi_release(spi_t bus)
 {
     /* power off everything */
     dev(bus)->ENABLE = 0;
+#ifdef CPU_FAM_NRF51
     dev(bus)->POWER = 0;
+#endif
     mutex_unlock(&locks[bus]);
 }
 
