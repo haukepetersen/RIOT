@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2014-2016 Freie Universität Berlin
+ *               2015 Kaspar Schleiser <kaspar@schleiser.de>
+ *               2015 FreshTemp, LLC.
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -17,6 +19,7 @@
  * @author      Troels Hoffmeyer <troels.d.hoffmeyer@gmail.com>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
+ * @author      Kaspar Schleiser <kaspar@schleiser.de>
  *
  * @}
  */
@@ -46,12 +49,20 @@ static inline SercomSpi *dev(spi_t bus)
 
 static inline void poweron(spi_t bus)
 {
+#if defined(CPU_FAM_SAMD21)
     PM->APBCMASK.reg |= (PM_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
+#elif defined(CPU_FAM_SAML21)
+    MCLK->APBCMASK.reg |= (MCLK_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
+#endif
 }
 
 static inline void poweroff(spi_t bus)
 {
+#if defined(CPU_FAM_SAMD21)
     PM->APBCMASK.reg &= ~(PM_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
+#elif defined(CPU_FAM_SAML21)
+    MCLK->APBCMASK.reg &= ~(MCLK_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
+#endif
 }
 
 void spi_init(spi_t bus)
@@ -74,9 +85,14 @@ void spi_init(spi_t bus)
            (dev(bus)->SYNCBUSY.reg & SERCOM_SPI_SYNCBUSY_SWRST));
 
     /* configure base clock: using GLK GEN 0 */
+#if defined(CPU_FAM_SAMD21)
     GCLK->CLKCTRL.reg = (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 |
                          (SERCOM0_GCLK_ID_CORE + sercom_id(dev(bus))));
     while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
+#elif defined(CPU_FAM_SAML21)
+    GCLK->PCHCTRL[SERCOM0_GCLK_ID_CORE + sercom_id(dev(bus))].reg =
+                                (GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN_GCLK0);
+#endif
 
     /* enable receiver and configure character size to 8-bit
      * no synchronization needed, as SERCOM device is not enabled */
@@ -134,7 +150,7 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
      * NOTE: we could configure the pads already during spi_init, but for
      * efficiency reason we do that here, so we can do all in one single write
      * to the CTRLA register */
-    dev(bus)->CTRLA.reg = (SERCOM_SPI_CTRLA_MODE_SPI_MASTER |
+    dev(bus)->CTRLA.reg = (SERCOM_SPI_CTRLA_MODE(0x3) |     /* 0x3 -> master */
                            SERCOM_SPI_CTRLA_DOPO(spi_config[bus].mosi_pad) |
                            SERCOM_SPI_CTRLA_DIPO(spi_config[bus].miso_pad) |
                            (mode <<  SERCOM_SPI_CTRLA_CPOL_Pos));
