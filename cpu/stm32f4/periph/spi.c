@@ -40,17 +40,7 @@
 /**
  * @brief Array holding one pre-initialized mutex for each SPI device
  */
-static mutex_t locks[] =  {
-#if SPI_0_EN
-    [SPI_0] = MUTEX_INIT,
-#endif
-#if SPI_1_EN
-    [SPI_1] = MUTEX_INIT,
-#endif
-#if SPI_2_EN
-    [SPI_2] = MUTEX_INIT
-#endif
-};
+static mutex_t locks[SPI_NUMOF];
 
 static inline SPI_TypeDef *dev(spi_t bus)
 {
@@ -77,26 +67,35 @@ static inline void clk_dis(spi_t bus)
     }
 }
 
-int spi_init(spi_t bus)
+void spi_init(spi_t bus)
 {
     assert(bus < SPI_NUMOF);
 
+    /* trigger pin initialization */
+    spi_init_pins(bus);
+}
+
+void spi_init_pins(spi_t bus)
+{
     gpio_init(spi_config[bus].mosi_pin, GPIO_OUT);
     gpio_init(spi_config[bus].miso_pin, GPIO_IN);
     gpio_init(spi_config[bus].sclk_pin, GPIO_OUT);
     gpio_init_af(spi_config[bus].mosi_pin, spi_config[bus].af);
     gpio_init_af(spi_config[bus].mosi_pin, spi_config[bus].af);
     gpio_init_af(spi_config[bus].sclk_pin, spi_config[bus].af);
-
-    return SPI_OK;
 }
 
 int spi_init_cs(spi_t bus, spi_cs_t cs)
 {
-    assert(bus < SPI_NUMOF);
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
+    }
+    if (cs == GPIO_UNDEF) {
+        return SPI_NOCS;
+    }
 
     if (cs == HWCS_LINE) {
-        gpio_init((gpio_t)cs, GPIO_OUT);
+        gpio_init((gpio_t)spi_config[bus].cs_pin, GPIO_OUT);
         gpio_init_af((gpio_t)cs, spi_config[bus].af);
     }
     else {
@@ -119,14 +118,15 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
     /* enable device */
     dev(bus)->CR1 = (((clk + spi_config[bus].abpbus) << 3) | mode | SPI_CR1_MSTR);
     if (cs != HWCS_LINE) {
-        dev(bus)->CR1 |= SPI_CR1_SSM | SPI_CR1_SSI;
+        dev(bus)->CR1 |= (SPI_CR1_SSM | SPI_CR1_SSI);
     }
-    return 0;
+
+    return SPI_OK;
 }
 
 void spi_release(spi_t bus)
 {
-    /* disable device */
+    /* disable device and release lock */
     dev(bus)->CR1 = 0;
     clk_dis(bus);
     mutex_unlock(&locks[bus]);
@@ -143,7 +143,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
 
     /* active the given chip select line */
     dev(bus)->CR1 |= (SPI_CR1_SPE);     /* this pulls the HW CS line low */
-    if (cs != HWCS_LINE) {
+    if ((cs != HWCS_LINE) && (cs != GPIO_UNDEF)) {
         gpio_clear((gpio_t)cs);
     }
 
@@ -165,7 +165,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
     }
 
     /* release the chip select if not specified differently */
-    if (!cont) {
+    if ((!cont) && (cs != GPIO_UNDEF)) {
         if (cs != HWCS_LINE) {
             gpio_set((gpio_t)cs);
         }

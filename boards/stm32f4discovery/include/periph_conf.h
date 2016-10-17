@@ -194,22 +194,24 @@ static const uart_conf_t uart_config[] = {
  */
 static const spi_conf_t spi_config[] = {
     {
-        SPI1,
-        GPIO_PIN(PORT_A, 7),
-        GPIO_PIN(PORT_A, 6),
-        GPIO_PIN(PORT_A, 5),
-        5,
-        BUS_APB2,
-        RCC_APB2ENR_SPI1EN
+        .dev      = SPI1,
+        .mosi_pin = GPIO_PIN(PORT_A, 7),
+        .miso_pin = GPIO_PIN(PORT_A, 6),
+        .sclk_pin = GPIO_PIN(PORT_A, 5),
+        .cs_pin   = GPIO_PIN(PORT_A, 4),
+        .af       = 5,
+        .abpbus   = BUS_APB2,
+        .rccmask  = RCC_APB2ENR_SPI1EN
     },
     {
-        SPI2,
-        GPIO_PIN(PORT_B, 15),
-        GPIO_PIN(PORT_B, 14),
-        GPIO_PIN(PORT_B, 13),
-        5,
-        BUS_APB1,
-        RCC_APB1ENR_SPI2EN
+        .dev      = SPI2,
+        .mosi_pin = GPIO_PIN(PORT_B, 15),
+        .miso_pin = GPIO_PIN(PORT_B, 14),
+        .sclk_pin = GPIO_PIN(PORT_B, 13),
+        .cs_pin   = GPIO_PIN(PORT_B, 12),
+        .af       = 5,
+        .abpbus   = BUS_APB1,
+        .rccmask  = RCC_APB1ENR_SPI2EN
     }
 };
 

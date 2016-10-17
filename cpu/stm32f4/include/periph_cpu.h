@@ -173,6 +173,7 @@ typedef struct {
     gpio_t mosi_pin;        /**< MOSI pin */
     gpio_t miso_pin;        /**< MISO pin */
     gpio_t sclk_pin;        /**< SCLK pin */
+    gpio_t cs_pin;          /**< HWCS pin, set to GPIO_UNDEF if not mapped */
     gpio_af_t af;           /**< pin alternate function */
     uint8_t abpbus;         /**< APB bus, 0 := APB1, 1:= APB2 */
     uint32_t rccmask;         /**< bit in the RCC peripheral enable register */
