@@ -26,6 +26,23 @@
 #include "periph/spi.h"
 #include "periph_cpu.h"
 
+#ifdef PERIPH_SPI_NEEDS_INIT_CS
+int spi_init_cs(spi_t bus, spi_cs_t cs)
+{
+    if (bus >= SPI_NUMOF) {
+        return SPI_NODEV;
+    }
+    if ((cs == SPI_CS_UNDEF) || (cs == GPIO_UNDEF)) {
+        return SPI_NOCS;
+    }
+
+    gpio_init((gpio_t)cs, GPIO_OUT);
+    gpio_set((gpio_t)cs);
+
+    return SPI_OK;
+}
+#endif
+
 #ifdef PERIPH_SPI_NEEDS_TRANSFER_BYTE
 uint8_t spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont, uint8_t out)
 {
