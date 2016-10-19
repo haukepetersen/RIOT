@@ -20,7 +20,7 @@
 #ifndef PERIPH_CPU_H_
 #define PERIPH_CPU_H_
 
-#include "periph/dev_enums.h"
+#include "cpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +63,31 @@ typedef enum {
 } adc_res_t;
 /** @} */
 #endif /* ndef DOXYGEN */
+
+/**
+ * @brief   Override SPI clock speed values
+ *
+ * @note    The values expect the CPU to run at 12MHz
+ * @todo    Generalize the SPI driver
+ */
+#define HAVE_SPI_CLK_T
+typedef enum {
+    SPI_CLK_100KHZ = 119,         /**< drive the SPI bus with 100KHz */
+    SPI_CLK_400KHZ =  29,         /**< drive the SPI bus with 400KHz */
+    SPI_CLK_1MHZ   =  11,           /**< drive the SPI bus with 1MHz */
+    SPI_CLK_5MHZ   =   2,           /**< drive the SPI bus with 5MHz */
+    SPI_CLK_10MHZ  =   0        /**< actual: 12 MHz */
+} spi_clk_t;
+
+
+/**
+ * @brief   SPI configuration data
+ */
+typedef struct {
+    LPC_SSPx_Type *dev;
+    uint32_t preset_bit;
+    uint32_t ahb_bit;
+} spi_conf_t;
 
 #ifdef __cplusplus
 }
