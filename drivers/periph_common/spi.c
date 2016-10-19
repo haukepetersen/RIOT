@@ -35,13 +35,6 @@ uint8_t spi_transfer_byte(spi_t bus, spi_cs_t cs, bool cont, uint8_t out)
 }
 #endif
 
-#ifdef PERIPH_SPI_NEEDS_TRANSFER_BYTE
-int spi_transfer_byte(spi_t dev, char out, char *in)
-{
-    return spi_transfer_bytes(dev, &out, in, 1);
-}
-#endif
-
 #ifdef PERIPH_SPI_NEEDS_TRANSFER_REG
 uint8_t spi_transfer_reg(spi_t bus, spi_cs_t cs, uint8_t reg, uint8_t out)
 {
