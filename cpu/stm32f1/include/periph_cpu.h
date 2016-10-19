@@ -41,13 +41,6 @@ extern "C" {
 #define TIMER_MAXVAL        (0xffff)
 
 /**
- * @brief declare needed generic SPI functions
- * @{
- */
-#undef PERIPH_SPI_NEEDS_TRANSFER_BYTES
-#define PERIPH_SPI_NEEDS_TRANSFER_BYTE
-
-/**
  * @brief   Generate GPIO mode bitfields
  *
  * We use 4 bit to determine the pin functions:
@@ -57,6 +50,12 @@ extern "C" {
  * - bit 2: OD enable
  */
 #define GPIO_MODE(mode, cnf, odr)       (mode | (cnf << 2) | (odr << 4))
+
+/**
+ * @brief   On top the shared transfer functions, we also use the shared
+ *          spi_init_cs function.
+ */
+#define PERIPH_SPI_NEEDS_INIT_CS
 
 #ifndef DOXYGEN
 /**
@@ -165,6 +164,41 @@ typedef struct {
     gpio_t pin;             /**< pin connected to the line */
     uint8_t chan;           /**< DAC device used for this line */
 } dac_conf_t;
+
+/**
+ * @brief   Override SPI mode values
+ */
+#define HAVE_SPI_MODE_T
+typedef enum {
+    SPI_MODE_0 = 0x00,      /**< CPOL=0, CPHA=0 */
+    SPI_MODE_1 = 0x01,      /**< CPOL=0, CPHA=1 */
+    SPI_MODE_2 = 0x02,      /**< CPOL=1, CPHA=0 */
+    SPI_MODE_3 = 0x03       /**< CPOL=1, CPHA=1 */
+} spi_mode_t;
+
+/**
+ * @brief   Override SPI clock selection values
+ */
+#define HAVE_SPI_CLK_T
+typedef enum {
+    SPI_CLK_100KHZ = 0x07,  /**< -> 280kHz on APB2, 140kHz on APB1*/
+    SPI_CLK_400KHZ = 0x05,  /**< -> 560kHz */
+    SPI_CLK_1MHZ   = 0x04,  /**< -> 1.1MHz */
+    SPI_CLK_5MHZ   = 0x02,  /**< -> 4.5MHz */
+    SPI_CLK_10MHZ  = 0x01   /**< -> 9MHz */
+} spi_clk_t;
+
+/**
+ * @brief   SPI configuration options
+ */
+typedef struct {
+    SPI_TypeDef *dev;
+    gpio_t pin_clk;
+    gpio_t pin_miso;
+    gpio_t pin_mosi;
+    uint32_t rccmask;
+    uint8_t apbbus;
+} spi_conf_t;
 
 /**
  * @brief   Configure the alternate function for the given pin

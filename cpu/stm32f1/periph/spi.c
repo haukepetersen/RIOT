@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2016 Freie Universität Berlin
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
@@ -31,279 +31,119 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-/* guard file in case no SPI device is defined */
-#if SPI_0_EN || SPI_1_EN || SPI_2_EN
-
 /**
  * @brief Array holding one pre-initialized mutex for each SPI device
  */
-static mutex_t locks[] =  {
-#if SPI_0_EN
-    [SPI_0] = MUTEX_INIT,
-#endif
-#if SPI_1_EN
-    [SPI_1] = MUTEX_INIT,
-#endif
-#if SPI_2_EN
-    [SPI_2] = MUTEX_INIT
-#endif
-};
+static mutex_t locks[SPI_NUMOF];
 
-int spi_init_master(spi_t dev, spi_conf_t conf, spi_speed_t speed)
+static inline SPI_TypeDef *dev(spi_t bus)
 {
-    SPI_TypeDef *spi;
-    uint16_t br_div;
-    uint8_t bus_div;
+    return spi_config[bus].dev;
+}
 
-    switch (dev) {
-#if SPI_0_EN
-        case SPI_0:
-            spi = SPI_0_DEV;
-            bus_div = SPI_0_BUS_DIV;
-            SPI_0_CLKEN();
-            break;
-#endif
-
-#if SPI_1_EN
-        case SPI_1:
-            spi = SPI_1_DEV;
-            bus_div = SPI_1_BUS_DIV;
-            SPI_1_CLKEN();
-            break;
-#endif
-
-#if SPI_2_EN
-        case SPI_2:
-            spi = SPI_2_DEV;
-            bus_div = SPI_2_BUS_DIV;
-            SPI_2_CLKEN();
-            break;
-#endif
-        default:
-            return -1;
+static inline void clk_en(spi_t bus)
+{
+    if (spi_config[bus].apbbus == APB1) {
+        RCC->APB1ENR |= (spi_config[bus].rccmask);
     }
-
-    /* configure SCK, MISO and MOSI pin */
-    spi_conf_pins(dev);
-
-    /* configure SPI bus speed */
-    switch (speed) {
-        case SPI_SPEED_10MHZ:
-            br_div = 0x01 + bus_div;      /* actual speed: 9MHz   */
-            break;
-        case SPI_SPEED_5MHZ:
-            br_div = 0x02 + bus_div;     /* actual speed: 4.5MHz */
-            break;
-        case SPI_SPEED_1MHZ:
-            br_div = 0x04 + bus_div;     /* actual speed: 1.1MHz */
-            break;
-        case SPI_SPEED_400KHZ:
-            br_div = 0x05 + bus_div;    /* actual speed: 560kHz */
-            break;
-        case SPI_SPEED_100KHZ:
-            br_div = 0x07;              /* actual speed: 280kHz on APB2, 140KHz on APB1 */
-            break;
-        default:
-            return -2;
+    else {
+        RCC->APB2ENR |= (spi_config[bus].rccmask);
     }
+}
 
-    /* set up SPI */
-    spi->CR1 = SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_MSTR | (conf & 0x3) | (br_div << 3);
-    spi->I2SCFGR &= 0xF7FF;     /* select SPI mode */
-    spi->CRCPR = 0x7;           /* reset CRC polynomial */
+static inline void clk_dis(spi_t bus)
+{
+    if (spi_config[bus].apbbus == APB1) {
+        RCC->APB1ENR &= ~(spi_config[bus].rccmask);
+    }
+    else {
+        RCC->APB2ENR &= ~(spi_config[bus].rccmask);
+    }
+}
+
+void spi_init(spi_t bus)
+{
+    /* make sure given bus is valid */
+    assert(bus <= SPI_NUMOF);
+    /* initialize the bus lock */
+    mutex_init(&locks[bus]);
+    /* trigger pin configuration */
+    spi_init_pins(bus);
+}
+
+void spi_init_pins(spi_t bus)
+{
+    gpio_init_af(spi_config[bus].pin_clk, GPIO_AF_OUT_PP);
+    gpio_init_af(spi_config[bus].pin_mosi, GPIO_AF_OUT_PP);
+    gpio_init(spi_config[bus].pin_miso, GPIO_IN);
+}
+
+int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
+{
+    /* get exclusive bus access */
+    mutex_lock(&locks[bus]);
+    /* power on the peripheral */
+    clk_en(bus);
+
+    /* configure mode and bus clock */
+    if ((spi_config[bus].apbbus == APB2) && (clk < 7)) {
+        clk += 1;
+    }
+    dev(bus)->CR1 = (SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_MSTR |
+                (mode & 0x3) | (clk << 3));
     /* enable the SPI device */
-    spi->CR1 |= SPI_CR1_SPE;
+    dev(bus)->CR1 |= SPI_CR1_SPE;
 
-    return 0;
+    return SPI_OK;
 }
 
-int spi_init_slave(spi_t dev, spi_conf_t conf, char (*cb)(char))
+void spi_release(spi_t bus)
 {
-    (void) dev;
-    (void) conf;
-    (void) cb;
-    /* TODO */
-    return -1;
+    /* disable, power off, and release the bus */
+    dev(bus)->CR1 = 0;
+    clk_dis(bus);
+    mutex_unlock(&locks[bus]);
 }
 
-int spi_conf_pins(spi_t dev)
+void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
+                        const void *out, void *in, size_t len)
 {
-    gpio_t mosi, miso, clk;
+    uint8_t *out_buf = (uint8_t *)out;
+    uint8_t *in_buf  = (uint8_t *)in;
 
-    switch (dev) {
-#if SPI_0_EN
-        case SPI_0:
-            clk = SPI_0_CLK_PIN;
-            mosi = SPI_0_MOSI_PIN;
-            miso = SPI_0_MISO_PIN;
-            break;
-#endif
+    assert(in || out);
 
-#if SPI_1_EN
-        case SPI_1:
-            clk = SPI_1_CLK_PIN;
-            mosi = SPI_1_MOSI_PIN;
-            miso = SPI_1_MISO_PIN;
-            break;
-#endif
-
-#if SPI_2_EN
-        case SPI_2:
-            clk = SPI_2_CLK_PIN;
-            mosi = SPI_2_MOSI_PIN;
-            miso = SPI_2_MISO_PIN;
-            break;
-#endif
-        default:
-            return -1;
+    /* take care of the chip select */
+    if (cs != GPIO_UNDEF) {
+        gpio_clear((gpio_t)cs);
     }
 
-    /* configure pins for alternate function input (MISO) or output (MOSI, CLK) */
-    gpio_init_af(clk, GPIO_AF_OUT_PP);
-    gpio_init_af(mosi, GPIO_AF_OUT_PP);
-    gpio_init(miso, GPIO_IN);
-    return 0;
-}
-
-int spi_acquire(spi_t dev)
-{
-    if ((unsigned int)dev >= SPI_NUMOF) {
-        return -1;
-    }
-    mutex_lock(&locks[dev]);
-    return 0;
-}
-
-int spi_release(spi_t dev)
-{
-    if ((unsigned int)dev >= SPI_NUMOF) {
-        return -1;
-    }
-    mutex_unlock(&locks[dev]);
-    return 0;
-}
-
-int spi_transfer_bytes(spi_t dev, char *out, char *in, unsigned int length)
-{
-
-    SPI_TypeDef *spi;
-
-    switch (dev) {
-#if SPI_0_EN
-        case SPI_0:
-            spi = SPI_0_DEV;
-            break;
-#endif
-
-#if SPI_1_EN
-        case SPI_1:
-            spi = SPI_1_DEV;
-            break;
-#endif
-
-#if SPI_2_EN
-        case SPI_2:
-            spi = SPI_2_DEV;
-            break;
-#endif
-        default:
-            return -1;
-    }
-
-    if(!in){
-        for (unsigned i = 0; i < length; i++) {
-            while (!(spi->SR & SPI_SR_TXE)) {}
-            spi->DR = (uint8_t)out[i];
+    if (!in_buf) {
+        for (size_t i = 0; i < len; i++) {
+            while (!(dev(bus)->SR & SPI_SR_TXE)) {}
+            dev(bus)->DR = out_buf[i];
         }
-        /* SPI busy */
-        while ((spi->SR & SPI_SR_BSY)) {}
-        spi->DR;
+        while ((dev(bus)->SR & SPI_SR_BSY)) {}
+        dev(bus)->DR;
     }
-    else if(!out) {
-        for (unsigned i = 0; i < length; i++) {
-            spi->DR = 0;
-            while (!(spi->SR & SPI_SR_RXNE)) {}
-            in[i] = (char)spi->DR;
+    else if (!out_buf) {
+        for (size_t i = 0; i < len; i++) {
+            dev(bus)->DR = 0;
+            while (!dev(bus)->SR & SPI_SR_RXNE) {}
+            in_buf[i] = (uint8_t)dev(bus)->DR;
         }
     }
     else {
-        for (unsigned i = 0; i < length; i++) {
-            while (!(spi->SR & SPI_SR_TXE)) {}
-            spi->DR = out[i];
-            while (!(spi->SR & SPI_SR_RXNE)) {}
-            in[i] = (char)spi->DR;
+        for (size_t i = 0; i < len; i++) {
+            while (!(dev(bus)->SR & SPI_SR_TXE)) {}
+            dev(bus)->DR = out_buf[i];
+            while (!(dev(bus)->SR & SPI_SR_RXNE)) {}
+            in_buf[i] = (uint8_t)dev(bus)->DR;
         }
     }
 
-#if ENABLE_DEBUG
-    if (in != NULL) {
-        DEBUG("\nSPI: transferred %i Bytes\n", length);
-    }
-#endif /*ENABLE_DEBUG */
-
-    return length;
-}
-
-void spi_transmission_begin(spi_t dev, char reset_val)
-{
-    (void) dev;
-    (void) reset_val;
-    /* slave mode not implemented, yet */
-}
-
-void spi_poweron(spi_t dev)
-{
-    switch (dev) {
-#if SPI_0_EN
-        case SPI_0:
-            SPI_0_CLKEN();
-            SPI_0_DEV->CR1 |= SPI_CR1_SPE;   /* turn SPI peripheral on */
-            break;
-#endif
-
-#if SPI_1_EN
-        case SPI_1:
-            SPI_1_CLKEN();
-            SPI_1_DEV->CR1 |= SPI_CR1_SPE;   /* turn SPI peripheral on */
-            break;
-#endif
-
-#if SPI_2_EN
-        case SPI_2:
-            SPI_2_CLKEN();
-            SPI_2_DEV->CR1 |= SPI_CR1_SPE;   /* turn SPI peripheral on */
-            break;
-#endif
+    /* finally release chip select line if requested */
+    if ((cs != GPIO_UNDEF) && (!cont)) {
+        gpio_set((gpio_t)cs);
     }
 }
-
-void spi_poweroff(spi_t dev)
-{
-    switch (dev) {
-#if SPI_0_EN
-        case SPI_0:
-            while ((SPI_0_DEV->SR & SPI_SR_BSY)) {}
-            SPI_0_DEV->CR1 &= ~(SPI_CR1_SPE);   /* turn SPI peripheral off */
-            SPI_0_CLKDIS();
-            break;
-#endif
-
-#if SPI_1_EN
-        case SPI_1:
-            while ((SPI_1_DEV->SR & SPI_SR_BSY)) {}
-            SPI_1_DEV->CR1 &= ~(SPI_CR1_SPE);   /* turn SPI peripheral off */
-            SPI_1_CLKDIS();
-            break;
-#endif
-
-#if SPI_2_EN
-        case SPI_2:
-            while ((SPI_2_DEV->SR & SPI_SR_BSY)) {}
-            SPI_2_DEV->CR1 &= ~(SPI_CR1_SPE);   /* turn SPI peripheral off */
-            SPI_2_CLKDIS();
-            break;
-#endif
-    }
-}
-
-#endif /* SPI_0_EN */
