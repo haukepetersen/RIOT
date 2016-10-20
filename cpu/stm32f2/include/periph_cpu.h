@@ -190,6 +190,20 @@ typedef struct {
 } dac_conf_t;
 
 /**
+ * @brief   Structure for SPI configuration data
+ */
+typedef struct {
+    SPI_TypeDef *dev;       /**< SPI device base register address */
+    gpio_t mosi_pin;        /**< MOSI pin */
+    gpio_t miso_pin;        /**< MISO pin */
+    gpio_t sclk_pin;        /**< SCLK pin */
+    gpio_t cs_pin;          /**< HWCS pin, set to GPIO_UNDEF if not mapped */
+    gpio_af_t af;           /**< pin alternate function */
+    uint8_t abpbus;         /**< APB bus, 0 := APB1, 1:= APB2 */
+    uint32_t rccmask;       /**< bit in the RCC peripheral enable register */
+} spi_conf_t;
+
+/**
  * @brief   Configure the alternate function for the given pin
  *
  * @note    This is meant for internal use in STM32F2 peripheral drivers only
