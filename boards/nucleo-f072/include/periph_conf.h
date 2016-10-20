@@ -20,6 +20,8 @@
 #ifndef PERIPH_CONF_H_
 #define PERIPH_CONF_H_
 
+#include "periph_cpu.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -87,6 +89,27 @@ extern "C" {
 #define UART_1_RX_PIN       7
 #define UART_1_TX_PIN       6
 #define UART_1_AF           0
+/** @} */
+
+
+/**
+ * @name SPI configuration
+ * @{
+ */
+static const spi_conf_t spi_config[] = {
+    {
+        .dev      = SPI1,
+        .mosi_pin = GPIO_PIN(PORT_A, 7),
+        .miso_pin = GPIO_PIN(PORT_A, 6),
+        .sclk_pin = GPIO_PIN(PORT_A, 5),
+        .cs_pin   = GPIO_PIN(PORT_B, 6),
+        .af       = 0,
+        .abpbus   = BUS_APB2,
+        .rccmask  = RCC_APB2ENR_SPI1EN
+    }
+};
+
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 
