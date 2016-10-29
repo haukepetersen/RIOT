@@ -66,6 +66,23 @@ typedef uint32_t gpio_t;
 #define GPIO_PIN(x, y)      ((GPIOA_BASE + (x << 10)) | y)
 
 /**
+ * @brief   Structure for UART configuration data
+ * @{
+ */
+typedef struct {
+    USART_TypeDef *dev;     /**< UART device base register address */
+    uint32_t rcc_mask;      /**< bit in clock enable register */
+    gpio_t rx_pin;          /**< RX pin */
+    gpio_t tx_pin;          /**< TX pin */
+    gpio_af_t af;           /**< alternate pin function to use */
+    uint8_t bus;            /**< APB bus */
+    uint8_t irqn;           /**< IRQ channel */
+    uint8_t dma_stream;     /**< DMA stream used for TX */
+    uint8_t dma_chan;       /**< DMA channel used for TX */
+} uart_conf_t;
+/** @} */
+
+/**
  * @brief   Enable the given peripheral clock
  *
  * @param[in] bus       bus the peripheral is connected to
@@ -80,6 +97,16 @@ void periph_clk_en(uint8_t bus, uint32_t mask);
  * @param[in] mask      bit in the RCC enable register
  */
 void periph_clk_dis(uint8_t bus, uint32_t mask);
+
+/**
+ * @brief   Configure the alternate function for the given pin
+ *
+ * @note    This is meant for internal use in STM32F4 peripheral drivers only
+ *
+ * @param[in] pin       pin to configure
+ * @param[in] af        alternate function to use
+ */
+void gpio_init_af(gpio_t pin, gpio_af_t af);
 
 /**
  * @brief   Configure the given pin to be used as ADC input
