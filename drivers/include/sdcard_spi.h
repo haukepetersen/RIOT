@@ -30,6 +30,7 @@ extern "C" {
 
 #include "periph/spi.h"
 #include "periph/gpio.h"
+#include "stdbool.h"    
 
 
 /* number of clocks that should be applied to the card on init
