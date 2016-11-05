@@ -30,6 +30,7 @@
 #include "fmt.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #define MAX_BLOCKS_IN_BUFFER 4              /* independent of what you specify in a r/w command this the maximum number of blocks read at once.
                                                If you call read with a bigger blockcount the read is performed in chunks*/
