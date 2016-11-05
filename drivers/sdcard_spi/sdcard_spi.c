@@ -826,7 +826,8 @@ sd_rw_response_t _read_cid(sd_card_t *card)
 {
     char cid_raw_data[SD_SIZE_OF_CID_AND_CSD_REG];
     sd_rw_response_t state;
-    int nbl = _read_blocks(card, SD_CMD_10, 0, cid_raw_data, SD_SIZE_OF_CID_AND_CSD_REG, 1, &state);
+    int nbl = _read_blocks(card, SD_CMD_10, 0, cid_raw_data, SD_SIZE_OF_CID_AND_CSD_REG, 
+                           SD_BLOCKS_FOR_REG_READ, &state);
 
     DEBUG("_read_cid: _read_blocks: nbl=%d state=%d\n", nbl, state);
     DEBUG("_read_cid: cid_raw_data: ");
@@ -836,11 +837,11 @@ sd_rw_response_t _read_cid(sd_card_t *card)
     DEBUG("\n");
 
     char crc7 = _crc_7(&(cid_raw_data[0]), SD_SIZE_OF_CID_AND_CSD_REG - 1);
-    if (nbl == 1) {
+    if (nbl == SD_BLOCKS_FOR_REG_READ) {
         if (crc7 == cid_raw_data[SD_SIZE_OF_CID_AND_CSD_REG - 1]) {
             card->cid.MID = cid_raw_data[0];
-            memcpy(&card->cid.OID[0], &cid_raw_data[1], 2);
-            memcpy(&card->cid.PNM[0], &cid_raw_data[2], 5);
+            memcpy(&card->cid.OID[0], &cid_raw_data[1], SD_SIZE_OF_OID);
+            memcpy(&card->cid.PNM[0], &cid_raw_data[2], SD_SIZE_OF_PNM);
             card->cid.PRV = cid_raw_data[8];
             memcpy((char *)&card->cid.PSN, &cid_raw_data[9], 4);
             card->cid.MDT = (cid_raw_data[13]<<4) | cid_raw_data[14];
@@ -861,7 +862,8 @@ sd_rw_response_t _read_csd(sd_card_t *card)
 {
     char c[SD_SIZE_OF_CID_AND_CSD_REG];
     sd_rw_response_t state;
-    int read_resu = _read_blocks(card, SD_CMD_9, 0, c, SD_SIZE_OF_CID_AND_CSD_REG, 1, &state);
+    int read_resu = _read_blocks(card, SD_CMD_9, 0, c, SD_SIZE_OF_CID_AND_CSD_REG,
+                                 SD_BLOCKS_FOR_REG_READ, &state);
 
     DEBUG("_read_csd: _read_blocks: read_resu=%d state=%d\n", read_resu, state);
     DEBUG("_read_csd: raw data: ");
@@ -870,7 +872,7 @@ sd_rw_response_t _read_csd(sd_card_t *card)
     }
     DEBUG("\n");
 
-    if (read_resu == 1) {
+    if (read_resu == SD_BLOCKS_FOR_REG_READ) {
         if (_crc_7(c, SD_SIZE_OF_CID_AND_CSD_REG - 1) == c[SD_SIZE_OF_CID_AND_CSD_REG - 1]) {
             if (SD_GET_CSD_STRUCTURE(c) == SD_CSD_V1) {
                 card->csd.v1.CSD_STRUCTURE = c[0]>>6;
@@ -947,7 +949,6 @@ sd_rw_response_t _read_csd(sd_card_t *card)
 
 uint64_t sdcard_spi_get_capacity(sd_card_t *card)
 {
-
     if (card->init_done) {
         if (card->csd_structure == SD_CSD_V1) {
             uint32_t block_len = (1 << card->csd.v1.READ_BL_LEN);
@@ -959,7 +960,6 @@ uint64_t sdcard_spi_get_capacity(sd_card_t *card)
             return (card->csd.v2.C_SIZE + 1) * (uint64_t)(SD_HC_BLOCK_SIZE << 10);
         }
     }
-
     return 0;
 }
 

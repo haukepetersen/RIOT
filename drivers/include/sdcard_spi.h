@@ -114,10 +114,14 @@ extern "C" {
 #define SD_DATA_TOKEN_CMD_25_STOP  0b11111101
 
 #define SD_SIZE_OF_CID_AND_CSD_REG 16
+#define SD_BLOCKS_FOR_REG_READ 1
 #define SD_GET_CSD_STRUCTURE(CSD_RAW_DATA) ((CSD_RAW_DATA)[0] >> 6)
 #define SD_CSD_V1 0
 #define SD_CSD_V2 1
 #define SD_CSD_VUNSUPPORTED -1
+
+#define SD_SIZE_OF_OID 2 /* OID (OEM/application ID field in CID reg) */
+#define SD_SIZE_OF_PNM 5 /* PNM (product name field in CID reg) */
 
 /* the retry counters below are used as timeouts for specific actions.
    The values may need some adjustments to either give the card more time to respond
@@ -185,13 +189,13 @@ typedef enum {
 } sd_rw_response_t;
 
 struct {
-    uint8_t MID;            /* Manufacturer ID */
-    char OID[2];            /* OEM/Application ID*/
-    char PNM[5];            /* Product name */
-    uint8_t PRV;            /* Product revision */
-    uint32_t PSN;           /* Product serial number */
-    uint16_t MDT;           /* Manufacturing date */
-    uint8_t CRC;            /* CRC7 checksum */
+    uint8_t MID;              /* Manufacturer ID */
+    char OID[SD_SIZE_OF_OID]; /* OEM/Application ID*/
+    char PNM[SD_SIZE_OF_PNM]; /* Product name */
+    uint8_t PRV;              /* Product revision */
+    uint32_t PSN;             /* Product serial number */
+    uint16_t MDT;             /* Manufacturing date */
+    uint8_t CRC;              /* CRC7 checksum */
 } typedef cid_t;
 
 /* see sd spec. 5.3.2 CSD Register (CSD Version 1.0) */
