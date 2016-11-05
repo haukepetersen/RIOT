@@ -32,16 +32,18 @@
 #include <string.h>
 #include <stdio.h>
 
-#define MAX_BLOCKS_IN_BUFFER 4              /* independent of what you specify in a r/w command this the maximum number of blocks read at once.
-                                               If you call read with a bigger blockcount the read is performed in chunks*/
+/* independent of what you specify in a r/w cmd this is the maximum number of blocks read at once.
+   If you call read with a bigger blockcount the read is performed in chunks*/
+#define MAX_BLOCKS_IN_BUFFER 4              
 #define BLOCK_PRINT_BYTES_PER_LINE 16
 #define FIRST_PRINTABLE_ASCII_CHAR 0x20
 #define ASCII_UNPRINTABLE_REPLACEMENT "."
 
-extern sd_card_t cards[NUM_OF_SD_CARDS];    /* this is provided by the sdcard_spi driver see sdcard_spi.c*/
+/* this is provided by the sdcard_spi driver see sdcard_spi.c*/
+extern sd_card_t cards[NUM_OF_SD_CARDS];
 sd_card_t *card = &cards[0];
 
-char buffer[SD_HC_FIXED_BLOCK_SIZE * MAX_BLOCKS_IN_BUFFER];
+char buffer[SD_HC_BLOCK_SIZE * MAX_BLOCKS_IN_BUFFER];
 
 static int _init(int argc, char **argv)
 {
@@ -66,7 +68,8 @@ static int _cid(int argc, char **argv)
     printf("----------------------------------------\n");
     printf("MID: %d\n", card->cid.MID);
     printf("OID: %c%c\n", card->cid.OID[0], card->cid.OID[1]);
-    printf("PNM: %c%c%c%c%c\n", card->cid.PNM[0], card->cid.PNM[1], card->cid.PNM[2], card->cid.PNM[3], card->cid.PNM[4]);
+    printf("PNM: %c%c%c%c%c\n", card->cid.PNM[0], card->cid.PNM[1], card->cid.PNM[2],
+                                card->cid.PNM[3], card->cid.PNM[4]);
     printf("PRV: %d\n", card->cid.PRV);
     printf("PSN: %lu\n", card->cid.PSN);
     printf("MDT: %d\n", card->cid.MDT);
@@ -142,18 +145,18 @@ static int _csd(int argc, char **argv)
 
 static int _size(int argc, char **argv)
 {
-    uint64_t card_size_bytes = sdcard_spi_get_capacity(card);
+    uint64_t bytes = sdcard_spi_get_capacity(card);
 
-    uint32_t card_size_gib_int = card_size_bytes / (1024 * 1024 * 1024);
-    uint32_t card_size_gib_frac = ((((card_size_bytes / (1024 * 1024)) - card_size_gib_int * 1024) * 1000) / 1024);
+    uint32_t gib_int = bytes / (1024 * 1024 * 1024);
+    uint32_t gib_frac = ((((bytes/(1024 * 1024)) - gib_int * 1024) * 1000) / 1024);
 
-    uint32_t card_size_gb_int = card_size_bytes / (1000000000);
-    uint32_t card_size_gb_frac = (card_size_bytes / (1000000)) - (card_size_gb_int * 1000); //[MB]
+    uint32_t gb_int = bytes / (1000000000);
+    uint32_t gb_frac = (bytes / (1000000)) - (gb_int * 1000); //[MB]
 
     printf("\nCard size: ");
     fflush(stdout);
-    print_u64_dec( card_size_bytes );
-    printf(" bytes (%lu,%03lu GiB | %lu,%03lu GB)\n", card_size_gib_int, card_size_gib_frac, card_size_gb_int, card_size_gb_frac);
+    print_u64_dec( bytes );
+    printf(" bytes (%lu,%03lu GiB | %lu,%03lu GB)\n", gib_int, gib_frac, gb_int, gb_frac);
     return 0;
 }
 
@@ -182,17 +185,18 @@ static int _read(int argc, char **argv)
             chunk_blocks = MAX_BLOCKS_IN_BUFFER;
         }
         sd_rw_response_t state;
-        int chunks_read = sdcard_spi_read_blocks(card, blockaddr + total_read, buffer, SD_HC_FIXED_BLOCK_SIZE, chunk_blocks, &state);
+        int chunks_read = sdcard_spi_read_blocks(card, blockaddr + total_read, buffer, 
+                                                 SD_HC_BLOCK_SIZE, chunk_blocks, &state);
 
         if (state != SD_RW_OK) {
             printf("read error %d (block %d/%d)\n", state, total_read + chunks_read, cnt);
             return -1;
         }
 
-        for (int i = 0; i < chunk_blocks * SD_HC_FIXED_BLOCK_SIZE; i++) {
+        for (int i = 0; i < chunk_blocks * SD_HC_BLOCK_SIZE; i++) {
 
-            if (((i % SD_HC_FIXED_BLOCK_SIZE) == 0)) {
-                printf("BLOCK %d:\n", blockaddr + total_read + i / SD_HC_FIXED_BLOCK_SIZE);
+            if (((i % SD_HC_BLOCK_SIZE) == 0)) {
+                printf("BLOCK %d:\n", blockaddr + total_read + i / SD_HC_BLOCK_SIZE);
             }
 
             if (print_as_char) {
@@ -211,7 +215,7 @@ static int _read(int argc, char **argv)
                 printf("\n"); /* line break after BLOCK_PRINT_BYTES_PER_LINE bytes */
             }
 
-            if ((i % SD_HC_FIXED_BLOCK_SIZE) == (SD_HC_FIXED_BLOCK_SIZE - 1)) {
+            if ((i % SD_HC_BLOCK_SIZE) == (SD_HC_BLOCK_SIZE - 1)) {
                 printf("\n"); /* empty line after each printed block */
             }
         }
@@ -222,16 +226,16 @@ static int _read(int argc, char **argv)
 
 static int _write(int argc, char **argv)
 {
-    int blockaddr;
+    int bladdr;
     char *data;
     int size;
     bool repeat_data = false;
 
     if (argc == 3 || argc == 4) {
-        blockaddr = (int)atoi(argv[1]);
+        bladdr = (int)atoi(argv[1]);
         data = argv[2];
         size = strlen(argv[2]);
-        printf("will write '%s' (%d chars) at start of block %d\n", data, size, blockaddr);
+        printf("will write '%s' (%d chars) at start of block %d\n", data, size, bladdr);
         if (argc == 4 && (strcmp("-r", argv[3]) == 0)) {
             repeat_data = true;
             printf("the rest of the block will be filled with copies of that string\n");
@@ -245,31 +249,31 @@ static int _write(int argc, char **argv)
         return -1;
     }
 
-    if (size > SD_HC_FIXED_BLOCK_SIZE) {
-        printf("maximum stringsize to write at once is %d ...aborting\n", SD_HC_FIXED_BLOCK_SIZE);
+    if (size > SD_HC_BLOCK_SIZE) {
+        printf("maximum stringsize to write at once is %d ...aborting\n", SD_HC_BLOCK_SIZE);
         return -1;
     }
 
     /* copy data to a full-block-sized buffer an fill remaining block space according to -r param*/
-    char block_buffer[SD_HC_FIXED_BLOCK_SIZE];
-    for (int i = 0; i < sizeof(block_buffer); i++) {
+    char buffer[SD_HC_BLOCK_SIZE];
+    for (int i = 0; i < sizeof(buffer); i++) {
         if (repeat_data || i < size) {
-            block_buffer[i] = data[i % size];
+            buffer[i] = data[i % size];
         }
         else {
-            block_buffer[i] = 0;
+            buffer[i] = 0;
         }
     }
 
     sd_rw_response_t state;
-    int chunks_written = sdcard_spi_write_blocks(card, blockaddr, block_buffer, SD_HC_FIXED_BLOCK_SIZE, 1, &state);
+    int chunks_written = sdcard_spi_write_blocks(card, bladdr, buffer, SD_HC_BLOCK_SIZE, 1, &state);
 
     if (state != SD_RW_OK) {
         printf("write error %d (wrote %d/%d blocks)\n", state, chunks_written, 1);
         return -1;
     }
     else {
-        printf("write block %d [OK]\n", blockaddr);
+        printf("write block %d [OK]\n", bladdr);
         return 0;
     }
 }
@@ -288,17 +292,17 @@ static int _copy(int argc, char **argv)
         return -1;
     }
 
-    char tmp_copy[SD_HC_FIXED_BLOCK_SIZE];
+    char tmp_copy[SD_HC_BLOCK_SIZE];
 
     sd_rw_response_t rd_state;
-    sdcard_spi_read_blocks(card, src_block, tmp_copy, SD_HC_FIXED_BLOCK_SIZE, 1, &rd_state);
+    sdcard_spi_read_blocks(card, src_block, tmp_copy, SD_HC_BLOCK_SIZE, 1, &rd_state);
     if (rd_state != SD_RW_OK) {
         printf("read error %d (block %d)\n", rd_state, src_block);
         return -1;
     }
     else {
         sd_rw_response_t wr_state;
-        sdcard_spi_write_blocks(card, dst_block, tmp_copy, SD_HC_FIXED_BLOCK_SIZE, 1, &wr_state);
+        sdcard_spi_write_blocks(card, dst_block, tmp_copy, SD_HC_BLOCK_SIZE, 1, &wr_state);
 
         if (wr_state != SD_RW_OK) {
             printf("write error %d (block %d)\n", wr_state, dst_block);
@@ -323,8 +327,10 @@ static const shell_command_t shell_commands[] = {
     { "csd", "print content of CSD (Card-Specific Data) register", _csd },
     { "size", "print card size", _size },
     { "sectors", "print sector count of card", _sector_count },
-    { "read", "'read n m' reads m blocks beginning at block address n and prints the result. Append -c option to print data readable chars", _read },
-    { "write", "'write n data' writes data to block n. Append -r option to repeatedly write data to coplete block", _write },
+    { "read", "'read n m' reads m blocks beginning at block address n and prints the result. \
+               Append -c option to print data readable chars", _read },
+    { "write", "'write n data' writes data to block n. Append -r option to \
+                repeatedly write data to coplete block", _write },
     { "copy", "'copy src dst' copies block src to block dst", _copy },
     { NULL, NULL, NULL }
 };
@@ -338,7 +344,8 @@ int main(void)
     card->init_done = false;
 
     puts("insert SD-card and use 'init' command to set card to spi mode\n");
-    puts("WARNING: using 'write' or 'copy' commands WILL overwrite data on your sd-card and almost for sure corrupt existing filesystems, partitions and contained data!\n");
+    puts("WARNING: using 'write' or 'copy' commands WILL overwrite data on your sd-card and\n\
+          almost for sure corrupt existing filesystems, partitions and contained data!\n");
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
     return 0;
