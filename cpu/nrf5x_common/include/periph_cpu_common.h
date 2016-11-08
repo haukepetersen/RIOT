@@ -16,8 +16,8 @@
  * @author          Hauke Petersen <hauke.peterse@fu-berlin.de>
  */
 
-#ifndef CPU_PERIPH_H
-#define CPU_PERIPH_H
+#ifndef CPU_PERIPH_COMMON_H
+#define CPU_PERIPH_COMMON_H
 
 #include "cpu.h"
 
@@ -31,11 +31,7 @@ extern "C" {
  * @{
  */
 #if defined(CPU_FAM_NRF51)
-#define GPIO_BASE           (NRF_GPIO)
-#define UART_IRQN           (UART0_IRQn)
 #elif defined(CPU_FAM_NRF52)
-#define GPIO_BASE           (NRF_P0)
-#define UART_IRQN           (UARTE0_UART0_IRQn)
 #else
 #error "nrf5x_common: no valid value for CPU_FAM_XX defined"
 #endif
@@ -62,6 +58,21 @@ extern "C" {
  * - bit 2+3: pull resistor configuration
  */
 #define GPIO_MODE(oe, ic, pr)   (oe | (ic << 1) | (pr << 2))
+
+/**
+ * @brief   No support for HW chip select...
+ */
+#define SPI_HWCS(x)         (SPI_CS_UNDEF)
+
+/**
+ * @brief   Declare needed shared SPI functions
+ * @{
+ */
+#define PERIPH_SPI_NEEDS_INIT_CS
+#define PERIPH_SPI_NEEDS_TRANSFER_BYTE
+#define PERIPH_SPI_NEEDS_TRANSFER_REG
+#define PERIPH_SPI_NEEDS_TRANSFER_REGS
+/** @} */
 
 #ifndef DOXYGEN
 /**
@@ -122,9 +133,42 @@ typedef struct {
     uint8_t irqn;
 } timer_conf_t;
 
+/**
+ * @brief   Override SPI mode values
+ */
+#define HAVE_SPI_MODE_T
+typedef enum {
+    SPI_MODE_0 = 0,                                             /**< CPOL=0, CPHA=0 */
+    SPI_MODE_1 = SPI_CONFIG_CPHA_Msk,                           /**< CPOL=0, CPHA=1 */
+    SPI_MODE_2 = SPI_CONFIG_CPOL_Msk,                           /**< CPOL=1, CPHA=0 */
+    SPI_MODE_3 = (SPI_CONFIG_CPOL_Msk | SPI_CONFIG_CPHA_Msk)    /**< CPOL=1, CPHA=1 */
+} spi_mode_t;
+
+/**
+ * @brief   Override SPI clock values
+ */
+#define HAVE_SPI_CLK_T
+typedef enum {
+    SPI_CLK_100KHZ = SPI_FREQUENCY_FREQUENCY_K125,  /**< 100KHz */
+    SPI_CLK_400KHZ = SPI_FREQUENCY_FREQUENCY_K500,  /**< 400KHz */
+    SPI_CLK_1MHZ   = SPI_FREQUENCY_FREQUENCY_M1,    /**< 1MHz */
+    SPI_CLK_5MHZ   = SPI_FREQUENCY_FREQUENCY_M4,    /**< 5MHz */
+    SPI_CLK_10MHZ  = SPI_FREQUENCY_FREQUENCY_M8     /**< 10MHz */
+} spi_clk_t;
+
+/**
+ * @brief  SPI configuration values
+ */
+typedef struct {
+    NRF_SPI_Type *dev;  /**< SPI device used */
+    uint8_t sclk;       /**< CLK pin */
+    uint8_t mosi;       /**< MOSI pin */
+    uint8_t miso;       /**< MISO pin */
+} spi_conf_t;
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CPU_PERIPH_H */
+#endif /* CPU_PERIPH_COMMON_H */
 /** @} */
