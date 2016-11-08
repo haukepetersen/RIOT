@@ -15,6 +15,7 @@
  * @brief       Platform-independent kernel initilization
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  *
  * @}
  */
@@ -27,6 +28,10 @@
 #include "thread.h"
 #include "irq.h"
 #include "log.h"
+#include "periph_conf.h"
+#ifdef SPI_NUMOF
+#include "periph/spi.h"
+#endif
 
 #include "periph/pm.h"
 
@@ -81,6 +86,14 @@ static char idle_stack[THREAD_STACKSIZE_IDLE];
 void kernel_init(void)
 {
     (void) irq_disable();
+
+    /* TODO: should this be located here? */
+#ifdef SPI_NUMOF
+    /* initialize configured SPI devices */
+    for (int i = 0; i < (int)SPI_NUMOF; i++) {
+        spi_init(SPI_DEV(i));
+    }
+#endif
 
     thread_create(idle_stack, sizeof(idle_stack),
             THREAD_PRIORITY_IDLE,
