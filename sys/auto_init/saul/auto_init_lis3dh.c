@@ -56,7 +56,7 @@ void auto_init_lis3dh(void)
         int res;
 
         DEBUG("[auto_init_saul] initializing lis3dh accelerometer\n");
-        res = lis3dh_init(&lis3dh_devs[i], p->spi, p->cs, p->scale);
+        res = lis3dh_init(&lis3dh_devs[i], p->spi, p->clk, p->cs, p->scale);
         if (res < 0) {
             DEBUG("[auto_init_saul] error during lis3dh_init\n");
             continue;
