@@ -19,6 +19,8 @@
 #ifndef CPU_PERIPH_H
 #define CPU_PERIPH_H
 
+#include <limits.h>
+
 #include "periph_cpu_common.h"
 
 #ifdef __cplusplus
@@ -43,6 +45,13 @@ enum {
  * - bit 2: pull enable
  */
 #define GPIO_MODE(pr, ie, pe)   (pr | (ie << 1) | (pe << 2))
+
+/**
+ * @brief   Override SPI hardware chip select macro
+ *
+ * As of now, we do not support HW CS, so we always set it to a fixed value
+ */
+#define SPI_HWCS(x)     (UINT_MAX - 1)
 
 #ifndef DOXYGEN
 /**
@@ -89,18 +98,6 @@ typedef struct {
     uart_rxpad_t rx_pad;    /**< pad selection for RX line */
     uart_txpad_t tx_pad;    /**< pad selection for TX line */
 } uart_conf_t;
-
-/**
- * @brief   Return the numeric id of a SERCOM device derived from its address
- *
- * @param[in] sercom    SERCOM device
- *
- * @return              numeric id of the given SERCOM device
- */
-static inline int _sercom_id(SercomUsart *sercom)
-{
-    return ((((uint32_t)sercom) >> 10) & 0x7) - 2;
-}
 
 #ifdef __cplusplus
 }
