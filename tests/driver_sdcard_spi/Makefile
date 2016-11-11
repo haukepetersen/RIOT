@@ -3,7 +3,6 @@ include ../Makefile.tests_common
 
 FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_spi
-FEATURES_REQUIRED += periph_i2c
 
 USEMODULE += sdcard_spi
 USEMODULE += fmt
