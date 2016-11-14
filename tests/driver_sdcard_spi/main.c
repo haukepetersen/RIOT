@@ -328,9 +328,9 @@ static const shell_command_t shell_commands[] = {
     { "size", "print card size", _size },
     { "sectors", "print sector count of card", _sector_count },
     { "read", "'read n m' reads m blocks beginning at block address n and prints the result. \
-               Append -c option to print data readable chars", _read },
+Append -c option to print data readable chars", _read },
     { "write", "'write n data' writes data to block n. Append -r option to \
-                repeatedly write data to coplete block", _write },
+repeatedly write data to coplete block", _write },
     { "copy", "'copy src dst' copies block src to block dst", _copy },
     { NULL, NULL, NULL }
 };
@@ -338,14 +338,14 @@ static const shell_command_t shell_commands[] = {
 int main(void)
 {
     puts("SD-card spi driver test application\n");
-
+    
     card->spi_dev = TEST_SDCARD_SPI;
     card->cs_pin = TEST_SDCARD_CS;
     card->init_done = false;
 
     puts("insert SD-card and use 'init' command to set card to spi mode\n");
     puts("WARNING: using 'write' or 'copy' commands WILL overwrite data on your sd-card and\n\
-          almost for sure corrupt existing filesystems, partitions and contained data!\n");
+almost for sure corrupt existing filesystems, partitions and contained data!\n");
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
     return 0;
