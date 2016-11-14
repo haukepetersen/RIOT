@@ -36,7 +36,7 @@ static void event(void *arg)
         gpio_toggle(pwm->pin);
     }
     else {
-        xtimer_set(%(pwm->timer), pwm->dc[(pwm->state ^ 1)]);
+        xtimer_set(&(pwm->timer), pwm->dc[(pwm->state ^ 1)]);
     }
 }
 
