@@ -80,6 +80,12 @@ static const uint8_t req_options[] = {
     OPT_END,
 };
 
+static mia_bind_t dhcp_ep = {
+    .next = NULL,
+    .cb = mia_dhcp_process,
+    .port = DHCP_CLI_PORT
+};
+
 
 static inline uint8_t opt_code(int opt)
 {
@@ -179,4 +185,9 @@ void mia_dhcp_process(void)
     else {
         DEBUG("[mia] dhcp: response option type not handable for us.\n");
     }
+}
+
+void mia_dhcp_init(void)
+{
+    mia_udp_bind(&dhcp_ep);
 }

@@ -20,6 +20,9 @@ extern "C" {
 #define MIA_UDP_CSUM            (MIA_UDP_POS + 6U)
 
 
+int mia_udp_bind(mia_bind_t *ep);
+int mia_udp_unbind(mia_bind_t *ep);
+
 void mia_udp_process(void);
 
 int mia_udp_send(uint8_t *ip, uint16_t src, uint16_t dst);

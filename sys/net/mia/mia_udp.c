@@ -9,37 +9,59 @@
 #include "net/mia/ip.h"
 #include "net/mia/udp.h"
 
-extern const mia_bind_t mia_udp_bindings[];
+static mia_bind_t *endpoints;
 
-static const mia_bind_t udp_bind_internal[] = {
-#ifdef MODULE_MIA_DHCP
-    { DHCP_CLI_PORT, mia_dhcp_process },
-#endif
-#ifdef MODULE_MIA_COAP
-    { COAP_PORT, mia_coap_process },
-#endif
-    { 0, NULL }
-};
+int mia_udp_bind(mia_bind_t *ctx)
+{
+    mia_bind_t *b = endpoints;
+    ctx->next = NULL;
+
+    if (!b) {
+        endpoints = ctx;
+        return MIA_OK;
+    }
+
+    do {
+        if (b->port == ctx->port) {
+            return MIA_NOPORT;
+        }
+        if (b->next == NULL) {
+            b->next = ctx;
+            return MIA_OK;
+        }
+        b = b->next;
+    } while (b);
+
+    return MIA_OK;
+}
+
+int mia_udp_unbind(mia_bind_t *ep)
+{
+    mia_bind_t *b = endpoints;
+
+    if (b == ep) {
+        endpoints = b->next;
+        return MIA_OK;
+    }
+
+    while (b->next) {
+        if (b->next == ep) {
+            b->next = b->next->next;
+            return MIA_OK;
+        }
+    }
+
+    return MIA_NOPORT;
+}
 
 void mia_udp_process(void)
 {
-    int i = 0;
+    mia_bind_t *ep = endpoints;
 
-    while (udp_bind_internal[i].port != 0) {
-        if (udp_bind_internal[i].port == mia_ntos(MIA_UDP_DST)) {
-            udp_bind_internal[i].cb();
-            return;
+    while (ep) {
+        if (ep->port == mia_ntos(MIA_UDP_DST)) {
+            ep->cb();
         }
-        i++;
-    }
-
-    i = 0;
-    while (mia_udp_bindings[i].port != 0) {
-        if (mia_udp_bindings[i].port == mia_ntos(MIA_UDP_DST)) {
-            mia_udp_bindings[i].cb();
-            return;
-        }
-        ++i;
     }
 }
 

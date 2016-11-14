@@ -25,6 +25,7 @@
 #include "thread.h"
 #include "shell.h"
 #include "xtimer.h"
+#include "periph/spi.h"
 
 #include "net/mia.h"
 #include "net/mia/ip.h"
@@ -51,7 +52,7 @@
 
 #if NOT_NATIVE
 static enc28j60_params_t encp = {
-    SPI_1,
+    SPI_0,
     GPIO_PIN(1, 12),
     GPIO_PIN(1, 11),
     GPIO_PIN(1, 10),
@@ -233,11 +234,8 @@ static void udp_echo(void)
     mia_udp_reply();
 }
 
-const mia_bind_t mia_udp_bindings[] = {
-    { 443, udp_print },
-    { 80, udp_echo },
-    { 0, NULL }
-};
+static mia_bind_t udp_print_ep = { NULL, udp_print, 443 };
+static mia_bind_t udp_echo_ep = { NULL, udp_echo, 80 };
 
 int main(void)
 {
@@ -251,6 +249,10 @@ int main(void)
     /* run MIA */
     thread_create(stack, sizeof(stack), MIA_PRIO, THREAD_CREATE_STACKTEST,
                   run_mia_run, NULL, "mia");
+
+    /* bind UDP ports */
+    mia_udp_bind(&udp_echo_ep);
+    mia_udp_bind(&udp_print_ep);
 
     /* trying to get an IP via DHCP */
 #if NOT_NATIVE

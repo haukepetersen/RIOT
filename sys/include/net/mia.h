@@ -83,6 +83,11 @@ extern "C" {
 #define MIA_ERR_OVERFLOW        (-51)
 /** @} */
 
+enum {
+    MIA_OK      = 0,
+    MIA_NOPORT  = -1
+};
+
 extern uint8_t mia_buf[];
 extern mutex_t mia_mutex;
 
@@ -96,9 +101,10 @@ extern const uint8_t mia_bcast[];
 
 typedef void (*mia_cb_t)(void);
 
-typedef struct {
-    uint16_t port;
+typedef struct mia_bind_t {
+    struct mia_bind_t *next;
     mia_cb_t cb;
+    uint16_t port;
 } mia_bind_t;
 
 
