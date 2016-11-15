@@ -300,7 +300,14 @@ static int nd_send(netdev_t *netdev, const iolist_t *iolist)
     /* set last transmission time for timeout handling */
     dev->tx_time = xtimer_now_usec();
 
-    mutex_unlock(&dev->lock);
+#ifdef MODULE_NETSTATS_L2
+    netdev->stats.tx_bytes += c;
+#endif
+
+    DEBUG("[enc28j60] send out %i byte\n", (int)c);
+
+    mutex_unlock(&dev->devlock);
+
     return c;
 }
 

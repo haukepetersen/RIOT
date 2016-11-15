@@ -33,6 +33,7 @@ extern "C" {
 #define ENC28J60_PARAM_SPI      (SPI_DEV(0))
 #endif
 #ifndef ENC28J60_PARAM_CS
+#error CS not def
 #define ENC28J60_PARAM_CS       (GPIO_PIN(0, 0))
 #endif
 #ifndef ENC28J60_PARAM_INT

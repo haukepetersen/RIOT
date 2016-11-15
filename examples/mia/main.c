@@ -42,38 +42,38 @@
 #define PING_DELAY          (1000 * 1000U)
 #define DHCP_DELAY          (200 * 1000U)
 
-#define NOT_NATIVE 1
-
-#if NOT_NATIVE
-#include "enc28j60.h"
-#else
-#include "netdev2_tap.h"
-#endif
-
-#if NOT_NATIVE
-static enc28j60_params_t encp = {
-    SPI_0,
-    GPIO_PIN(1, 12),
-    GPIO_PIN(1, 11),
-    GPIO_PIN(1, 10),
-};
-
-static enc28j60_t dev;
-#else
-extern netdev2_tap_t netdev2_tap;
-#endif
-
 static char stack[STACKSIZE];
 
+#if defined(MODULE_ENC28J60)
+#include "enc28j60.h"
+#include "enc28j60_params.h"
+static enc28j60_t dev;
+#elif defined(MODULE_W5100)
+#include "w5100.h"
+#include "w5100_params.h"
+static w5100_t dev;
+#elif defined(MODULE_NETDEV2_TAP)
+#include "netdev2_tap.h"
+extern netdev2_tap_t netdev2_tap;
+#else
+#error "Error: no Ethernet device defined"
+#endif
 
 static void *run_mia_run(void *arg)
 {
     (void)arg;
+    puts("MIA: initializing the given Ethernet interface");
+#if defined(MODULE_ENC28J60)
+    enc28j60_setup(&dev, &enc28j60_params[0]);
+#elif defined(MODULE_W5100)
+    w5100_setup(&dev, &w5100_params[0]);
+#endif
+
     puts("MIA: starting the stack now");
-#if NOT_NATIVE
-    mia_run((netdev2_t *)&dev);
-#else
+#ifdef MODULE_NETDEV2_TAP
     mia_run((netdev2_t *)&netdev2_tap);
+#else
+    mia_run((netdev2_t *)&dev);
 #endif
     return NULL;
 }
@@ -241,11 +241,6 @@ int main(void)
 {
     puts("Hello MIA!");
 
-#if NOT_NATIVE
-    /* initialize out network device */
-    enc28j60_setup(&dev, &encp);
-#endif
-
     /* run MIA */
     thread_create(stack, sizeof(stack), MIA_PRIO, THREAD_CREATE_STACKTEST,
                   run_mia_run, NULL, "mia");
@@ -255,17 +250,19 @@ int main(void)
     mia_udp_bind(&udp_print_ep);
 
     /* trying to get an IP via DHCP */
-#if NOT_NATIVE
+#ifdef MODULE_NETDEV2_TAP
+    puts("not doing DHCP");
+#else
     while (mia_ip_mask == 0) {
         puts("Requesting IP via DHCP...");
         mia_dhcp_request();
         xtimer_usleep(DHCP_DELAY);
     }
     puts("Successfully IP configuration via DHCP:");
-#else
-    puts("not doing DHCP");
 #endif
-    cmd_ifconfig(0, NULL);
+    // cmd_ifconfig(0, NULL);
+
+    puts("Hello?=");
 
     puts("Starting the shell now...");
     char line_buf[SHELL_DEFAULT_BUFSIZE];
