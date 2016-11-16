@@ -10,7 +10,9 @@
 extern "C" {
 #endif
 
-#define COAP_PORT           (5683U)
+#define MIA_COAP_PORT       (5683U)
+
+extern mia_bind_t mia_coap_ep;
 
 typedef uint16_t(*mia_coap_cb)(void);
 

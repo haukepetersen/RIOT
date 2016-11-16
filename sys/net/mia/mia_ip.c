@@ -40,15 +40,17 @@ void mia_ip_process(void)
     /* packet for me? */
     if (!(memcmp(mia_ptr(MIA_IP_DST), mia_ip_addr, MIA_IP_ADDR_LEN) == 0 ||
           memcmp(mia_ptr(MIA_IP_DST), mia_bcast, MIA_IP_ADDR_LEN) == 0)) {
-        DEBUG("[mia] ip:  got packet that was not for me\n");
+        DEBUG("[mia]  ip: got packet that was not for me\n");
         return;
     }
 
     switch (mia_buf[MIA_IP_PROTO]) {
         case PROTNUM_ICMP:
+            DEBUG("[mia]  ip: got ICMP packet\n");
             mia_icmp_process();
             break;
         case PROTNUM_UDP:
+            DEBUG("[mia]  ip: got UDP packet\n");
             mia_udp_process();
             break;
     }
@@ -59,22 +61,24 @@ void mia_ip_reply(uint16_t len)
     memcpy(mia_ptr(MIA_IP_DST), mia_ptr(MIA_IP_SRC), MIA_IP_ADDR_LEN);
     memcpy(mia_ptr(MIA_IP_SRC), mia_ip_addr, MIA_IP_ADDR_LEN);
     ip_csum(MIA_IP_HDR_LEN + len);
+    DEBUG("[mia]  ip: sending reply\n");
     mia_eth_reply(MIA_IP_HDR_LEN + len);
 }
 
-int mia_ip_send(uint8_t *ip, uint8_t proto, uint16_t len)
+int mia_ip_send(const uint8_t *ip, uint8_t proto, uint16_t len)
 {
-    uint8_t *ta, *mac;
+    const uint8_t *ta;
+    uint8_t *mac;
 
     if (memcmp(ip, mia_bcast, MIA_IP_ADDR_LEN) == 0) {
         mac = (uint8_t *)mia_bcast;
     }
     else {
         ta = (memcmp(ip, mia_ip_addr, mia_ip_mask) == 0) ? ip : mia_ip_gateway;
-        mac = mia_arp_cache_lookup(ta);
+        mac = mia_arp_cache_lookup((uint8_t *)ta);
         if (mac == NULL) {
             mia_arp_request(ta);
-            DEBUG("[mia] ip: host not in ARP cache, requesting now\n");
+            DEBUG("[mia]  ip: host not in ARP cache, requesting now\n");
             return MIA_ERR_NO_ROUTE;
         }
     }

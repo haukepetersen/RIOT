@@ -27,6 +27,8 @@
 #include "xtimer.h"
 #include "periph/spi.h"
 
+#include "net/sock/udp.h"
+
 #include "net/mia.h"
 #include "net/mia/ip.h"
 #include "net/mia/udp.h"
@@ -55,6 +57,9 @@ static w5100_t dev;
 #elif defined(MODULE_NETDEV2_TAP)
 #include "netdev2_tap.h"
 extern netdev2_tap_t netdev2_tap;
+static const uint8_t native_addr[] = { 0x0a, 0x0a, 0x0a, 0x17 };
+static const uint8_t native_bcast[] = { 0x0a, 0x0a, 0x0a, 0xff };
+static const uint8_t native_gateway[] = { 0x0a, 0x0a, 0x0a, 0x01 };
 #else
 #error "Error: no Ethernet device defined"
 #endif
@@ -193,6 +198,31 @@ static int cmd_udp(int argc, char **argv)
     return 0;
 }
 
+static int cmd_udp_sock(int argc, char **argv)
+{
+    uint8_t ip[4];
+
+    if (argc < 7) {
+        printf("usage: %s addr0 addr1 addr2 addr3 src-port dst-port data\n",
+               argv[0]);
+        return 1;
+    }
+
+    get_ip(argv, ip);
+
+    sock_udp_ep_t remote = { .family = AF_INET };
+    remote.port = (uint16_t)atoi(argv[5]);
+    memcpy(remote.addr.ipv4, ip, 4);
+
+    sock_udp_send(NULL, argv[6], strlen(argv[6]), &remote);
+
+    printf("udp_sock: send %i byte to ", strlen(argv[6]));
+    mia_print_ip_addr(ip);
+    printf(" dst-port: %i\n", (int)remote.port);
+
+    return 0;
+}
+
 static int cmd_dhcp(int argc, char **argv)
 {
     (void)argc;
@@ -207,6 +237,7 @@ static const shell_command_t shell_commands[] = {
     { "conf", "configure IP addresses", cmd_conf },
     { "ping", "ping some other host", cmd_ping },
     { "udp", "send data via UDP", cmd_udp },
+    { "udp_sock", "send data via UDP sock", cmd_udp_sock },
     { "dhcp", "dhcp request", cmd_dhcp },
     { NULL, NULL, NULL }
 };
@@ -252,17 +283,20 @@ int main(void)
     /* trying to get an IP via DHCP */
 #ifdef MODULE_NETDEV2_TAP
     puts("not doing DHCP");
+    mia_ip_mask = 24;
+    memcpy(mia_ip_addr, native_addr, 4);
+    memcpy(mia_ip_bcast, native_bcast, 4);
+    memcpy(mia_ip_gateway, native_gateway, 4);
 #else
-    while (mia_ip_mask == 0) {
+    do {
         puts("Requesting IP via DHCP...");
         mia_dhcp_request();
         xtimer_usleep(DHCP_DELAY);
-    }
-    puts("Successfully IP configuration via DHCP:");
+    } while (mia_ip_mask == 0);
+    puts("Successfully configured IP addresses via DHCP:");
 #endif
-    // cmd_ifconfig(0, NULL);
 
-    puts("Hello?=");
+    cmd_ifconfig(0, NULL);
 
     puts("Starting the shell now...");
     char line_buf[SHELL_DEFAULT_BUFSIZE];

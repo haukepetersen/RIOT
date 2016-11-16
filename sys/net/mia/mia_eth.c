@@ -9,12 +9,14 @@
 #include "net/mia/ip.h"
 
 
-#define ENABLE_DEBUG            (0)
+#define ENABLE_DEBUG            (1)
 #include "debug.h"
 
 
 
 uint8_t mia_mac[ETHERNET_ADDR_LEN];
+
+
 
 
 static void eth_flush(uint16_t len)
@@ -23,6 +25,9 @@ static void eth_flush(uint16_t len)
 
     data.iov_base = (void *)mia_buf;
     data.iov_len = (size_t)len + MIA_ETH_HDR_LEN;
+#if ENABLE_DEBUG
+    mia_print_pkt("OUT   ");
+#endif
     mia_dev->driver->send(mia_dev, &data, 1);
 }
 
@@ -34,14 +39,18 @@ void mia_eth_process(void)
         return;
     }
 
-    DEBUG("[mia] eth: got valid packet, processing it now...\n");
+#if ENABLE_DEBUG
+    mia_print_pkt("IN    ");
+#endif
 
     /* IPv4 or ARP */
     switch (mia_ntos(MIA_ETH_TYPE)) {
         case ETHERTYPE_ARP:
+            DEBUG("[mia] eth: get ARP packet\n");
             mia_arp_process();
             break;
         case ETHERTYPE_IPV4:
+            DEBUG("[mia] eth: got IPv4 packet\n");
             mia_ip_process();
             break;
         default:

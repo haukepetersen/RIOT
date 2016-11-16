@@ -29,6 +29,8 @@ void mia_icmp_process(void);
 
 int mia_icmp_ping(uint8_t *addr, mia_cb_t cb);
 
+void mia_icmp_unreachable(uint8_t code);
+
 
 #ifdef __cplusplus
 }

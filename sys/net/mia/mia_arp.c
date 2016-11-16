@@ -29,6 +29,7 @@ void mia_arp_process(void)
 
     /* insert new information into ARP cache */
     mia_arp_cache_insert(mia_ptr(MIA_ARP_SPA), mia_ptr(MIA_ARP_SHA));
+    DEBUG("[mia] arp: inserted new address to ARP cache\n");
 
     if (mia_ntos(MIA_ARP_OPER) == ARP_OPER_REQ) {
         /* was the request for my IP address? */
@@ -44,7 +45,7 @@ void mia_arp_process(void)
     }
 }
 
-void mia_arp_request(uint8_t *ip)
+void mia_arp_request(const uint8_t *ip)
 {
     /* build ARP header */
     memcpy(mia_ptr(MIA_ARP_POS), arp_head, 6);
@@ -55,4 +56,5 @@ void mia_arp_request(uint8_t *ip)
     memcpy(mia_ptr(MIA_ARP_TPA), ip, MIA_IP_ADDR_LEN);
     /* send packet */
     mia_eth_send((uint8_t *)mia_bcast, ETHERTYPE_ARP, MIA_ARP_HDR_LEN);
+    DEBUG("[mia] arp: request was send\n");
 }

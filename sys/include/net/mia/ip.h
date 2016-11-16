@@ -14,10 +14,10 @@
 extern "C" {
 #endif
 
-#define MIA_IP_ADDR             {10, 10, 10, 23}
-#define MIA_IP_MASK             (3U)
-#define MIA_IP_BCAST            {192, 168, 2, 255}
-#define MIA_IP_GATEWAY          {192, 168, 2, 1}
+// #define MIA_IP_ADDR             {10, 10, 10, 23}
+// #define MIA_IP_MASK             (3U)
+// #define MIA_IP_BCAST            {192, 168, 2, 255}
+// #define MIA_IP_GATEWAY          {192, 168, 2, 1}
 
 /**
  * @brief   Default IP address configuration
@@ -60,7 +60,7 @@ void mia_ip_process(void);
 
 void mia_ip_reply(uint16_t len);
 
-int mia_ip_send(uint8_t *ip, uint8_t proto, uint16_t len);
+int mia_ip_send(const uint8_t *ip, uint8_t proto, uint16_t len);
 
 
 #ifdef __cplusplus

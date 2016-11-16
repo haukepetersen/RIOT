@@ -9,28 +9,23 @@
 #include "net/mia/ip.h"
 #include "net/mia/udp.h"
 
-static mia_bind_t *endpoints;
+#define ENABLE_DEBUG            (0)
+#include "debug.h"
+
+static mia_bind_t *endpoints = NULL;
 
 int mia_udp_bind(mia_bind_t *ctx)
 {
-    mia_bind_t *b = endpoints;
-    ctx->next = NULL;
-
-    if (!b) {
-        endpoints = ctx;
-        return MIA_OK;
-    }
-
-    do {
-        if (b->port == ctx->port) {
+    for (mia_bind_t *ep = endpoints; ep; ep = ep->next) {
+        if (ep->port == ctx->port) {
+            DEBUG("[mia] udp: bind error: port %i in use\n", (int)ctx->port);
             return MIA_NOPORT;
         }
-        if (b->next == NULL) {
-            b->next = ctx;
-            return MIA_OK;
-        }
-        b = b->next;
-    } while (b);
+    }
+
+    DEBUG("[mia] udp: adding ep, port %i, cb %p\n", (int)ctx->port, ctx->cb);
+    ctx->next = endpoints;
+    endpoints = ctx;
 
     return MIA_OK;
 }
@@ -56,13 +51,16 @@ int mia_udp_unbind(mia_bind_t *ep)
 
 void mia_udp_process(void)
 {
-    mia_bind_t *ep = endpoints;
-
-    while (ep) {
+    for (mia_bind_t *ep = endpoints; ep; ep = ep->next) {
         if (ep->port == mia_ntos(MIA_UDP_DST)) {
+            DEBUG("[mia] udp: relaying request to port %i\n", (int)ep->port);
             ep->cb();
+            return;
         }
     }
+
+    DEBUG("[mia] udp: can't handle packet to port %i\n", (int)mia_ntos(MIA_UDP_DST));
+    // mia_icmp_unreachable(ICMP_CODE_PORT_UNREACHABLE);
 }
 
 void mia_udp_reply(void)
@@ -77,7 +75,7 @@ void mia_udp_reply(void)
     mia_ip_reply(mia_ntos(MIA_UDP_LEN));
 }
 
-int mia_udp_send(uint8_t *ip, uint16_t src, uint16_t dst)
+int mia_udp_send(const uint8_t *ip, uint16_t src, uint16_t dst)
 {
     mia_ston(MIA_UDP_SRC, src);
     mia_ston(MIA_UDP_DST, dst);

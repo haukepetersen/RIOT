@@ -86,6 +86,8 @@ endif
 ifneq (,$(filter mia,$(USEMODULE)))
   USEMODULE += inet_csum
   USEMODULE += xtimer
+  USEMODULE += mia_dhcp
+  USEMODULE += mia_coap
 endif
 
 # always select gpio (until explicit dependencies are sorted out)

@@ -32,6 +32,8 @@
 #include "mutex.h"
 #include "net/netdev2.h"
 
+#include "net/mia/print.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -135,6 +137,32 @@ static inline void mia_ston(const int pos, uint16_t val)
 #else
     mia_buf[pos] = (uint8_t)val;
     mia_buf[pos + 1] = (uint8_t)(val >> 8);
+#endif
+}
+
+static inline uint32_t mia_ntohl(const int pos)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    return (uint32_t)((mia_buf[pos] << 24) | (mia_buf[pos + 1] << 16) |
+                      (mia_buf[pos + 2] << 8) | (mia_buf[pos + 3]));
+#else
+    return (uint32_t)((mia_buf[pos] | mia_buf[pos + 1] << 8) |
+                      (mia_buf[pos + 2] << 16) | (mia_buf[pos + 3] << 24));
+#endif
+}
+
+static inline void mia_htonl(const int pos, uint32_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    mia_buf[pos + 0] = (uint8_t)(val >> 24);
+    mia_buf[pos + 1] = (uint8_t)(val >> 16);
+    mia_buf[pos + 2] = (uint8_t)(val >> 8);
+    mia_buf[pos + 3] = (uint8_t)val;
+#else
+    mia_buf[pos + 0] = (uint8_t)val;
+    mia_buf[pos + 1] = (uint8_t)(val >> 8);
+    mia_buf[pos + 2] = (uint8_t)(val >> 16);
+    mia_buf[pos + 3] = (uint8_t)(val >> 24);
 #endif
 }
 

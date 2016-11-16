@@ -36,6 +36,13 @@
 
 extern mia_coap_ep_t mia_coap_get_eps[];
 
+
+mia_bind_t mia_coap_ep = {
+    .next = NULL,
+    .cb = mia_coap_process,
+    .port = MIA_COAP_PORT
+};
+
 /**
  * @brief   Message ID used for sending NON messaged, randomly initialized
  */

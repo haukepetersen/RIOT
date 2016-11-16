@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+#define MIA_ARP_HDR_LEN         (28U)
+
 #define MIA_ARP_POS             (14U)
 #define MIA_ARP_HTYPE           (MIA_ARP_POS + 0U)
 #define MIA_ARP_PTYPE           (MIA_ARP_POS + 2U)
@@ -32,7 +34,7 @@ extern "C" {
 
 void mia_arp_process(void);
 
-void mia_arp_request(uint8_t *ip);
+void mia_arp_request(const uint8_t *ip);
 
 
 #endif /* MIA_ARP_H */

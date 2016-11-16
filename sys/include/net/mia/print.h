@@ -13,6 +13,8 @@ void mia_print_ip_addr(uint8_t *ip);
 
 void mia_print_mac_addr(uint8_t *mac);
 
+void mia_print_pkt(const char *pre);
+
 #ifdef __cplusplus
 }
 #endif

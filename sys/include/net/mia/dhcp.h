@@ -13,6 +13,8 @@ extern "C" {
 #define DHCP_CLI_PORT           (68U)
 #define DHCP_SRV_PORT           (67U)
 
+extern mia_bind_t mia_dhcp_ep;
+
 void mia_dhcp_request(void);
 
 void mia_dhcp_process(void);

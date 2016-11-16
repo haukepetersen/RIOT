@@ -5,9 +5,20 @@
 
 #include "net/mia.h"
 #include "net/mia/eth.h"
+#include "net/mia/udp.h"
 
-#define ENABLE_DEBUG            (1)
+#ifdef MODULE_MIA_DHCP
+    #include "net/mia/dhcp.h"
+#endif
+#ifdef MODULE_MIA_COAP
+    #include "net/mia/coap.h"
+#endif
+
+
+#define ENABLE_DEBUG            (0)
 #include "debug.h"
+
+
 
 
 netdev2_t *mia_dev;
@@ -46,30 +57,35 @@ int mia_run(netdev2_t *netdev)
     msg_t msg;
     mia_dev = netdev;
 
-    DEBUG("[mia] running stack initialization\n");
+    DEBUG("[mia] starting stack initialization\n");
 
-    assert(mia_dev);
-
+    /* device must be given */
+    if (mia_dev == NULL) {
+        return -ENODEV;
+    }
     /* so far we can only handle Ethernet */
     mia_dev->driver->get(mia_dev, NETOPT_DEVICE_TYPE, (void *)&type, 2);
     if (type != NETDEV2_TYPE_ETHERNET) {
         return -ENOTSUP;
     }
 
-    DEBUG("[mia] got device type from device\n");
-
     /* init mutex */
     mutex_init(&mia_mutex);
     /* setup the message queue and remember the PID */
     msg_init_queue(msg_queue, MIA_MSG_QUEUESIZE);
     mia_pid = thread_getpid();
-    DEBUG("[mia] out PID is %i\n", (int)mia_pid);
     /* bootstrap the network device */
+    mia_dev->driver->init(mia_dev);
     mia_dev->event_callback = on_evt;
     mia_dev->context = NULL;
-    DEBUG("[mia] now calling device initialization\n");
-    mia_dev->driver->init(mia_dev);
-    DEBUG("[mia] Ethernet device up and running\n");
+
+    /* bind build-in endpoints */
+#ifdef MODULE_MIA_DHCP
+    mia_udp_bind(&mia_dhcp_ep);
+#endif
+#ifdef MODULE_MIA_COAP
+    mia_udp_bind(&mia_coap_ep);
+#endif
 
     /* get the MAC address from the device driver */
     mia_dev->driver->get(mia_dev, NETOPT_ADDRESS, &mia_mac, ETHERNET_ADDR_LEN);

@@ -2,6 +2,7 @@
 #include "net/ethernet.h"
 
 #include "net/mia.h"
+#include "net/mia/eth.h"
 #include "net/mia/ip.h"
 #include "net/mia/udp.h"
 #include "net/mia/dhcp.h"
@@ -32,12 +33,19 @@
 #define DHCP_COOKIE             (DHCP_OPTIONS)
 #define DHCP_FIRST_OP           (DHCP_POS + 240U)
 
+#define OP_REQUEST              (0x01)
+#define OP_REPLY                (0x02)
+
 #define OPT_MASK                (1U)
 #define OPT_ROUTER              (3U)
 #define OPT_BCAST               (28U)
 #define OPT_REQIP               (50U)
+#define OPT_IP_LEASE_TIME       (51U)
 #define OPT_TYPE                (53U)
+#define OPT_SERVER_ID           (54U)
 #define OPT_PARAM_REQ           (55U)
+#define OPT_RENEWAL_TIME        (58U)
+#define OPT_REBINDING_TIME      (59U)
 #define OPT_END                 (255U)
 
 
@@ -63,9 +71,9 @@
  * ----------------------------
  * |  SECS      | bcast flag  |
  */
-static const uint8_t dis_head[] = {0x01, 0x01, 0x06, 0x00,  /* OP,HTYPE,HLEN,HOPS */
-                                   0xa0, 0xb0, 0xc0, 0xd0,
-                                   0x00, 0x00, 0x80, 0x00}; /* fixed, random XID */
+static const uint8_t dis_head[] = {OP_REQUEST, 0x01, 0x06, 0x00,
+                                   0xa0, 0xb0, 0xc0, 0xd0,  /* fixed XID */
+                                   0x00, 0x00, 0x80, 0x00};
 
 static const uint8_t dis_options[] = {
     0x63, 0x82, 0x53, 0x63,                 /* magic cookie (see RFC 951) */
@@ -77,15 +85,16 @@ static const uint8_t dis_options[] = {
 static const uint8_t req_options[] = {
     OPT_TYPE, 1, OPT_TYPE_REQUEST,
     OPT_REQIP, 4, 0, 0, 0, 0,
+    OPT_SERVER_ID, 4, 0, 0, 0, 0,
+    OPT_IP_LEASE_TIME, 4, 0, 0, 0xa8, 0xc0,
     OPT_END,
 };
 
-static mia_bind_t dhcp_ep = {
+mia_bind_t mia_dhcp_ep = {
     .next = NULL,
     .cb = mia_dhcp_process,
     .port = DHCP_CLI_PORT
 };
-
 
 static inline uint8_t opt_code(int opt)
 {
@@ -111,7 +120,6 @@ static inline int opt_next(int opt)
 {
     return opt + mia_buf[opt + 1] + 2;
 }
-
 
 void mia_dhcp_request(void)
 {
@@ -141,15 +149,19 @@ void mia_dhcp_process(void)
         /* we reply with a request */
         DEBUG("[mia] dhcp: got offer, sending out request\n");
 
+        mia_buf[DHCP_POS] = OP_REQUEST;
         memcpy(mia_ptr(DHCP_FIRST_OP), req_options, sizeof(req_options));
         memcpy(mia_ptr(DHCP_FIRST_OP + 5), mia_ptr(DHCP_YIADDR), 4);
+        memcpy(mia_ptr(DHCP_FIRST_OP + 11), mia_ptr(DHCP_SIADDR), 4);
         memset(mia_ptr(DHCP_YIADDR), 0, 4);
 
         mia_ston(MIA_UDP_LEN,
                  MIA_UDP_HDR_LEN + DHCP_HDR_LEN + 4 + sizeof(req_options));
+        memcpy(mia_ptr(MIA_IP_SRC), mia_bcast, 4);
         mia_udp_reply();
     }
     else if (opt_val(opt) == OPT_TYPE_ACK) {
+        DEBUG("[mia] dhcp: got ACK, setting address to what was given\n");
         opt = opt_next(opt);
         /* set IP address that got acked */
         memcpy(mia_ip_addr, mia_ptr(DHCP_YIADDR), 4);
@@ -185,9 +197,4 @@ void mia_dhcp_process(void)
     else {
         DEBUG("[mia] dhcp: response option type not handable for us.\n");
     }
-}
-
-void mia_dhcp_init(void)
-{
-    mia_udp_bind(&dhcp_ep);
 }
