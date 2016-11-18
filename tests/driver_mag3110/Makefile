@@ -1,4 +1,4 @@
-APPLICATION = driver_mag3110
+APPLICATION = driver_mag3110ma
 include ../Makefile.tests_common
 
 FEATURES_REQUIRED = periph_i2c
@@ -7,7 +7,7 @@ USEMODULE += mag3110
 USEMODULE += xtimer
 
 # set default device parameters in case they are undefined
-TEST_MAG3110_I2C           ?= I2C_0
+TEST_MAG3110_I2C           ?= I2C_DEV\(0\)
 TEST_MAG3110_ADDR          ?= 0x0E
 TEST_MAG3110_USER_OFFSET_X ?= -2000
 TEST_MAG3110_USER_OFFSET_Y ?= 180

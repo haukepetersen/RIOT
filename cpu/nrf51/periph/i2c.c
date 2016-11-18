@@ -24,7 +24,7 @@
 #include "periph/i2c.h"
 #include "periph_conf.h"
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
 
 #ifdef I2C_NUMOF
@@ -99,6 +99,9 @@ int i2c_init_master(i2c_t bus, i2c_speed_t speed)
 
     /* power on the bus */
     dev(bus)->POWER = TWI_POWER_POWER_Enabled;
+
+    DEBUG("[i2c] pins: SCL %i, SDA %i\n",
+          (int)i2c_config[bus].pin_scl, (int)i2c_config[bus].pin_sda);
 
     /* pin configuration */
     GPIO_BASE->PIN_CNF[i2c_config[bus].pin_scl] = (GPIO_PIN_CNF_DRIVE_S0D1 << GPIO_PIN_CNF_DRIVE_Pos);

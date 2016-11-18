@@ -26,7 +26,7 @@
 #include "mag3110.h"
 #include "mag3110_reg.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 #define I2C_SPEED                  I2C_SPEED_FAST
@@ -66,12 +66,14 @@ int mag3110_init(mag3110_t *dev, i2c_t i2c, uint8_t address, uint8_t dros)
 
     i2c_acquire(dev->i2c);
     /* initialize the I2C bus */
+    DEBUG("mag31: init_master\n");
     if (i2c_init_master(i2c, I2C_SPEED) < 0) {
         i2c_release(dev->i2c);
         return -2;
     }
     i2c_release(dev->i2c);
 
+    DEBUG("mag31 test\n");
     if (mag3110_test(dev)) {
         return -3;
     }
