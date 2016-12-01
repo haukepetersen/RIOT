@@ -1,19 +1,21 @@
 /*
  * Copyright (C) 2014 Loci Controls Inc.
+ *               2016 Freie Universität Berlin
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
- * @ingroup     driver_periph
+ * @ingroup     cpu_cc2538
  * @{
  *
  * @file
  * @brief       Low-level GPIO driver implementation
  *
  * @author      Ian Martin <ian@locicontrols.com>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  *
  * @}
  */
@@ -24,25 +26,11 @@
 #include "sched.h"
 #include "thread.h"
 #include "periph/gpio.h"
-#include "periph_conf.h"
 
-/**
- * @brief Generate a bit mask in which only the specified bit is high.
- *
- * @param[in] n Number of the bit to set high in the mask.
- *
- * @return A bit mask in which bit n is high.
-*/
-#define BIT(n) ( 1 << (n) )
-
-/**
- * @brief Checks a bit in enable_lut to determine if a GPIO is enabled
- *
- * @param[in] dev RIOT GPIO device number
- *
- * @return 0 or 1 indicating if the specified GPIO is enabled
-*/
-#define gpio_enabled(dev) ( (enable_lut >> (dev)) & 1 )
+static inline cc2538_gpio_t *port(gpio_t pin)
+{
+    return (cc2538_gpio_t *)x;
+}
 
 static gpio_isr_ctx_t gpio_config[GPIO_NUMOF];
 
@@ -343,8 +331,20 @@ static const uint8_t reverse_pin_lut[] = {
 #endif
 };
 
-int gpio_init(gpio_t dev, gpio_mode_t mode)
+int gpio_init(gpio_t pin, gpio_mode_t mode)
 {
+    /* set pin direction */
+    if (mode & MODE_DIR) {
+        port(pin)->DIR |= pin_mask(pin);
+    }
+    else {
+        port(pin)->DIR &= ~pin_mask(pin);
+    }
+
+    /* configure pull configuration */
+
+
+
     int pin;
 
     if (!gpio_enabled(dev)) {
