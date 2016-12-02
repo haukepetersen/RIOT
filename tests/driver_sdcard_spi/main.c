@@ -42,13 +42,13 @@ static int _init(int argc, char **argv)
     printf("Initializing SD-card at SPI_%i...", card->spi_dev);
 
     if (sdcard_spi_init(card)) {
-        printf("[OK]\n");
+        puts("[OK]\n");
         return 0;
     }
     else {
-        printf("[FAILED]\n");
+        puts("[FAILED]\n");
         #if ENABLE_DEBUG != 1
-        printf("enable debugging in sdcard_spi.c for further information!\n");
+        puts("enable debugging in sdcard_spi.c for further information!\n");
         #endif
         return -2;
     }
@@ -57,7 +57,7 @@ static int _init(int argc, char **argv)
 
 static int _cid(int argc, char **argv)
 {
-    printf("----------------------------------------\n");
+    puts("----------------------------------------\n");
     printf("MID: %d\n", card->cid.MID);
     printf("OID: %c%c\n", card->cid.OID[0], card->cid.OID[1]);
     printf("PNM: %c%c%c%c%c\n", card->cid.PNM[0], card->cid.PNM[1], card->cid.PNM[2],
@@ -66,14 +66,14 @@ static int _cid(int argc, char **argv)
     printf("PSN: %lu\n", card->cid.PSN);
     printf("MDT: %d\n", card->cid.MDT);
     printf("CRC: %d\n", card->cid.CRC);
-    printf("----------------------------------------\n");
+    puts("----------------------------------------\n");
     return 0;
 }
 
 static int _csd(int argc, char **argv)
 {
     if (card->csd_structure == SD_CSD_V1) {
-        printf("CSD V1\n----------------------------------------\n");
+        puts("CSD V1\n----------------------------------------\n");
         printf("CSD_STRUCTURE: 0x%08x\n", card->csd.v1.CSD_STRUCTURE);
         printf("TAAC: 0x%08x\n", card->csd.v1.TAAC);
         printf("NSAC: 0x%08x\n", card->csd.v1.NSAC);
@@ -105,7 +105,7 @@ static int _csd(int argc, char **argv)
         printf("CRC: 0x%08x\n", card->csd.v1.CRC);
     }
     else if (card->csd_structure == SD_CSD_V2) {
-        printf("CSD V2:\n----------------------------------------\n");
+        puts("CSD V2:\n----------------------------------------\n");
         printf("CSD_STRUCTURE: 0x%08x\n", card->csd.v2.CSD_STRUCTURE);
         printf("TAAC: 0x%08x\n", card->csd.v2.TAAC);
         printf("NSAC: 0x%08x\n", card->csd.v2.NSAC);
@@ -131,7 +131,7 @@ static int _csd(int argc, char **argv)
         printf("FILE_FORMAT: 0x%08x\n", card->csd.v2.FILE_FORMAT);
         printf("CRC: 0x%08x\n", card->csd.v2.CRC);
     }
-    printf("----------------------------------------\n");
+    puts("----------------------------------------\n");
     return 0;
 }
 
@@ -145,7 +145,7 @@ static int _size(int argc, char **argv)
     uint32_t gb_int = bytes / (1000000000);
     uint32_t gb_frac = (bytes / (1000000)) - (gb_int * 1000); //[MB]
 
-    printf("\nCard size: ");
+    puts("\nCard size: ");
     fflush(stdout);
     print_u64_dec( bytes );
     printf(" bytes (%lu,%03lu GiB | %lu,%03lu GB)\n", gib_int, gib_frac, gb_int, gb_frac);
@@ -196,7 +196,7 @@ static int _read(int argc, char **argv)
                     printf("%c", buffer[i]);
                 }
                 else {
-                    printf(ASCII_UNPRINTABLE_REPLACEMENT);
+                    puts(ASCII_UNPRINTABLE_REPLACEMENT);
                 }
             }
             else {
@@ -204,11 +204,11 @@ static int _read(int argc, char **argv)
             }
 
             if ((i % BLOCK_PRINT_BYTES_PER_LINE) == (BLOCK_PRINT_BYTES_PER_LINE - 1)) {
-                printf("\n"); /* line break after BLOCK_PRINT_BYTES_PER_LINE bytes */
+                puts("\n"); /* line break after BLOCK_PRINT_BYTES_PER_LINE bytes */
             }
 
             if ((i % SD_HC_BLOCK_SIZE) == (SD_HC_BLOCK_SIZE - 1)) {
-                printf("\n"); /* empty line after each printed block */
+                puts("\n"); /* empty line after each printed block */
             }
         }
         total_read += chunks_read;
@@ -230,10 +230,10 @@ static int _write(int argc, char **argv)
         printf("will write '%s' (%d chars) at start of block %d\n", data, size, bladdr);
         if (argc == 4 && (strcmp("-r", argv[3]) == 0)) {
             repeat_data = true;
-            printf("the rest of the block will be filled with copies of that string\n");
+            puts("the rest of the block will be filled with copies of that string\n");
         }
         else {
-            printf("the rest of the block will be filled with zeros\n");
+            puts("the rest of the block will be filled with zeros\n");
         }
     }
     else {
