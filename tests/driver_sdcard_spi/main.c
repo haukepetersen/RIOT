@@ -17,14 +17,6 @@
  *
  * @}
  */
-
-#ifndef TEST_SDCARD_SPI
-#error "TEST_SDCARD_SPI not defined"
-#endif
-#ifndef TEST_SDCARD_CS
-#error "TEST_SDCARD_CS not defined"
-#endif
-
 #include "shell.h"
 #include "sdcard_spi.h"
 #include "fmt.h"
@@ -338,9 +330,7 @@ repeatedly write data to coplete block", _write },
 int main(void)
 {
     puts("SD-card spi driver test application\n");
-    
-    card->spi_dev = TEST_SDCARD_SPI;
-    card->cs_pin = TEST_SDCARD_CS;
+
     card->init_done = false;
 
     puts("insert SD-card and use 'init' command to set card to spi mode\n");

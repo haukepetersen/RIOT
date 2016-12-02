@@ -27,7 +27,11 @@
 #include <string.h>
 #include <inttypes.h>
 
+#ifdef SDCARD_SPI_CONFIGS
+sd_card_t cards[NUM_OF_SD_CARDS] = SDCARD_SPI_CONFIGS;
+#else
 sd_card_t cards[NUM_OF_SD_CARDS];
+#endif
 
 static inline void _select_card_spi(sd_card_t *card);
 static inline void _unselect_card_spi(sd_card_t *card);
