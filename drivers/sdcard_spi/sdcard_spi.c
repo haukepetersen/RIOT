@@ -17,7 +17,7 @@
  *
  * @}
  */
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 #include "sdcard_spi.h"
 #include "periph/spi.h"
@@ -103,7 +103,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
             gpio_set(card->cs_pin); /* unselect sdcard (set cs_pin high) for power up sequence */
 
             for (int i = 0; i < SD_POWERSEQUENCE_CLOCK_COUNT; i += 8) {
-                spi_transfer_byte(card->spi_dev, 0xFF, 0);
+                spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, 0);
             }
 
             spi_release(card->spi_dev);
@@ -112,7 +112,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
         case SD_INIT_SEND_CMD0:
             DEBUG("SD_INIT_SEND_CMD0\n");
             _select_card_spi(card);
-            char cmd0_r1 = sdcard_spi_send_cmd(card, SD_CMD_0, 0x00000000, INIT_CMD0_RETRY_CNT);
+            char cmd0_r1 = sdcard_spi_send_cmd(card, SD_CMD_0, SD_CMD_NO_ARG, INIT_CMD0_RETRY_CNT);
             if (R1_VALID(cmd0_r1) && !R1_ERROR(cmd0_r1) && R1_IDLE_BIT_SET(cmd0_r1)) {
                 DEBUG("CMD0: [OK]\n");
                 _unselect_card_spi(card);
@@ -332,7 +332,7 @@ static inline bool _wait_for_token(sd_card_t *card, char token, int max_retries)
 
     do {
         char read_byte = 0;
-        if (spi_transfer_byte(card->spi_dev, 0xFF, &read_byte) == 1) {
+        if (spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, &read_byte) == 1) {
             if (read_byte == token) {
                 DEBUG("_wait_for_token: [MATCH]\n");
                 return true;
@@ -356,7 +356,7 @@ static inline void _send_dummy_byte(sd_card_t *card)
 {
     char read_byte;
 
-    if (spi_transfer_byte(card->spi_dev, 0xFF, &read_byte) == 1) {
+    if (spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, &read_byte) == 1) {
         DEBUG("_send_dummy_byte:echo: 0x%02x\n", read_byte);
     }
     else {
@@ -370,7 +370,7 @@ static inline bool _wait_for_not_busy(sd_card_t *card, int max_retries)
     int tried = 0;
 
     do {
-        if (spi_transfer_byte(card->spi_dev, 0xFF, &read_byte) == 1) {
+        if (spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, &read_byte) == 1) {
             if (read_byte == 0xFF) {
                 DEBUG("_wait_for_not_busy: [OK]\n");
                 return true;
@@ -416,9 +416,9 @@ static uint16_t _crc_16(const char *data, size_t n)
     for (size_t i = 0; i < n; i++) {
         crc = (uint8_t)(crc >> 8) | (crc << 8);
         crc ^= data[i];
-        crc ^= (uint8_t)(crc & 0xff) >> 4;
+        crc ^= (uint8_t)(crc & 0xFF) >> 4;
         crc ^= crc << 12;
-        crc ^= (crc & 0xff) << 5;
+        crc ^= (crc & 0xFF) << 5;
     }
     return crc;
 }
@@ -431,11 +431,11 @@ char sdcard_spi_send_cmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, in
     char cmd_data[6];
 
     cmd_data[0] = SD_CMD_PREFIX_MASK | sd_cmd_idx;
-    cmd_data[1] = argument >> 24;
-    cmd_data[2] = (argument >> 16) & 0xFF;
+    cmd_data[1] = argument >> (3 * 8);
+    cmd_data[2] = (argument >> (2 * 8)) & 0xFF;
     cmd_data[3] = (argument >> 8) & 0xFF;
     cmd_data[4] = argument & 0xFF;
-    cmd_data[5] = _crc_7(cmd_data, 5);
+    cmd_data[5] = _crc_7(cmd_data, sizeof(cmd_data) - 1);
 
     char echo[sizeof(cmd_data)];
 
@@ -519,7 +519,7 @@ static inline char _wait_for_r1(sd_card_t *card, int max_retries)
     char r1;
 
     do {
-        if (spi_transfer_byte(card->spi_dev, 0xFF, &r1) != 1) {
+        if (spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, &r1) != 1) {
             DEBUG("_wait_for_r1: spi_transfer_byte:[ERROR]\n");
             tried++;
             continue;
@@ -694,7 +694,7 @@ static sd_rw_response_t _write_data_packet(sd_card_t *card, char token, char *da
 
                 char data_response;
 
-                if (spi_transfer_byte(card->spi_dev, 0xFF, &data_response) == 1) {
+                if (spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, &data_response) == 1) {
 
                     DEBUG("_write_data_packet: DATA_RESPONSE: 0x%02x\n", data_response);
 
@@ -975,7 +975,7 @@ uint32_t sdcard_spi_get_sector_count(sd_card_t *card)
             return (card->csd.v1.C_SIZE + 1) * mult;
         }
         else if (card->csd_structure == SD_CSD_V2) {
-            return (card->csd.v2.C_SIZE + 1) * 1024;
+            return (card->csd.v2.C_SIZE + 1) * SD_CSD_V2_C_SIZE_BLOCK_MULT;
         }
     }
     return 0;

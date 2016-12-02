@@ -42,13 +42,13 @@ static int _init(int argc, char **argv)
     printf("Initializing SD-card at SPI_%i...", card->spi_dev);
 
     if (sdcard_spi_init(card)) {
-        puts("[OK]\n");
+        puts("[OK]");
         return 0;
     }
     else {
-        puts("[FAILED]\n");
+        puts("[FAILED]");
         #if ENABLE_DEBUG != 1
-        puts("enable debugging in sdcard_spi.c for further information!\n");
+        puts("enable debugging in sdcard_spi.c for further information!");
         #endif
         return -2;
     }
@@ -57,7 +57,7 @@ static int _init(int argc, char **argv)
 
 static int _cid(int argc, char **argv)
 {
-    puts("----------------------------------------\n");
+    puts("----------------------------------------");
     printf("MID: %d\n", card->cid.MID);
     printf("OID: %c%c\n", card->cid.OID[0], card->cid.OID[1]);
     printf("PNM: %c%c%c%c%c\n", card->cid.PNM[0], card->cid.PNM[1], card->cid.PNM[2],
@@ -66,14 +66,14 @@ static int _cid(int argc, char **argv)
     printf("PSN: %lu\n", card->cid.PSN);
     printf("MDT: %d\n", card->cid.MDT);
     printf("CRC: %d\n", card->cid.CRC);
-    puts("----------------------------------------\n");
+    puts("----------------------------------------");
     return 0;
 }
 
 static int _csd(int argc, char **argv)
 {
     if (card->csd_structure == SD_CSD_V1) {
-        puts("CSD V1\n----------------------------------------\n");
+        puts("CSD V1\n----------------------------------------");
         printf("CSD_STRUCTURE: 0x%08x\n", card->csd.v1.CSD_STRUCTURE);
         printf("TAAC: 0x%08x\n", card->csd.v1.TAAC);
         printf("NSAC: 0x%08x\n", card->csd.v1.NSAC);
@@ -105,7 +105,7 @@ static int _csd(int argc, char **argv)
         printf("CRC: 0x%08x\n", card->csd.v1.CRC);
     }
     else if (card->csd_structure == SD_CSD_V2) {
-        puts("CSD V2:\n----------------------------------------\n");
+        puts("CSD V2:\n----------------------------------------");
         printf("CSD_STRUCTURE: 0x%08x\n", card->csd.v2.CSD_STRUCTURE);
         printf("TAAC: 0x%08x\n", card->csd.v2.TAAC);
         printf("NSAC: 0x%08x\n", card->csd.v2.NSAC);
@@ -131,7 +131,7 @@ static int _csd(int argc, char **argv)
         printf("FILE_FORMAT: 0x%08x\n", card->csd.v2.FILE_FORMAT);
         printf("CRC: 0x%08x\n", card->csd.v2.CRC);
     }
-    puts("----------------------------------------\n");
+    puts("----------------------------------------");
     return 0;
 }
 
@@ -196,7 +196,7 @@ static int _read(int argc, char **argv)
                     printf("%c", buffer[i]);
                 }
                 else {
-                    puts(ASCII_UNPRINTABLE_REPLACEMENT);
+                    printf(ASCII_UNPRINTABLE_REPLACEMENT);
                 }
             }
             else {
@@ -204,11 +204,11 @@ static int _read(int argc, char **argv)
             }
 
             if ((i % BLOCK_PRINT_BYTES_PER_LINE) == (BLOCK_PRINT_BYTES_PER_LINE - 1)) {
-                puts("\n"); /* line break after BLOCK_PRINT_BYTES_PER_LINE bytes */
+                puts(""); /* line break after BLOCK_PRINT_BYTES_PER_LINE bytes */
             }
 
             if ((i % SD_HC_BLOCK_SIZE) == (SD_HC_BLOCK_SIZE - 1)) {
-                puts("\n"); /* empty line after each printed block */
+                puts(""); /* empty line after each printed block */
             }
         }
         total_read += chunks_read;
@@ -230,10 +230,10 @@ static int _write(int argc, char **argv)
         printf("will write '%s' (%d chars) at start of block %d\n", data, size, bladdr);
         if (argc == 4 && (strcmp("-r", argv[3]) == 0)) {
             repeat_data = true;
-            puts("the rest of the block will be filled with copies of that string\n");
+            puts("the rest of the block will be filled with copies of that string");
         }
         else {
-            puts("the rest of the block will be filled with zeros\n");
+            puts("the rest of the block will be filled with zeros");
         }
     }
     else {
@@ -329,13 +329,13 @@ repeatedly write data to coplete block", _write },
 
 int main(void)
 {
-    puts("SD-card spi driver test application\n");
+    puts("SD-card spi driver test application");
 
     card->init_done = false;
 
-    puts("insert SD-card and use 'init' command to set card to spi mode\n");
+    puts("insert SD-card and use 'init' command to set card to spi mode");
     puts("WARNING: using 'write' or 'copy' commands WILL overwrite data on your sd-card and\n\
-almost for sure corrupt existing filesystems, partitions and contained data!\n");
+almost for sure corrupt existing filesystems, partitions and contained data!");
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
     return 0;
