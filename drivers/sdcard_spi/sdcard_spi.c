@@ -22,6 +22,7 @@
 #include "sdcard_spi.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
+#include "xtimer.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -75,39 +76,44 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
 
         case SD_INIT_START:
             DEBUG("SD_INIT_START\n");
+            int mosi_init_resu = gpio_init(card->mosi_pin,  GPIO_OUT);
+            int clk_init_resu  = gpio_init(card->clk_pin, GPIO_OUT);
+            int cs_init_resu   = gpio_init(card->cs_pin,    GPIO_OUT);
 
-            int state = spi_init_master(card->spi_dev, SD_CARD_SPI_MODE, SD_CARD_SPI_SPEED_PREINIT);
-
-            if (state == 0) {
-                DEBUG("spi_init_master(): [OK]\n");
-                DEBUG("initializing GPIO for chip select...\n");
-                int gpio_init_resu = gpio_init(card->cs_pin, GPIO_OUT);
-                if (gpio_init_resu == 0) {
-                    DEBUG("gpio_init(): [OK]\n");
-                    return SD_INIT_SPI_POWER_SEQ;
-                }
-                else {
-                    DEBUG("gpio_init(): [ERROR]\n");
-                }
+            if ((mosi_init_resu == 0) && (clk_init_resu == 0) && (cs_init_resu == 0)) {
+                DEBUG("gpio_init(): [OK]\n");
+                xtimer_init();
+                return SD_INIT_SPI_POWER_SEQ;
             }
             else {
-                DEBUG("spi_init_master(): [ERROR]\n");
+                DEBUG("gpio_init(): [ERROR]\n");
             }
             return SD_INIT_CARD_UNKNOWN;
 
         case SD_INIT_SPI_POWER_SEQ:
             DEBUG("SD_INIT_SPI_POWER_SEQ\n");
-            /* powersequence: perform at least 74 clockcycles with DI_PIN 
-            of sd-card being high (send dummy bytes with 0xFF) */
-            spi_acquire(card->spi_dev);
-            gpio_set(card->cs_pin); /* unselect sdcard (set cs_pin high) for power up sequence */
+            
+            gpio_set(card->mosi_pin);
+            gpio_set(card->cs_pin);   /* unselect sdcard for power up sequence */
 
-            for (int i = 0; i < SD_POWERSEQUENCE_CLOCK_COUNT; i += 8) {
-                spi_transfer_byte(card->spi_dev, SD_CARD_DUMMY_BYTE, 0);
+            /* powersequence: perform at least 74 clockcycles with mosi_pin being high 
+            (same as sending dummy bytes with 0xFF) */
+            for (int i = 0; i < SD_POWERSEQUENCE_CLOCK_COUNT; i += 1) {
+                gpio_set(card->clk_pin);
+                xtimer_usleep(SD_CARD_PREINIT_CLOCK_PERIOD_US/2);
+                gpio_clear(card->clk_pin);
+                xtimer_usleep(SD_CARD_PREINIT_CLOCK_PERIOD_US/2);
             }
 
-            spi_release(card->spi_dev);
-            return SD_INIT_SEND_CMD0;
+            if (spi_init_master(card->spi_dev, SD_CARD_SPI_MODE, SD_CARD_SPI_SPEED_PREINIT) == 0) {
+                DEBUG("spi_init_master(): [OK]\n");
+                DEBUG("initializing GPIO for chip select...\n");
+                return SD_INIT_SEND_CMD0;
+            }
+            else {
+                DEBUG("spi_init_master(): [ERROR]\n");
+            }
+            return SD_INIT_CARD_UNKNOWN;
 
         case SD_INIT_SEND_CMD0:
             DEBUG("SD_INIT_SEND_CMD0\n");
