@@ -107,7 +107,6 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
 
             if (spi_init_master(card->spi_dev, SD_CARD_SPI_MODE, SD_CARD_SPI_SPEED_PREINIT) == 0) {
                 DEBUG("spi_init_master(): [OK]\n");
-                DEBUG("initializing GPIO for chip select...\n");
                 return SD_INIT_SEND_CMD0;
             }
             else {
