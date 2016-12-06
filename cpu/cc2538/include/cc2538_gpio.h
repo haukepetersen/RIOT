@@ -218,14 +218,8 @@ typedef struct {
  * @brief IOC port component registers
  */
 typedef struct {
-    cc2538_reg_t PA_SEL[8];         /**< Port A SEL register */
-    cc2538_reg_t PB_SEL[8];         /**< Port B SEL register */
-    cc2538_reg_t PC_SEL[8];         /**< Port C SEL register */
-    cc2538_reg_t PD_SEL[8];         /**< Port D SEL register */
-    cc2538_reg_t PA_OVER[8];        /**< Port A OVER register */
-    cc2538_reg_t PB_OVER[8];        /**< Port B OVER register */
-    cc2538_reg_t PC_OVER[8];        /**< Port C OVER register */
-    cc2538_reg_t PD_OVER[8];        /**< Port D OVER register */
+    cc2538_reg_t SEL[32];               /**< Port A to D SEL registers */
+    cc2538_reg_t OVER[32];              /**< Port A OVER register */
 } cc2538_ioc_t;
 
 /**
