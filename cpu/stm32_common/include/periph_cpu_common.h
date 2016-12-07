@@ -186,6 +186,14 @@ void periph_clk_dis(bus_t bus, uint32_t mask);
 void gpio_init_af(gpio_t pin, gpio_af_t af);
 
 /**
+ * @brief   Configure the alternate function for the given pin
+ *
+ * @param[in] pin       pin to configure
+ * @param[in] af        alternate function to use
+ */
+void gpio_init_af(gpio_t pin, gpio_af_t af);
+
+/**
  * @brief   Configure the given pin to be used as ADC input
  *
  * @param[in] pin       pin to configure
