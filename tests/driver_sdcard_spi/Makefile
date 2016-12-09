@@ -7,7 +7,6 @@ FEATURES_REQUIRED += periph_spi
 USEMODULE += sdcard_spi
 USEMODULE += fmt
 USEMODULE += shell
-USEMODULE += xtimer
 
 # set default device parameters in case they are undefined
 NUM_OF_SD_CARDS ?= 1
