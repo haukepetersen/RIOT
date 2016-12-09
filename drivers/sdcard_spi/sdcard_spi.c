@@ -47,10 +47,10 @@ static sd_rw_response_t _read_data_packet(sd_card_t *card, char token, char *dat
 static sd_rw_response_t _write_data_packet(sd_card_t *card, char token, char *data, int size);
 
 /* CRC-7 (polynomial: x^7 + x^3 + 1) LSB of CRC-7 in a 8-bit variable is always 1*/
-static char _crc_7(const char *data, int n);            
+static char _crc_7(const char *data, int n);
 
 /* CRC-16 (CRC-CCITT) (polynomial: x^16 + x^12 + x^5 + x^1) */
-static uint16_t _crc_16(const char *data, size_t n);    
+static uint16_t _crc_16(const char *data, size_t n);
 
 /* use this transfer method instead of _transfer_bytes to force the use of 0xFF as dummy bytes */
 static inline int _transfer_bytes(sd_card_t *card, char *out, char *in, unsigned int length);
@@ -88,9 +88,9 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
         case SD_INIT_START:
             DEBUG("SD_INIT_START\n");
 
-            if ((gpio_init(card->mosi_pin, GPIO_OUT) == 0) && 
+            if ((gpio_init(card->mosi_pin, GPIO_OUT) == 0) &&
                 (gpio_init(card->clk_pin,  GPIO_OUT) == 0) &&
-                (gpio_init(card->cs_pin,   GPIO_OUT) == 0) && 
+                (gpio_init(card->cs_pin,   GPIO_OUT) == 0) &&
                 (gpio_init(card->miso_pin, GPIO_IN_PU) == 0) &&
                 ((card->power_pin == GPIO_UNDEF) || (gpio_init(card->power_pin, GPIO_OUT) == 0))) {
 
@@ -105,7 +105,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
 
         case SD_INIT_SPI_POWER_SEQ:
             DEBUG("SD_INIT_SPI_POWER_SEQ\n");
-            
+
             if (card->power_pin != GPIO_UNDEF) {
                 gpio_write(card->power_pin, card->power_pin_act_high);
                 xtimer_usleep(SD_CARD_WAIT_AFTER_POWER_UP_US);
@@ -114,7 +114,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
             gpio_set(card->mosi_pin);
             gpio_set(card->cs_pin);   /* unselect sdcard for power up sequence */
 
-            /* powersequence: perform at least 74 clockcycles with mosi_pin being high 
+            /* powersequence: perform at least 74 clockcycles with mosi_pin being high
             (same as sending dummy bytes with 0xFF) */
             for (int i = 0; i < SD_POWERSEQUENCE_CLOCK_COUNT; i += 1) {
                 gpio_set(card->clk_pin);
@@ -132,7 +132,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
 
             /* use soft-spi to perform init command to allow use of internal pull-ips on miso */
             _dyn_spi_transfer_byte = &_sw_spi_transfer_byte;
-            
+
             _select_card_spi(card);
             char cmd0_r1 = sdcard_spi_send_cmd(card, SD_CMD_0, SD_CMD_NO_ARG, INIT_CMD0_RETRY_CNT);
             if (R1_VALID(cmd0_r1) && !R1_ERROR(cmd0_r1) && R1_IDLE_BIT_SET(cmd0_r1)) {
@@ -184,7 +184,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
 
                 if (_transfer_bytes(card, 0, &r7[0], sizeof(r7)) == sizeof(r7)) {
                     DEBUG("R7 response: 0x%02x 0x%02x 0x%02x 0x%02x\n", r7[0], r7[1], r7[2], r7[3]);
-                    /* check if lower 12 bits (voltage range and check pattern) of response and arg 
+                    /* check if lower 12 bits (voltage range and check pattern) of response and arg
                        are equal to verify compatibility and communication is working properly */
                     if (((r7[2] & 0b00001111) == ((cmd8_arg >> 8) & 0b00001111)) &&
                         (r7[3] == (cmd8_arg & 0xFF))) {
@@ -218,7 +218,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
             int acmd41_hcs_retries = 0;
             do {
                 char acmd41hcs_r1 = sdcard_spi_send_acmd(card, SD_CMD_41, SD_ACMD_41_ARG_HC, 0);
-                if (R1_VALID(acmd41hcs_r1) && !R1_ERROR(acmd41hcs_r1) && 
+                if (R1_VALID(acmd41hcs_r1) && !R1_ERROR(acmd41hcs_r1) &&
                     !R1_IDLE_BIT_SET(acmd41hcs_r1)) {
                     DEBUG("ACMD41: [OK]\n");
                     return SD_INIT_SEND_CMD58;
@@ -887,7 +887,7 @@ sd_rw_response_t _read_cid(sd_card_t *card)
 {
     char cid_raw_data[SD_SIZE_OF_CID_AND_CSD_REG];
     sd_rw_response_t state;
-    int nbl = _read_blocks(card, SD_CMD_10, 0, cid_raw_data, SD_SIZE_OF_CID_AND_CSD_REG, 
+    int nbl = _read_blocks(card, SD_CMD_10, 0, cid_raw_data, SD_SIZE_OF_CID_AND_CSD_REG,
                            SD_BLOCKS_FOR_REG_READ, &state);
 
     DEBUG("_read_cid: _read_blocks: nbl=%d state=%d\n", nbl, state);
@@ -911,7 +911,7 @@ sd_rw_response_t _read_cid(sd_card_t *card)
             return SD_RW_OK;
         }
         else {
-            DEBUG("_read_cid: [SD_RW_CRC_MISMATCH] (data-crc: 0x%02x | calc-crc: 0x%02x)\n", 
+            DEBUG("_read_cid: [SD_RW_CRC_MISMATCH] (data-crc: 0x%02x | calc-crc: 0x%02x)\n",
                   cid_raw_data[SD_SIZE_OF_CID_AND_CSD_REG - 1], crc7);
             return SD_RW_CRC_MISMATCH;
         }

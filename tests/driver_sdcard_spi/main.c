@@ -26,7 +26,7 @@
 
 /* independent of what you specify in a r/w cmd this is the maximum number of blocks read at once.
    If you call read with a bigger blockcount the read is performed in chunks*/
-#define MAX_BLOCKS_IN_BUFFER 4              
+#define MAX_BLOCKS_IN_BUFFER 4
 #define BLOCK_PRINT_BYTES_PER_LINE 16
 #define FIRST_PRINTABLE_ASCII_CHAR 0x20
 #define ASCII_UNPRINTABLE_REPLACEMENT "."
@@ -177,7 +177,7 @@ static int _read(int argc, char **argv)
             chunk_blocks = MAX_BLOCKS_IN_BUFFER;
         }
         sd_rw_response_t state;
-        int chunks_read = sdcard_spi_read_blocks(card, blockaddr + total_read, buffer, 
+        int chunks_read = sdcard_spi_read_blocks(card, blockaddr + total_read, buffer,
                                                  SD_HC_BLOCK_SIZE, chunk_blocks, &state);
 
         if (state != SD_RW_OK) {

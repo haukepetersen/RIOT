@@ -15,7 +15,7 @@
  * @brief       Low-level driver for reading and writing sd-cards via spi interface.
  *              For details of the sd card standard and the spi mode refer to
  *              "SD Specifications Part 1 Physical Layer Simplified Specification".
- *              References to the sd specs in this file apply to Version 5.00 
+ *              References to the sd specs in this file apply to Version 5.00
  *              from August 10, 2016. For further details see
  *              https://www.sdcard.org/downloads/pls/pdf/part1_500.pdf.
  *
@@ -31,7 +31,7 @@ extern "C" {
 
 #include "periph/spi.h"
 #include "periph/gpio.h"
-#include "stdbool.h"    
+#include "stdbool.h"
 
 
 /* number of clocks that should be applied to the card on init
@@ -72,10 +72,10 @@ extern "C" {
 #define OCR_VOLTAGE_3_3_TO_3_4 (1 << 21)
 
 /* card capacity status (CCS=0: the card is SDSD; CCS=1: card is SDHC or SDXC) */
-#define OCR_CCS (1 << 30) 
+#define OCR_CCS (1 << 30)
 
 /* This bit is set to low if the card has not finished power up routine */
-#define OCR_POWER_UP_STATUS (1 << 31) 
+#define OCR_POWER_UP_STATUS (1 << 31)
 
 /* to ensure the voltage range check on init is done properly you need to
    define this according to your actual interface/wiring with the sd-card */
@@ -94,12 +94,12 @@ extern "C" {
 
 #define SD_CMD_16 16 /* In case of SDSC Card, block length is set by this command */
 #define SD_CMD_17 17 /* Reads a block of the size selected by the SET_BLOCKLEN command */
-#define SD_CMD_18 18 /* Continuously transfers data blocks from card to host 
+#define SD_CMD_18 18 /* Continuously transfers data blocks from card to host
                             until interrupted by a STOP_TRANSMISSION command */
 #define SD_CMD_24 24 /* Writes a block of the size selected by the SET_BLOCKLEN command */
 #define SD_CMD_25 25 /* Continuously writes blocks of data until 'Stop Tran'token is sent */
 #define SD_CMD_41 41 /* Reserved (used for ACMD41) */
-#define SD_CMD_55 55 /* Defines to the card that the next commmand is an application specific 
+#define SD_CMD_55 55 /* Defines to the card that the next commmand is an application specific
                             command rather than a standard command */
 #define SD_CMD_58 58 /* Reads the OCR register of a card */
 #define SD_CMD_59 59 /* Turns the CRC option on or off. Argument: 1:on; 0:off */
@@ -140,15 +140,15 @@ extern "C" {
 #define SD_HC_BLOCK_SIZE 512
 
 /* memory capacity in bytes = (C_SIZE+1) * SD_CSD_V2_C_SIZE_BLOCK_MULT * BLOCK_LEN */
-#define SD_CSD_V2_C_SIZE_BLOCK_MULT 1024 
+#define SD_CSD_V2_C_SIZE_BLOCK_MULT 1024
 
 #define SD_CARD_SPI_MODE SPI_CONF_FIRST_RISING
 
 /* this speed setting is only used while the init procedure is performed */
-#define SD_CARD_SPI_SPEED_PREINIT SPI_SPEED_100KHZ  
+#define SD_CARD_SPI_SPEED_PREINIT SPI_SPEED_100KHZ
 
 /* after init procedure is finished the driver auto sets the card to this speed */
-#define SD_CARD_SPI_SPEED_POSTINIT SPI_SPEED_10MHZ  
+#define SD_CARD_SPI_SPEED_POSTINIT SPI_SPEED_10MHZ
 
 #define SD_CARD_DUMMY_BYTE 0xFF
 
@@ -286,12 +286,12 @@ struct {
 
 /**
  * @brief           Initializes the sd-card with the given parameters in sd_card_t structure.
- *                  The init procedure also takes care of initializing the spi peripheral to master 
- *                  mode and performing all neccecary steps to set the sd-card to spi-mode. Reading 
+ *                  The init procedure also takes care of initializing the spi peripheral to master
+ *                  mode and performing all neccecary steps to set the sd-card to spi-mode. Reading
  *                  the CID and CSD registers is also done within this routine and their
  *                  values are copied to the given sd_card_t struct.
  *
- * @param[in] card  struct that contains the pre-set spi_dev (e.g. SPI_1) and cs_pin that are 
+ * @param[in] card  struct that contains the pre-set spi_dev (e.g. SPI_1) and cs_pin that are
  *                  connected to the sd card.
  *                  Initialisation of spi_dev and cs_pin are done within this driver.
  *
@@ -304,16 +304,16 @@ bool sdcard_spi_init(sd_card_t *card);
  * @brief                 Sends a cmd to the sd card.
  *
  * @param[in] card        Initialized sd-card struct
- * @param[in] sd_cmd_idx  A supported sd-card command index for SPI-mode like defined in 
+ * @param[in] sd_cmd_idx  A supported sd-card command index for SPI-mode like defined in
  *                        "7.3.1.3 Detailed Command Description" of sd spec.
  *                        (for CMD<X> this parameter is simply the integer value <X>).
- * @param[in] argument    The argument for the given cmd. As described by "7.3.1.1 Command Format". 
+ * @param[in] argument    The argument for the given cmd. As described by "7.3.1.1 Command Format".
  *                        This argument is transmitted byte wise with most significant byte first.
- * @param[in] max_retry   Specifies how often the command should be retried if an error occures. 
+ * @param[in] max_retry   Specifies how often the command should be retried if an error occures.
  *                        Use 0 to try only once, -1 to try forever, or n to retry n times.
  *
  * @return                R1 response of the command if no (low-level) communication error occured
- * @return                SD_INVALID_R1_RESPONSE if either waiting for the card to enter 
+ * @return                SD_INVALID_R1_RESPONSE if either waiting for the card to enter
  *                        not-busy-state timed out or spi communication failed
  */
 char sdcard_spi_send_cmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, int max_retry);
@@ -322,16 +322,16 @@ char sdcard_spi_send_cmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, in
  * @brief                 Sends an acmd to the sd card. ACMD<n> consists of sending CMD55 + CMD<n>
  *
  * @param[in] card        Initialized sd-card struct
- * @param[in] sd_cmd_idx  A supported sd-card command index for SPI-mode like defined in 
+ * @param[in] sd_cmd_idx  A supported sd-card command index for SPI-mode like defined in
  *                        "7.3.1.3 Detailed Command Description" of sd spec.
  *                        (for ACMD<X> this parameter is simply the integer value <X>).
- * @param[in] argument    The argument for the given cmd. As described by "7.3.1.1 Command Format". 
+ * @param[in] argument    The argument for the given cmd. As described by "7.3.1.1 Command Format".
  *                        This argument is transmitted byte wise with most significant byte first.
- * @param[in] max_retry   Specifies how often the command should be retried if an error occures. 
+ * @param[in] max_retry   Specifies how often the command should be retried if an error occures.
  *                        Use 0 to try only once, -1 to try forever, or n to retry n times.
  *
  * @return                R1 response of the command if no (low-level) communication error occured
- * @return                SD_INVALID_R1_RESPONSE if either waiting for the card to enter 
+ * @return                SD_INVALID_R1_RESPONSE if either waiting for the card to enter
  *                        not-busy-state timed out or spi communication failed
  */
 char sdcard_spi_send_acmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, int max_retry);
@@ -340,18 +340,18 @@ char sdcard_spi_send_acmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, i
  * @brief                 Reads data blocks (usually multiples of 512 Bytes) from card to buffer.
  *
  * @param[in] card        Initialized sd-card struct
- * @param[in] blockaddr   Start adress to read from. Independet of the actual adressing scheme of 
- *                        the used card the adress needs to be given as block address 
- *                        (e.g. 0, 1, 2... NOT: 0, 512... ). The driver takes care of mapping to 
+ * @param[in] blockaddr   Start adress to read from. Independet of the actual adressing scheme of
+ *                        the used card the adress needs to be given as block address
+ *                        (e.g. 0, 1, 2... NOT: 0, 512... ). The driver takes care of mapping to
  *                        byte adressing if needed.
- * @param[out] data       Buffer to store the read data in. The user is responsible for providing a 
+ * @param[out] data       Buffer to store the read data in. The user is responsible for providing a
  *                        suitable buffer size.
- * @param[in]  blocksize  Size of data blocks. For now only 512 byte blocks are supported because 
- *                        only older (SDSC) cards support variable blocksizes anyway. 
- *                        With SDHC/SDXC-cards this is always fixed to 512 bytes. SDSC cards are 
+ * @param[in]  blocksize  Size of data blocks. For now only 512 byte blocks are supported because
+ *                        only older (SDSC) cards support variable blocksizes anyway.
+ *                        With SDHC/SDXC-cards this is always fixed to 512 bytes. SDSC cards are
  *                        automatically forced to use 512 byte as blocksize by the init procedure.
  * @param[in]  nblocks    Number of blocks to read
- * @param[out] state      Contains information about the error state if something went wrong 
+ * @param[out] state      Contains information about the error state if something went wrong
  *                        (if return value is lower than nblocks).
  *
  * @return                number of sucessfully read blocks (0 if no block was read).
@@ -362,17 +362,17 @@ int sdcard_spi_read_blocks(sd_card_t *card, int blockaddr, char *data, int block
  * @brief                 Writes data blocks (usually multiples of 512 Bytes) from buffer to card.
  *
  * @param[in] card        Initialized sd-card struct
- * @param[in] blockaddr   Start adress to read from. Independet of the actual adressing scheme of 
- *                        the used card the adress needs to be given as block address 
- *                        (e.g. 0, 1, 2... NOT: 0, 512... ). The driver takes care of mapping to 
+ * @param[in] blockaddr   Start adress to read from. Independet of the actual adressing scheme of
+ *                        the used card the adress needs to be given as block address
+ *                        (e.g. 0, 1, 2... NOT: 0, 512... ). The driver takes care of mapping to
  *                        byte adressing if needed.
  * @param[out] data       Buffer that contains the data to be sent.
- * @param[in]  blocksize  Size of data blocks. For now only 512 byte blocks are supported because 
+ * @param[in]  blocksize  Size of data blocks. For now only 512 byte blocks are supported because
  *                        only older (SDSC) cards support variable blocksizes anyway.
- *                        With SDHC/SDXC-cards this is always fixed to 512 bytes. SDSC cards are 
+ *                        With SDHC/SDXC-cards this is always fixed to 512 bytes. SDSC cards are
  *                        automatically forced to use 512 byte as blocksize by the init procedure.
  * @param[in]  nblocks    Number of blocks to write
- * @param[out] state      Contains information about the error state if something went wrong 
+ * @param[out] state      Contains information about the error state if something went wrong
  *                         (if return value is lower than nblocks).
  *
  * @return                number of sucessfully written blocks (0 if no block was written).
