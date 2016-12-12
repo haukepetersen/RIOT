@@ -130,6 +130,26 @@ typedef int(*saul_read_t)(void *dev, phydat_t *res);
  */
 typedef int(*saul_write_t)(void *dev, phydat_t *data);
 
+
+
+/* extend this list as needed... */
+typedef enum {
+    SAUL_EVT_GENERIC,               /**< generic one time event */
+    SAUL_EVT_DATA_READY,            /**< generic data ready event */
+    SAUL_EVT_BT,                    /**< below threshold */
+    SAUL_EVT_AT,                    /**< above threshold */
+    SAUL_EVT_ROT_LANDSCAPE,         /**< landscape */
+    SAUL_EVT_ROT_PORTRAIT,          /**< portrait orientation */
+    SAUL_EVT_FREEFALL,              /**< device is falling down */
+} saul_evt_type_t;
+
+struct saul_evt_t {
+    struct saul_evt_t *next;
+    phydat_cb_t *applies;
+    saul_evt_cb_t *trigger;
+    void *arg;
+};
+
 /**
  * @brief   Event callback
  *
@@ -139,13 +159,15 @@ typedef int(*saul_write_t)(void *dev, phydat_t *data);
  */
 typedef void (*saul_evt_cb_t)(void *dev, saul_evt_t type, phydat_t *data);
 
+typedef void(*saul_evt_cb_t)(void *dev, phydat_t *val);
 
-struct saul_evt_t {
-    struct saul_evt_t *next;
-    phydat_cb_t *applies;
-    saul_evt_cb_t *trigger;
-    void *arg;
-};
+typedef int(*saul_hook_t)(void *dev, saul_evt_t type, saul_evt_cb_t cb);
+
+typedef int(*saul_unhook_t)(void *dev, saul_evt_t type);
+
+ /**
+  * @brief   Definition of the RIOT actuator/sensor interface
+  */
 
 /**
  * @brief   Register an event callback

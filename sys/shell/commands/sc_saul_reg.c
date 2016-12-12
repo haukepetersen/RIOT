@@ -147,6 +147,12 @@ int _saul(int argc, char **argv)
         else if (strcmp(argv[1], "write") == 0) {
             write(argc, argv);
         }
+        else if (strcmp(argv[1], "add") == 0) {
+            add(argc, argv);
+        }
+        else if (strcmp(argv[1], "rm") == 0) {
+            rm(argc, argv);
+        }
         else {
             printf("usage: %s read|write\n", argv[0]);
         }
