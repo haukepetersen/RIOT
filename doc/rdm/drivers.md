@@ -1,0 +1,109 @@
+
+/*
+ * Copyright (C) 2013-2015 Freie Universität Berlin
+ * Copyright (C) 2015 INRIA
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @defgroup    drivers Drivers
+ * @brief       Device drivers for MCU external devices.
+ *
+ * This module groups all kind of device drivers for devices, that are not fully
+ * integrated in a MCU (e.g. not register mapped). These devices are typically
+ * connected through direct signals (e.g. GPIO, ADC, PWM) or through various MCU
+ * buses (e.g. SPI, I2C, UART).
+ *
+ * Driver Model
+ * ============
+ *
+ *
+ * - multi instancing
+ * - portability
+ * - automation
+ *
+ * High-level interfaces
+ * ---------------------
+ * RIOT provides a number of high-level interfaces which provide unified access
+ * to a certain type of devices.
+ *
+ * All network devices should implement the @ref drivers_netdev_netdev2
+ * interface. This network stack agnostic interface makes network devices usable
+ * with available (and future) network stacks, without the need of adapting any
+ * of the drivers code.
+ *
+ * For all kind of sensors and actuators RIOT provides the @ref drivers_saul
+ * interface.
+ *
+ *
+ * Low-level interfaces
+ * --------------------
+ * use periph drivers
+ *
+ *
+ * Initialization
+ * --------------
+ *
+ *
+ *
+ * Implementation guide
+ * ====================
+ * When implementing/porting a device driver to RIOT, the implementation should
+ * comply with the following rules.
+ *
+ * - each driver MUST define a device descriptor `xx_t`, which holds all
+ * variables and buffers the device needs in memory. E.g.:
+ * ~~~~~~~~~~{c}
+ * typedef struct {
+ *     netdev2_t netdev;
+ *     spi_t spi;
+ *     gpio_t cs_pin;
+ *     gpio_t int_pin;
+ *     gpio_t reset_pin;
+ *     mutex_t devlock;
+ *     int8_t bank;
+ * } enc28j60_t;
+ * ~~~~~~~~~~
+ * - each driver MUST define a `xx_params_t` struct, that holds all needed
+ *   information for initializing the device
+ * ~~~~~~~~~{c}
+ * typedef struct {
+ *     spi_t spi;
+ *     gpio_t cs_pin;
+ *     gpio_t int_pin;
+ *     gpio_t reset_pin;
+ * } enc28j60_params_t;
+ * ~~~~~~~~~
+ * - each driver MUST define a `xx_setup()' and a 'xx_init()' function
+ *
+ *
+ *
+ *
+ */
+
+/**
+ * @defgroup    drivers_netdev Network Device Drivers
+ * @ingroup     drivers
+ * @brief       Drivers for external network devices.
+ */
+
+/**
+ * @defgroup    drivers_sensors Sensor Device Drivers
+ * @ingroup     drivers
+ * @brief       Drivers for external sensors.
+ *
+ * Most of these drivers will be connected over some bus or serial connection
+ * to the MCU.
+ */
+
+/**
+ * @defgroup    drivers_actuators Actuator Device Drivers
+ * @ingroup     drivers
+ * @brief       Drivers for actuating devices
+ *
+ * The group of actuators includes all kind of devices that can actively
+ * interact with the physical world, as e.g. motors, lights, sound devices, etc.
+ */
