@@ -26,6 +26,13 @@ else ifeq ($(BOARD), remote-revb)
                             .miso_pin = GPIO_PIN(2,6), \
                             .power_pin = GPIO_PIN(0,6), \
                             .power_pin_act_high = false } }
+else ifeq ($(BOARD), pba-d-01-kw2x)
+  SDCARD_SPI_CONFIGS ?= { { .spi_dev = SPI_0, \
+                            .cs_pin = GPIO_PIN(2,4), \
+                            .clk_pin = GPIO_PIN(2,5), \
+                            .mosi_pin = GPIO_PIN(2,6), \
+                            .miso_pin = GPIO_PIN(2,7), \
+                            .power_pin = GPIO_UNDEF } }
 endif
 
 # export parameters
