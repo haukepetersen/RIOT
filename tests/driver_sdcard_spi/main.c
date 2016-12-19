@@ -135,6 +135,33 @@ static int _csd(int argc, char **argv)
     return 0;
 }
 
+static int _sds(int argc, char **argv)
+{
+    sd_status_t sds;
+
+    if (sdcard_spi_read_sds(card, &sds) == SD_RW_OK) {
+        puts("SD status:\n----------------------------------------");
+        printf("SIZE_OF_PROTECTED_AREA: 0x%08lx\n", sds.SIZE_OF_PROTECTED_AREA);
+        printf("SUS_ADDR: 0x%08x\n", sds.SUS_ADDR);
+        printf("VSC_AU_SIZE: 0x%08x\n", sds.VSC_AU_SIZE);
+        printf("SD_CARD_TYPE: 0x%08x\n", sds.SD_CARD_TYPE);
+        printf("ERASE_SIZE: 0x%08x\n", sds.ERASE_SIZE);
+        printf("SPEED_CLASS: 0x%08x\n", sds.SPEED_CLASS);
+        printf("PERFORMANCE_MOVE: 0x%08x\n", sds.PERFORMANCE_MOVE);
+        printf("VIDEO_SPEED_CLASS: 0x%08x\n", sds.VIDEO_SPEED_CLASS);
+        printf("ERASE_TIMEOUT: 0x%08x\n", sds.ERASE_TIMEOUT);
+        printf("ERASE_OFFSET: 0x%08x\n", sds.ERASE_OFFSET);
+        printf("UHS_SPEED_GRADE: 0x%08x\n", sds.UHS_SPEED_GRADE);
+        printf("UHS_AU_SIZE: 0x%08x\n", sds.UHS_AU_SIZE);
+        printf("AU_SIZE: 0x%08x\n", sds.AU_SIZE);
+        printf("DAT_BUS_WIDTH: 0x%08x\n", sds.DAT_BUS_WIDTH);
+        printf("SECURED_MODE: 0x%08x\n", sds.SECURED_MODE);
+        puts("----------------------------------------");
+        return 0;
+    }
+    return -1;
+}
+
 static int _size(int argc, char **argv)
 {
     uint64_t bytes = sdcard_spi_get_capacity(card);
@@ -317,12 +344,13 @@ static const shell_command_t shell_commands[] = {
     { "init", "initialize card", _init },
     { "cid",  "print content of CID (Card IDentification) register", _cid },
     { "csd", "print content of CSD (Card-Specific Data) register", _csd },
+    { "sds", "print SD status", _sds },
     { "size", "print card size", _size },
     { "sectors", "print sector count of card", _sector_count },
-    { "read", "'read n m' reads m blocks beginning at block address n and prints the result. \
-Append -c option to print data readable chars", _read },
-    { "write", "'write n data' writes data to block n. Append -r option to \
-repeatedly write data to coplete block", _write },
+    { "read", "'read n m' reads m blocks beginning at block address n and prints the result. "
+              "Append -c option to print data readable chars", _read },
+    { "write", "'write n data' writes data to block n. Append -r option to "
+               "repeatedly write data to coplete block", _write },
     { "copy", "'copy src dst' copies block src to block dst", _copy },
     { NULL, NULL, NULL }
 };
@@ -334,8 +362,8 @@ int main(void)
     card->init_done = false;
 
     puts("insert SD-card and use 'init' command to set card to spi mode");
-    puts("WARNING: using 'write' or 'copy' commands WILL overwrite data on your sd-card and\n\
-almost for sure corrupt existing filesystems, partitions and contained data!");
+    puts("WARNING: using 'write' or 'copy' commands WILL overwrite data on your sd-card and");
+    puts("almost for sure corrupt existing filesystems, partitions and contained data!");
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
     return 0;

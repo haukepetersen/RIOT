@@ -866,7 +866,7 @@ static inline int _write_blocks(sd_card_t *card, char cmd_idx, int bladdr, char 
         return written;
     }
     else {
-        DEBUG("sd_single_block_write: sdcard_spi_send_cmd: SD_CMD_ERROR_NO_RESP\n");
+        DEBUG("_write_blocks: sdcard_spi_send_cmd: SD_CMD_ERROR_NO_RESP\n");
         _unselect_card_spi(card);
         *state = SD_RW_RX_TX_ERROR;
         return written;
@@ -1008,6 +1008,54 @@ sd_rw_response_t _read_csd(sd_card_t *card)
     return state;
 }
 
+sd_rw_response_t sdcard_spi_read_sds(sd_card_t *card, sd_status_t *sd_status){
+    char sds_raw_data[SD_SIZE_OF_SD_STATUS];
+    char r1_resu = sdcard_spi_send_cmd(card, SD_CMD_55, SD_CMD_NO_ARG, 0);
+    if (R1_VALID(r1_resu)) {
+        if(!R1_ERROR(r1_resu)){
+            sd_rw_response_t state;
+            int nbl = _read_blocks(card, SD_CMD_13, 0, sds_raw_data, SD_SIZE_OF_SD_STATUS,
+                                   SD_BLOCKS_FOR_REG_READ, &state);
+
+            DEBUG("sdcard_spi_read_sds: _read_blocks: nbl=%d state=%d\n", nbl, state);
+            DEBUG("sdcard_spi_read_sds: sds_raw_data: ");
+            for (int i = 0; i < sizeof(sds_raw_data); i++) {
+                DEBUG("0x%02X ", sds_raw_data[i]);
+            }
+            DEBUG("\n");
+
+            if (nbl == SD_BLOCKS_FOR_REG_READ) {
+                sd_status->DAT_BUS_WIDTH =  sds_raw_data[0] >> 6;
+                sd_status->SECURED_MODE  = (sds_raw_data[0] & 0b00100000) >> 5;
+                sd_status->SD_CARD_TYPE  = (sds_raw_data[2] << 8) | sds_raw_data[3];
+                sd_status->SD_CARD_TYPE  = (sds_raw_data[2] << 8) | sds_raw_data[3];
+                sd_status->SIZE_OF_PROTECTED_AREA = (sds_raw_data[4] << (3*8)) |
+                                                    (sds_raw_data[5] << (2*8)) |
+                                                    (sds_raw_data[6] << 8    ) |
+                                                     sds_raw_data[7];
+                sd_status->SPEED_CLASS       = sds_raw_data[8];
+                sd_status->PERFORMANCE_MOVE  = sds_raw_data[9];
+                sd_status->AU_SIZE           = sds_raw_data[10] >> 4;
+                sd_status->ERASE_SIZE        = (sds_raw_data[11] << 8) | sds_raw_data[12];
+                sd_status->ERASE_TIMEOUT     = sds_raw_data[13] >> 2;
+                sd_status->ERASE_OFFSET      = sds_raw_data[13] & 0b00000011;
+                sd_status->UHS_SPEED_GRADE   = sds_raw_data[14] >> 4;
+                sd_status->UHS_AU_SIZE       = sds_raw_data[14] & 0b00001111;
+                sd_status->VIDEO_SPEED_CLASS = sds_raw_data[15];
+                sd_status->VSC_AU_SIZE       = ((sds_raw_data[16] & 0b00000011) << 8) | sds_raw_data[17];
+                sd_status->SUS_ADDR          = (sds_raw_data[18] << 14) |
+                                               (sds_raw_data[19] << 6 ) |
+                                               (sds_raw_data[20] >> 2 );
+                DEBUG("sdcard_spi_read_sds: [OK]\n");
+                return SD_RW_OK;
+            }
+            return state;
+        }
+        return SD_RW_RX_TX_ERROR;
+    }
+    return SD_RW_TIMEOUT;
+}
+
 uint64_t sdcard_spi_get_capacity(sd_card_t *card)
 {
     if (card->init_done) {
@@ -1026,14 +1074,30 @@ uint64_t sdcard_spi_get_capacity(sd_card_t *card)
 
 uint32_t sdcard_spi_get_sector_count(sd_card_t *card)
 {
+    return sdcard_spi_get_capacity(card) / SD_HC_BLOCK_SIZE;
+}
+
+uint32_t sdcard_spi_get_au_size(sd_card_t *card)
+{
     if (card->init_done) {
-        if (card->csd_structure == SD_CSD_V1) {
-            uint32_t mult = 1 << (card->csd.v1.C_SIZE_MULT + 2);
-            return (card->csd.v1.C_SIZE + 1) * mult;
-        }
-        else if (card->csd_structure == SD_CSD_V2) {
-            return (card->csd.v2.C_SIZE + 1) * SD_CSD_V2_C_SIZE_BLOCK_MULT;
+        sd_status_t sds;
+        if(sdcard_spi_read_sds(card, &sds) == SD_RW_OK) {
+            if (sds.AU_SIZE < 0xB) {
+                return 1 << (13 + sds.AU_SIZE); /* sds->AU_SIZE = 1 maps to 16KB; 2 to 32KB etc.*/
+            }
+            else if (sds.AU_SIZE == 0xB) {
+                return 12 * 1024 * 1024; /* 12 MB */
+            }
+            else if (sds.AU_SIZE == 0xC) {
+                return 1 << (12 + sds.AU_SIZE); /* 16 MB */
+            }
+            else if (sds.AU_SIZE == 0xD) {
+                return 24 * 1024 * 1024; /* 24 MB */
+            }
+            else if (sds.AU_SIZE > 0xD) {
+                return 1 << (11 + sds.AU_SIZE); /* 32 MB or 64 MB */
+            }
         }
     }
-    return 0;
+    return 0; /* AU_SIZE is not defined by the card */
 }

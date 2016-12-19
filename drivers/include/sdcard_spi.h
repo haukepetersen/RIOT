@@ -86,11 +86,12 @@ extern "C" {
 #define SD_CMD_PREFIX_MASK 0b01000000
 
 #define SD_CMD_0 0   /* Resets the SD Memory Card */
-#define SD_CMD_1 1   /* Sends host capacity support info and starts the card's init process */
+#define SD_CMD_1 1   /* Sends host capacity support info and starts the cards init process */
 #define SD_CMD_8 8   /* Sends SD Card interface condition incl. host supply voltage info */
 #define SD_CMD_9 9   /* Asks the selected card to send its card-specific data (CSD) */
 #define SD_CMD_10 10 /* Asks the selected card to send its card identification (CID) */
 #define SD_CMD_12 12 /* Forces the card to stop transmission in Multiple Block Read Operation */
+#define SD_CMD_13 13 /* Sent as ACMD13 asks the card to send it's SD status */
 
 #define SD_CMD_16 16 /* In case of SDSC Card, block length is set by this command */
 #define SD_CMD_17 17 /* Reads a block of the size selected by the SET_BLOCKLEN command */
@@ -117,6 +118,7 @@ extern "C" {
 #define SD_DATA_TOKEN_CMD_25_STOP  0b11111101
 
 #define SD_SIZE_OF_CID_AND_CSD_REG 16
+#define SD_SIZE_OF_SD_STATUS 64
 #define SD_BLOCKS_FOR_REG_READ 1
 #define SD_GET_CSD_STRUCTURE(CSD_RAW_DATA) ((CSD_RAW_DATA)[0] >> 6)
 #define SD_CSD_V1 0
@@ -268,6 +270,24 @@ union {
 } typedef csd_t;
 
 struct {
+    uint32_t SIZE_OF_PROTECTED_AREA : 32;
+    uint32_t SUS_ADDR : 22;
+    uint32_t VSC_AU_SIZE : 10;
+    uint16_t SD_CARD_TYPE : 16;
+    uint16_t ERASE_SIZE : 16;
+    uint8_t  SPEED_CLASS : 8;
+    uint8_t  PERFORMANCE_MOVE : 8;
+    uint8_t  VIDEO_SPEED_CLASS : 8;
+    uint8_t  ERASE_TIMEOUT : 6;
+    uint8_t  ERASE_OFFSET : 2;
+    uint8_t  UHS_SPEED_GRADE : 4;
+    uint8_t  UHS_AU_SIZE : 4;
+    uint8_t  AU_SIZE : 4;
+    uint8_t  DAT_BUS_WIDTH : 2;
+    uint8_t  SECURED_MODE : 1;
+} typedef sd_status_t;
+
+struct {
     spi_t spi_dev;
     gpio_t cs_pin;
     gpio_t clk_pin;
@@ -396,6 +416,24 @@ uint64_t sdcard_spi_get_capacity(sd_card_t *card);
  * @return                number of available sectors
  */
 uint32_t sdcard_spi_get_sector_count(sd_card_t *card);
+
+/**
+ * @brief                 Gets the allocation unit size of the card.
+ *
+ * @param[in] card        Initialized sd-card struct
+ *
+ * @return                size of AU in bytes
+ */
+uint32_t sdcard_spi_get_au_size(sd_card_t *card);
+
+/**
+ * @brief                 Gets the SD status of the card.
+ *
+ * @param[in] card        Initialized sd-card struct
+ *
+ * @return                sd_status_t struct that contains all SD status information
+ */
+sd_rw_response_t sdcard_spi_read_sds(sd_card_t *card, sd_status_t *sd_status);
 
 
 #ifdef __cplusplus
