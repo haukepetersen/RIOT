@@ -131,8 +131,8 @@ extern "C" {
 /* the retry counters below are used as timeouts for specific actions.
    The values may need some adjustments to either give the card more time to respond
    to commands or to achieve a lower delay / avoid infinite blocking. */
-#define R1_POLLING_RETRY_CNT    10000
-#define SD_DATA_TOKEN_RETRY_CNT 10000
+#define R1_POLLING_RETRY_CNT    1000000
+#define SD_DATA_TOKEN_RETRY_CNT 1000000
 #define INIT_CMD_RETRY_CNT      1000
 #define INIT_CMD0_RETRY_CNT     3
 #define SD_WAIT_FOR_NOT_BUSY_CNT 10000 /* use -1 for full blocking till the card isn't busy */
@@ -147,7 +147,7 @@ extern "C" {
 #define SD_CARD_SPI_MODE SPI_CONF_FIRST_RISING
 
 /* this speed setting is only used while the init procedure is performed */
-#define SD_CARD_SPI_SPEED_PREINIT SPI_SPEED_100KHZ
+#define SD_CARD_SPI_SPEED_PREINIT SPI_SPEED_400KHZ
 
 /* after init procedure is finished the driver auto sets the card to this speed */
 #define SD_CARD_SPI_SPEED_POSTINIT SPI_SPEED_10MHZ
@@ -200,7 +200,7 @@ struct {
     uint8_t PRV;              /* Product revision */
     uint32_t PSN;             /* Product serial number */
     uint16_t MDT;             /* Manufacturing date */
-    uint8_t CRC;              /* CRC7 checksum */
+    uint8_t CID_CRC;              /* CRC7 checksum */
 } typedef cid_t;
 
 /* see sd spec. 5.3.2 CSD Register (CSD Version 1.0) */
@@ -233,7 +233,7 @@ struct {
     uint8_t PERM_WRITE_PROTECT : 1;
     uint8_t TMP_WRITE_PROTECT : 1;
     uint8_t FILE_FORMAT : 2;
-    uint8_t CRC : 8;
+    uint8_t CSD_CRC : 8;
 } typedef csd_v1_t;
 
 /* see sd spec. 5.3.3 CSD Register (CSD Version 2.0) */
@@ -261,7 +261,7 @@ struct {
     uint8_t PERM_WRITE_PROTECT : 1;
     uint8_t TMP_WRITE_PROTECT : 1;
     uint8_t FILE_FORMAT : 2;
-    uint8_t CRC : 8;
+    uint8_t CSD_CRC : 8;
 } typedef csd_v2_t;
 
 union {

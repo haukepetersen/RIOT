@@ -596,7 +596,7 @@ static inline int _sw_spi_transfer_byte(sd_card_t *card, char out, char *in){
         }
         xtimer_usleep(SD_CARD_PREINIT_CLOCK_PERIOD_US/2);
         gpio_set(card->clk_pin);
-        rx = (rx | (gpio_read(card->miso_pin) << i));
+        rx = (rx | ((gpio_read(card->miso_pin) > 0) << i));
         xtimer_usleep(SD_CARD_PREINIT_CLOCK_PERIOD_US/2);
         gpio_clear(card->clk_pin);
     }
@@ -906,7 +906,7 @@ sd_rw_response_t _read_cid(sd_card_t *card)
             card->cid.PRV = cid_raw_data[8];
             memcpy((char *)&card->cid.PSN, &cid_raw_data[9], 4);
             card->cid.MDT = (cid_raw_data[13]<<4) | cid_raw_data[14];
-            card->cid.CRC = cid_raw_data[15];
+            card->cid.CID_CRC = cid_raw_data[15];
             DEBUG("_read_cid: [OK]\n");
             return SD_RW_OK;
         }
@@ -964,7 +964,7 @@ sd_rw_response_t _read_csd(sd_card_t *card)
                 card->csd.v1.PERM_WRITE_PROTECT = (c[14] & 0b00100000)>>5;
                 card->csd.v1.TMP_WRITE_PROTECT  = (c[14] & 0b00010000)>>4;
                 card->csd.v1.FILE_FORMAT        = (c[14] & 0b00001100)>>2;
-                card->csd.v1.CRC                = c[15];
+                card->csd.v1.CSD_CRC                = c[15];
                 card->csd_structure = SD_CSD_V1;
                 return SD_RW_OK;
             }
@@ -992,7 +992,7 @@ sd_rw_response_t _read_csd(sd_card_t *card)
                 card->csd.v2.PERM_WRITE_PROTECT = (c[14] & 0b00100000)>>5;
                 card->csd.v2.TMP_WRITE_PROTECT  = (c[14] & 0b00010000)>>4;
                 card->csd.v2.FILE_FORMAT        = (c[14] & 0b00001100)>>2;
-                card->csd.v2.CRC                = c[15];
+                card->csd.v2.CSD_CRC                = c[15];
                 card->csd_structure = SD_CSD_V2;
                 return SD_RW_OK;
             }
