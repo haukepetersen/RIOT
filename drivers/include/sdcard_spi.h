@@ -133,11 +133,11 @@ extern "C" {
    to commands or to achieve a lower delay / avoid infinite blocking. */
 #define R1_POLLING_RETRY_CNT    1000000
 #define SD_DATA_TOKEN_RETRY_CNT 1000000
-#define INIT_CMD_RETRY_CNT      1000
+#define INIT_CMD_RETRY_CNT      1000000
 #define INIT_CMD0_RETRY_CNT     3
-#define SD_WAIT_FOR_NOT_BUSY_CNT 10000 /* use -1 for full blocking till the card isn't busy */
-#define SD_BLOCK_READ_CMD_RETRIES 10   /* only affects sending of cmd not the whole transaction! */
-#define SD_BLOCK_WRITE_CMD_RETRIES 10  /* only affects sending of cmd not the whole transaction! */
+#define SD_WAIT_FOR_NOT_BUSY_CNT 1000000 /* use -1 for full blocking till the card isn't busy */
+#define SD_BLOCK_READ_CMD_RETRIES 10     /* only affects sending of cmd not the whole transaction! */
+#define SD_BLOCK_WRITE_CMD_RETRIES 10    /* only affects sending of cmd not the whole transaction! */
 
 #define SD_HC_BLOCK_SIZE 512
 
