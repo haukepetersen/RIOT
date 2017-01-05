@@ -150,6 +150,13 @@ typedef struct {
     uint8_t dma_stream;     /**< DMA stream used for TX */
     uint8_t dma_chan;       /**< DMA channel used for TX */
 #endif
+#ifdef UART_USE_HW_FC
+    uint8_t hw_flow_ctrl;   /**< use HW flow control flag */
+    gpio_t cts_pin;         /**< CTS pin */
+    gpio_t rts_pin;         /**< RTS pin */
+    gpio_af_t cts_af;       /**< alternate function for CTS pin */
+    gpio_af_t rts_af;       /**< alternate function for RTS pin */
+#endif
 } uart_conf_t;
 
 /**
