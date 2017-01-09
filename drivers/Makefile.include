@@ -73,3 +73,6 @@ endif
 ifneq (,$(filter w5100,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/w5100/include
 endif
+ifneq (,$(filter sdcard_spi,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sdcard_spi/include
+endif
