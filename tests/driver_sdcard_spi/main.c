@@ -41,18 +41,15 @@ static int _init(int argc, char **argv)
 {
     printf("Initializing SD-card at SPI_%i...", card->spi_dev);
 
-    if (sdcard_spi_init(card)) {
-        puts("[OK]");
-        return 0;
-    }
-    else {
+    if (!sdcard_spi_init(card)) {
         puts("[FAILED]");
         #if ENABLE_DEBUG != 1
         puts("enable debugging in sdcard_spi.c for further information!");
         #endif
         return -2;
     }
-
+    puts("[OK]");
+    return 0;
 }
 
 static int _cid(int argc, char **argv)
@@ -65,7 +62,7 @@ static int _cid(int argc, char **argv)
     printf("PRV: %d\n", card->cid.PRV);
     printf("PSN: %lu\n", card->cid.PSN);
     printf("MDT: %d\n", card->cid.MDT);
-    printf("CRC: %d\n", card->cid.CRC);
+    printf("CRC: %d\n", card->cid.CID_CRC);
     puts("----------------------------------------");
     return 0;
 }
@@ -102,7 +99,7 @@ static int _csd(int argc, char **argv)
         printf("PERM_WRITE_PROTECT: 0x%08x\n", card->csd.v1.PERM_WRITE_PROTECT);
         printf("TMP_WRITE_PROTECT: 0x%08x\n", card->csd.v1.TMP_WRITE_PROTECT);
         printf("FILE_FORMAT: 0x%08x\n", card->csd.v1.FILE_FORMAT);
-        printf("CRC: 0x%08x\n", card->csd.v1.CRC);
+        printf("CRC: 0x%08x\n", card->csd.v1.CSD_CRC);
     }
     else if (card->csd_structure == SD_CSD_V2) {
         puts("CSD V2:\n----------------------------------------");
@@ -129,7 +126,7 @@ static int _csd(int argc, char **argv)
         printf("PERM_WRITE_PROTECT: 0x%08x\n", card->csd.v2.PERM_WRITE_PROTECT);
         printf("TMP_WRITE_PROTECT: 0x%08x\n", card->csd.v2.TMP_WRITE_PROTECT);
         printf("FILE_FORMAT: 0x%08x\n", card->csd.v2.FILE_FORMAT);
-        printf("CRC: 0x%08x\n", card->csd.v2.CRC);
+        printf("CRC: 0x%08x\n", card->csd.v2.CSD_CRC);
     }
     puts("----------------------------------------");
     return 0;
@@ -185,7 +182,7 @@ static int _read(int argc, char **argv)
     int cnt;
     bool print_as_char = false;
 
-    if (argc == 3 || argc == 4) {
+    if ((argc == 3) || (argc == 4)) {
         blockaddr = (uint32_t)atoi(argv[1]);
         cnt = (uint32_t)atoi(argv[2]);
         if (argc == 4 && (strcmp("-c", argv[3]) == 0)) {
@@ -214,7 +211,7 @@ static int _read(int argc, char **argv)
 
         for (int i = 0; i < chunk_blocks * SD_HC_BLOCK_SIZE; i++) {
 
-            if (((i % SD_HC_BLOCK_SIZE) == 0)) {
+            if ((i % SD_HC_BLOCK_SIZE) == 0) {
                 printf("BLOCK %d:\n", blockaddr + total_read + i / SD_HC_BLOCK_SIZE);
             }
 
@@ -291,47 +288,43 @@ static int _write(int argc, char **argv)
         printf("write error %d (wrote %d/%d blocks)\n", state, chunks_written, 1);
         return -1;
     }
-    else {
-        printf("write block %d [OK]\n", bladdr);
-        return 0;
-    }
+
+    printf("write block %d [OK]\n", bladdr);
+    return 0;
 }
 
 static int _copy(int argc, char **argv)
 {
     int src_block;
     int dst_block;
+    char tmp_copy[SD_HC_BLOCK_SIZE];
 
-    if (argc == 3) {
-        src_block = (uint32_t)atoi(argv[1]);
-        dst_block = (uint32_t)atoi(argv[2]);
-    }
-    else {
+    if (argc != 3) {
         printf("usage: %s src_block dst_block\n", argv[0]);
         return -1;
     }
 
-    char tmp_copy[SD_HC_BLOCK_SIZE];
+    src_block = (uint32_t)atoi(argv[1]);
+    dst_block = (uint32_t)atoi(argv[2]);
 
     sd_rw_response_t rd_state;
     sdcard_spi_read_blocks(card, src_block, tmp_copy, SD_HC_BLOCK_SIZE, 1, &rd_state);
+
     if (rd_state != SD_RW_OK) {
         printf("read error %d (block %d)\n", rd_state, src_block);
         return -1;
     }
-    else {
-        sd_rw_response_t wr_state;
-        sdcard_spi_write_blocks(card, dst_block, tmp_copy, SD_HC_BLOCK_SIZE, 1, &wr_state);
 
-        if (wr_state != SD_RW_OK) {
-            printf("write error %d (block %d)\n", wr_state, dst_block);
-            return -1;
-        }
-        else {
-            printf("copy block %d to %d [OK]\n", src_block, dst_block);
-            return 0;
-        }
+    sd_rw_response_t wr_state;
+    sdcard_spi_write_blocks(card, dst_block, tmp_copy, SD_HC_BLOCK_SIZE, 1, &wr_state);
+
+    if (wr_state != SD_RW_OK) {
+        printf("write error %d (block %d)\n", wr_state, dst_block);
+        return -2;
     }
+
+    printf("copy block %d to %d [OK]\n", src_block, dst_block);
+    return 0;
 }
 
 static int _sector_count(int argc, char **argv)

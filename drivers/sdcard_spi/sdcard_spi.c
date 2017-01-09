@@ -76,9 +76,7 @@ bool sdcard_spi_init(sd_card_t *card)
     if (card->card_type != SD_UNKNOWN) {
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_t state)
@@ -98,9 +96,8 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
                 xtimer_init();
                 return SD_INIT_SPI_POWER_SEQ;
             }
-            else {
-                DEBUG("gpio_init(): [ERROR]\n");
-            }
+
+            DEBUG("gpio_init(): [ERROR]\n");
             return SD_INIT_CARD_UNKNOWN;
 
         case SD_INIT_SPI_POWER_SEQ:
@@ -115,7 +112,7 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
             gpio_set(card->cs_pin);   /* unselect sdcard for power up sequence */
 
             /* powersequence: perform at least 74 clockcycles with mosi_pin being high
-            (same as sending dummy bytes with 0xFF) */
+             * (same as sending dummy bytes with 0xFF) */
             for (int i = 0; i < SD_POWERSEQUENCE_CLOCK_COUNT; i += 1) {
                 gpio_set(card->clk_pin);
                 xtimer_usleep(SD_CARD_PREINIT_CLOCK_PERIOD_US/2);
@@ -147,15 +144,13 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
                     _dyn_spi_transfer_byte = &_hw_spi_transfer_byte;
                     return SD_INIT_ENABLE_CRC;
                 }
-                else {
-                    DEBUG("spi_init_master(): [ERROR]\n");
-                    return SD_INIT_CARD_UNKNOWN;
-                }
-            }
-            else {
-                _unselect_card_spi(card);
+
+                DEBUG("spi_init_master(): [ERROR]\n");
                 return SD_INIT_CARD_UNKNOWN;
             }
+
+            _unselect_card_spi(card);
+            return SD_INIT_CARD_UNKNOWN;
 
         case SD_INIT_ENABLE_CRC:
             DEBUG("SD_INIT_ENABLE_CRC\n");
@@ -166,10 +161,8 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
                 _unselect_card_spi(card);
                 return SD_INIT_SEND_CMD8;
             }
-            else {
-                _unselect_card_spi(card);
-                return SD_INIT_CARD_UNKNOWN;
-            }
+            _unselect_card_spi(card);
+            return SD_INIT_CARD_UNKNOWN;
 
         case SD_INIT_SEND_CMD8:
             DEBUG("SD_INIT_SEND_CMD8\n");
@@ -191,21 +184,18 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
                         DEBUG("CMD8: [R7 MATCH]\n");
                         return SD_INIT_SEND_ACMD41_HCS;
                     }
-                    else {
-                        DEBUG("CMD8: [R7 MISMATCH]\n");
-                        _unselect_card_spi(card);
-                        return SD_INIT_CARD_UNKNOWN;;
-                    }
+
+                    DEBUG("CMD8: [R7 MISMATCH]\n");
+                    _unselect_card_spi(card);
+                    return SD_INIT_CARD_UNKNOWN;;
                 }
-                else {
-                    DEBUG("CMD8: _transfer_bytes (R7): [ERROR]\n");
-                    return SD_INIT_CARD_UNKNOWN;
-                }
+
+                DEBUG("CMD8: _transfer_bytes (R7): [ERROR]\n");
+                return SD_INIT_CARD_UNKNOWN;
             }
-            else {
-                DEBUG("CMD8: [ERROR / NO RESPONSE]\n");
-                return SD_INIT_SEND_ACMD41;
-            }
+
+            DEBUG("CMD8: [ERROR / NO RESPONSE]\n");
+            return SD_INIT_SEND_ACMD41;
 
         case SD_INIT_CARD_UNKNOWN:
             DEBUG("SD_INIT_CARD_UNKNOWN\n");
@@ -275,30 +265,24 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sd_card_t *card, sd_init_fsm_state_
                                 _unselect_card_spi(card);
                                 return SD_INIT_READ_CID;
                             }
-                            else {
-                                DEBUG("OCR: CARD TYPE IS SDSC (SD_v2 with byte adressing)\n");
-                                card->use_block_addr = false;
-                                return SD_INIT_SEND_CMD16;
-                            }
+
+                            DEBUG("OCR: CARD TYPE IS SDSC (SD_v2 with byte adressing)\n");
+                            card->use_block_addr = false;
+                            return SD_INIT_SEND_CMD16;
                         }
-                        else {
-                            DEBUG("OCR: POWER UP ROUTINE NOT FINISHED!\n");
-                            /* poll status till power up is finished */
-                            return SD_INIT_SEND_CMD58;
-                        }
+
+                        DEBUG("OCR: POWER UP ROUTINE NOT FINISHED!\n");
+                        /* poll status till power up is finished */
+                        return SD_INIT_SEND_CMD58;
                     }
-                    else {
-                        DEBUG("OCR: SYS VOLTAGE NOT SUPPORTED!\n");
-                    }
+
+                    DEBUG("OCR: SYS VOLTAGE NOT SUPPORTED!\n");
                 }
-                else {
-                    DEBUG("CMD58 response: [READ ERROR]\n");
-                }
-            }
-            else {
-                DEBUG("CMD58: [ERROR]\n");
+
+                DEBUG("CMD58 response: [READ ERROR]\n");
             }
 
+            DEBUG("CMD58: [ERROR]\n");
             _unselect_card_spi(card);
             return SD_INIT_CARD_UNKNOWN;
 
@@ -459,7 +443,6 @@ static uint16_t _crc_16(const char *data, size_t n)
 
 char sdcard_spi_send_cmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, int max_retry)
 {
-
     int try_cnt = 0;
     char r1_resu;
     char cmd_data[6];
@@ -662,18 +645,14 @@ static sd_rw_response_t _read_data_packet(sd_card_t *card, char token, char *dat
                 DEBUG("_read_data_packet: [CRC_MISMATCH]\n");
                 return SD_RW_CRC_MISMATCH;
             }
-
-        }
-        else {
-            DEBUG("_read_data_packet: _transfer_bytes [RX_TX_ERROR] (while transmitting crc)\n");
-            return SD_RW_RX_TX_ERROR;
         }
 
-    }
-    else {
-        DEBUG("_read_data_packet: _transfer_bytes [RX_TX_ERROR] (while transmitting payload)\n");
+        DEBUG("_read_data_packet: _transfer_bytes [RX_TX_ERROR] (while transmitting crc)\n");
         return SD_RW_RX_TX_ERROR;
     }
+
+    DEBUG("_read_data_packet: _transfer_bytes [RX_TX_ERROR] (while transmitting payload)\n");
+    return SD_RW_RX_TX_ERROR;
 }
 
 static inline int _read_blocks(sd_card_t *card, int cmd_idx, int bladdr, char *data, int blsz, int nbl, sd_rw_response_t *state)
