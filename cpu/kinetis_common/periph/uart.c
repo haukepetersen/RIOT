@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014 PHYTEC Messtechnik GmbH
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2016 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -21,11 +21,9 @@
  * @}
  */
 
-#include <math.h>
-
 #include "cpu.h"
-#include "periph_conf.h"
 #include "periph/uart.h"
+#include "periph/gpio.h"
 
 #ifndef KINETIS_UART_ADVANCED
 /**
@@ -46,7 +44,6 @@ static inline UART_Type *dev(uart_t uart)
 {
     return uart_config[uart].dev;
 }
-
 
 int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 {
