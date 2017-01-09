@@ -187,6 +187,20 @@ typedef struct {
 } lptmr_conf_t;
 
 /**
+ * @brief   UART configuration options
+ */
+typedef struct {
+    UART_Type *dev;
+    volatile uint32_t *sim_reg;
+    gpio_t rx_pin;
+    gpio_t tx_pin;
+    uint8_t rx_af;
+    uint8_t tx_af;
+    uint8_t sim_bit;
+    uint8_t irqn;
+} uart_conf_t;
+
+/**
  * @brief   Possible timer module types
  */
 enum {
