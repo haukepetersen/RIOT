@@ -81,38 +81,70 @@ extern "C"
  * @name UART configuration
  * @{
  */
-#define UART_NUMOF          (1U)
-#define UART_0_EN           1
-#define UART_1_EN           0
-#define UART_IRQ_PRIO       1
-#define UART_CLK            (48e6)
+static const uart_conf_t uart_config[] = {
+    {
+        .dev     = UART2,
+        .sim_reg = &SIM->SCGC4,
+        .rx_pin  = GPIO_PIN(PORT_D, 2),
+        .tx_pin  = GPIO_PIN(PORT_D, 3),
+        .rx_af   = 3,
+        .tx_af   = 3,
+        .sim_bit = SIM_SCGC4_UART2_SHIFT,
+        .irqn    = UART2_RX_TX_IRQn
+    },
+    {
+        .dev     = UART0,
+        .sim_reg = &SIM_SCGC4,
+        .rx_pin  = GPIO_PIN(PORT_D, 6),
+        .tx_pin  = GPIO_PIN(PORT_D, 7),
+        .rx_af   = 3,
+        .tx_af   = 3,
+        .sim_bit = SIM_SCGC4_UART0_SHIFT,
+        .irqn    = UART0_RX_TX_IRQn
+    }
+};
 
-/* UART 0 device configuration */
-#define KINETIS_UART        UART_Type
-#define UART_0_DEV          UART2
-#define UART_0_CLKEN()      (SIM->SCGC4 |= (SIM_SCGC4_UART2_MASK))
-#define UART_0_CLK          UART_CLK
-#define UART_0_IRQ_CHAN     UART2_RX_TX_IRQn
-#define UART_0_ISR          isr_uart2_rx_tx
-/* UART 0 pin configuration */
-#define UART_0_PORT_CLKEN() (SIM->SCGC5 |= (SIM_SCGC5_PORTD_MASK))
-#define UART_0_PORT         PORTD
-#define UART_0_RX_PIN       2
-#define UART_0_TX_PIN       3
-#define UART_0_AF           3
+#define UART_0_ISR          (isr_uart2_rx_tx)
+#define UART_1_ISR          (isr_uart0_rx_tx)
 
-/* UART 1 device configuration */
-#define UART_1_DEV          UART0
-#define UART_1_CLKEN()      (SIM->SCGC4 |= (SIM_SCGC4_UART0_MASK))
-#define UART_1_CLK          UART_CLK
-#define UART_1_IRQ_CHAN     UART0_RX_TX_IRQn
-#define UART_1_ISR          isr_uart0_rx_tx
-/* UART 1 pin configuration */
-#define UART_1_PORT_CLKEN() (SIM->SCGC5 |= (SIM_SCGC5_PORTD_MASK))
-#define UART_1_PORT         PORTD
-#define UART_1_RX_PIN       6
-#define UART_1_TX_PIN       7
-#define UART_1_AF           3
+#define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
+/** @} */
+
+
+// #define UART_NUMOF          (1U)
+// #define UART_0_EN           1
+// #define UART_1_EN           0
+// #define UART_IRQ_PRIO       1
+
+
+// #define UART_CLK            (48e6)
+
+// /* UART 0 device configuration */
+// #define KINETIS_UART        UART_Type
+// #define UART_0_DEV          UART2
+// #define UART_0_CLKEN()      (SIM->SCGC4 |= (SIM_SCGC4_UART2_MASK))
+// #define UART_0_CLK          UART_CLK
+// #define UART_0_IRQ_CHAN     UART2_RX_TX_IRQn
+// #define UART_0_ISR          isr_uart2_rx_tx
+// /* UART 0 pin configuration */
+// #define UART_0_PORT_CLKEN() (SIM->SCGC5 |= (SIM_SCGC5_PORTD_MASK))
+// #define UART_0_PORT         PORTD
+// #define UART_0_RX_PIN       2
+// #define UART_0_TX_PIN       3
+// #define UART_0_AF           3
+
+// /* UART 1 device configuration */
+// #define UART_1_DEV          UART0
+// #define UART_1_CLKEN()      (SIM->SCGC4 |= (SIM_SCGC4_UART0_MASK))
+// #define UART_1_CLK          UART_CLK
+// #define UART_1_IRQ_CHAN     UART0_RX_TX_IRQn
+// #define UART_1_ISR          isr_uart0_rx_tx
+// /* UART 1 pin configuration */
+// #define UART_1_PORT_CLKEN() (SIM->SCGC5 |= (SIM_SCGC5_PORTD_MASK))
+// #define UART_1_PORT         PORTD
+// #define UART_1_RX_PIN       6
+// #define UART_1_TX_PIN       7
+// #define UART_1_AF           3
 /** @} */
 
 /**
