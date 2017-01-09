@@ -334,7 +334,7 @@ static int _sector_count(int argc, char **argv)
 }
 
 static const shell_command_t shell_commands[] = {
-    { "init", "initialize card", _init },
+    { "init", "'init n' initializes card with index n (use 0 if only one card is used)", _init },
     { "cid",  "print content of CID (Card IDentification) register", _cid },
     { "csd", "print content of CSD (Card-Specific Data) register", _csd },
     { "sds", "print SD status", _sds },
