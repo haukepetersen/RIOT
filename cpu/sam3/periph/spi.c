@@ -1,6 +1,6 @@
 /*
 * Copyright (C) 2014 Hamburg University of Applied Sciences
-*               2016 Freie Universität Berlin
+*               2016-2017 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -8,7 +8,7 @@
 */
 
 /**
- * @ingroup     cpu_sam3x8e
+ * @ingroup     cpu_sam3
  * @{
  *
  * @file
@@ -28,6 +28,9 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
+
 /**
  * @brief   Array holding one pre-initialized mutex for each SPI device
  */
@@ -44,6 +47,8 @@ void spi_init(spi_t bus)
 
     /* initialize device lock */
     mutex_init(&locks[bus]);
+    /* initialize pins */
+    spi_init_pins(bus);
 }
 
 void spi_init_pins(spi_t bus)
@@ -63,7 +68,7 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
     /* enable SPI device clock */
     PMC->PMC_PCER0 |= (1 << spi_config[bus].id);
     /* set mode and speed */
-    dev(bus)->SPI_CSR[0] = ((CLOCK_CORECLOCK / clk) | mode);
+    dev(bus)->SPI_CSR[0] = (SPI_CSR_SCBR(CLOCK_CORECLOCK / clk) | mode);
     dev(bus)->SPI_MR = (SPI_MR_MSTR | SPI_MR_MODFDIS);
     dev(bus)->SPI_CR = SPI_CR_SPIEN;
 
@@ -91,7 +96,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
         gpio_clear((gpio_t)cs);
     }
 
-    if (out_buf) {
+    if (!in_buf) {
         for (size_t i = 0; i < len; i++) {
             while(!(dev(bus)->SPI_SR & SPI_SR_TDRE)) {}
             dev(bus)->SPI_TDR = out_buf[i];
@@ -99,7 +104,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
         while (!(dev(bus)->SPI_SR & SPI_SR_RDRF)) {}
         dev(bus)->SPI_RDR;
     }
-    else if (in_buf) {
+    else if (!out_buf) {
         for (size_t i = 0; i < len; i++) {
             dev(bus)->SPI_TDR = 0;
             while (!(dev(bus)->SPI_SR & SPI_SR_RDRF)) {}
