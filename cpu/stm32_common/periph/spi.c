@@ -53,7 +53,7 @@ void spi_init(spi_t bus)
     assert(bus < SPI_NUMOF);
 
     /* initialize device lock */
-    mutex_lock(&locks[bus]);
+    mutex_init(&locks[bus]);
     /* trigger pin initialization */
     spi_init_pins(bus);
 }
