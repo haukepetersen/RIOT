@@ -56,6 +56,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     }
 
     /* disable device and reset configuration to 8N1 */
+    uart_poweron(uart);
     NVIC_DisableIRQ(uart_config[uart].irqn);
     dev(uart)->C2 = 0;
     dev(uart)->C1 = 0;
@@ -117,6 +118,18 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
         while (!(dev(uart)->S1 & UART_S1_TDRE_MASK));
         dev(uart)->D = data[i];
     }
+}
+
+void uart_poweron(uart_t uart)
+{
+    assert(uart < UART_NUMOF);
+    BITBAND_REG32(uart_config[uart].sim_reg, uart_config[uart].sim_bit) = 1;
+}
+
+void uart_poweroff(uart_t uart)
+{
+    assert(uart < UART_NUMOF);
+    BITBAND_REG32(uart_config[uart].sim_reg, uart_config[uart].sim_bit) = 0;
 }
 
 static inline void irq_handler(uart_t uart)
