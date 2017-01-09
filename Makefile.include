@@ -200,6 +200,8 @@ include $(RIOTBASE)/Makefile.dep
 
 USEMODULE += $(filter-out $(DISABLE_MODULE), $(DEFAULT_MODULE))
 
+include $(RIOTBASE)/Makefile.features
+
 ifeq ($(strip $(MCU)),)
 	MCU = $(CPU)
 endif
@@ -397,9 +399,6 @@ $(CURDIR)/eclipsesym.xml:
 
 # Extra make goals for testing and comparing changes.
 include $(RIOTBASE)/Makefile.buildtests
-
-# import list of provided features
--include $(RIOTBOARD)/$(BOARD)/Makefile.features
 
 # Export variables used throughout the whole make system:
 include $(RIOTBASE)/Makefile.vars
