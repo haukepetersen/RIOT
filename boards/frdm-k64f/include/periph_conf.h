@@ -72,31 +72,28 @@ extern "C"
 #define PIT_ISR_0               isr_pit1
 #define PIT_ISR_1               isr_pit3
 #define LPTMR_ISR_0             isr_lptmr0
-
 /** @} */
 
 /**
 * @name UART configuration
 * @{
 */
-#define UART_NUMOF                   (1U)
-#define UART_0_EN                    1
-#define UART_IRQ_PRIO                1
-#define UART_CLK                     CLOCK_CORECLOCK
+static const uart_conf_t uart_config[] = {
+    {
+        .dev     = UART0,
+        .sim_reg = &SIM->SCGC4,
+        .rx_pin  = GPIO_PIN(PORT_B, 16),
+        .tx_pin  = GPIO_PIN(PORT_B, 17),
+        .rx_af   = 3,
+        .tx_af   = 3,
+        .sim_bit = SIM_SCGC4_UART0_SHIFT,
+        .irqn    = UART0_RX_TX_IRQn
+    }
+};
 
-/* UART 0 device configuration */
-#define KINETIS_UART                 UART_Type
-#define UART_0_DEV                   UART0
-#define UART_0_CLKEN()               (SIM->SCGC4 |= (SIM_SCGC4_UART0_MASK))
-#define UART_0_CLK                   UART_CLK
-#define UART_0_IRQ_CHAN              UART0_RX_TX_IRQn
-#define UART_0_ISR                   isr_uart0_rx_tx
-/* UART 0 pin configuration */
-#define UART_0_PORT_CLKEN()          (SIM->SCGC5 |= (SIM_SCGC5_PORTB_MASK))
-#define UART_0_PORT                  PORTB
-#define UART_0_RX_PIN                16
-#define UART_0_TX_PIN                17
-#define UART_0_AF                    3
+#define UART_0_ISR          (isr_uart0_rx_tx)
+
+#define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
 
 /**
