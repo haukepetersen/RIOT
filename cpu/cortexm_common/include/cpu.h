@@ -102,6 +102,25 @@ static inline void cortexm_isr_end(void)
     }
 }
 
+/**
+ * @brief   Send CPU into (depp) sleep mode
+ *
+ * @param[in] deep      set to !=0 for deep sleep, and 0 for light sleep
+ */
+static inline void cortexm_sleep(int deep)
+{
+    if (deep) {
+        SCB->SCR |=  (SCB_SCR_SLEEPDEEP_Msk);
+    }
+    else {
+        SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
+    }
+
+    /* ensure that all memory accesses have completed and trigger sleeping */
+    __DSB();
+    __WFI();
+}
+
 #ifdef __cplusplus
 }
 #endif
