@@ -135,8 +135,8 @@ extern "C" {
 #define INIT_CMD_RETRY_CNT      1000000
 #define INIT_CMD0_RETRY_CNT     3
 #define SD_WAIT_FOR_NOT_BUSY_CNT 1000000 /* use -1 for full blocking till the card isn't busy */
-#define SD_BLOCK_READ_CMD_RETRIES 10     /* only affects sending of cmd not the whole transaction! */
-#define SD_BLOCK_WRITE_CMD_RETRIES 10    /* only affects sending of cmd not the whole transaction! */
+#define SD_BLOCK_READ_CMD_RETRIES 10     /* only affects sending of cmd not whole transaction! */
+#define SD_BLOCK_WRITE_CMD_RETRIES 10    /* only affects sending of cmd not whole transaction! */
 
 /* memory capacity in bytes = (C_SIZE+1) * SD_CSD_V2_C_SIZE_BLOCK_MULT * BLOCK_LEN */
 #define SD_CSD_V2_C_SIZE_BLOCK_MULT 1024
@@ -150,6 +150,8 @@ extern "C" {
 #define SD_CARD_SPI_SPEED_POSTINIT SPI_SPEED_10MHZ
 
 #define SD_CARD_DUMMY_BYTE 0xFF
+
+#define IEC_KIBI 1024
 
 typedef enum {
     SD_V2,
@@ -280,21 +282,31 @@ struct {
     uint8_t  SECURED_MODE : 1;
 } typedef sd_status_t;
 
+/**
+ * @brief   sdcard_spi device params
+ */
+typedef struct {
+    spi_t spi_dev;          /**< SPI bus used */
+    gpio_t cs;              /**< pin connected to the DAT3 sd pad */
+    gpio_t clk;             /**< pin connected to the CLK sd pad */
+    gpio_t mosi;            /**< pin connected to the CMD sd pad*/
+    gpio_t miso;            /**< pin connected to the DAT0 sd pad*/
+    gpio_t power;           /**< pin that controls sd power circuit*/
+    bool power_act_high;    /**< true if card power is enabled by 'power'-pin HIGH*/
+} sdcard_spi_params_t;
+
+/**
+ * @brief   Device descriptor for sdcard_spi
+ */
 struct {
-    spi_t spi_dev;
-    gpio_t cs_pin;
-    gpio_t clk_pin;
-    gpio_t mosi_pin;
-    gpio_t miso_pin;
-    gpio_t power_pin;
-    bool power_pin_act_high;
+    sdcard_spi_params_t params;
     bool use_block_addr;
     bool init_done;
     sd_version_t card_type;
     int csd_structure;
     cid_t cid;
     csd_t csd;
-} typedef sd_card_t;
+} typedef sdcard_spi_t;
 
 /**
  * @brief                 Sends a cmd to the sd card.
@@ -312,7 +324,7 @@ struct {
  * @return                SD_INVALID_R1_RESPONSE if either waiting for the card to enter
  *                        not-busy-state timed out or spi communication failed
  */
-char sdcard_spi_send_cmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, int max_retry);
+char sdcard_spi_send_cmd(sdcard_spi_t *card, char sd_cmd_idx, uint32_t argument, int max_retry);
 
 /**
  * @brief                 Sends an acmd to the sd card. ACMD<n> consists of sending CMD55 + CMD<n>
@@ -330,7 +342,7 @@ char sdcard_spi_send_cmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, in
  * @return                SD_INVALID_R1_RESPONSE if either waiting for the card to enter
  *                        not-busy-state timed out or spi communication failed
  */
-char sdcard_spi_send_acmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, int max_retry);
+char sdcard_spi_send_acmd(sdcard_spi_t *card, char sd_cmd_idx, uint32_t argument, int max_retry);
 
 /**
  * @brief                 Gets the sector count of the card.
@@ -339,7 +351,7 @@ char sdcard_spi_send_acmd(sd_card_t *card, char sd_cmd_idx, uint32_t argument, i
  *
  * @return                number of available sectors
  */
-uint32_t sdcard_spi_get_sector_count(sd_card_t *card);
+uint32_t sdcard_spi_get_sector_count(sdcard_spi_t *card);
 
 /**
  * @brief                 Gets the allocation unit size of the card.
@@ -348,7 +360,7 @@ uint32_t sdcard_spi_get_sector_count(sd_card_t *card);
  *
  * @return                size of AU in bytes
  */
-uint32_t sdcard_spi_get_au_size(sd_card_t *card);
+uint32_t sdcard_spi_get_au_size(sdcard_spi_t *card);
 
 /**
  * @brief                 Gets the SD status of the card.
@@ -357,7 +369,7 @@ uint32_t sdcard_spi_get_au_size(sd_card_t *card);
  *
  * @return                sd_status_t struct that contains all SD status information
  */
-sd_rw_response_t sdcard_spi_read_sds(sd_card_t *card, sd_status_t *sd_status);
+sd_rw_response_t sdcard_spi_read_sds(sdcard_spi_t *card, sd_status_t *sd_status);
 
 
 #ifdef __cplusplus

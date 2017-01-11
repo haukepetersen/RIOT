@@ -19,6 +19,7 @@
  */
 #include "shell.h"
 #include "sdcard_spi.h"
+#include "sdcard_spi_params.h"
 #include "fmt.h"
 #include <stdlib.h>
 #include <string.h>
@@ -32,16 +33,16 @@
 #define ASCII_UNPRINTABLE_REPLACEMENT "."
 
 /* this is provided by the sdcard_spi driver see sdcard_spi.c*/
-extern sd_card_t cards[NUM_OF_SD_CARDS];
-sd_card_t *card = &cards[0];
+extern sdcard_spi_t sdcard_spi_devs[sizeof(sdcard_spi_params) / sizeof(sdcard_spi_params[0])];
+sdcard_spi_t *card = &sdcard_spi_devs[0];
 
 char buffer[SD_HC_BLOCK_SIZE * MAX_BLOCKS_IN_BUFFER];
 
 static int _init(int argc, char **argv)
 {
-    printf("Initializing SD-card at SPI_%i...", card->spi_dev);
+    printf("Initializing SD-card at SPI_%i...", sdcard_spi_params[0].spi_dev);
 
-    if (!sdcard_spi_init(card)) {
+    if (sdcard_spi_init(card, &sdcard_spi_params[0]) != 0) {
         puts("[FAILED]");
         #if ENABLE_DEBUG != 1
         puts("enable debugging in sdcard_spi.c for further information!");
@@ -334,7 +335,7 @@ static int _sector_count(int argc, char **argv)
 }
 
 static const shell_command_t shell_commands[] = {
-    { "init", "'init n' initializes card with index n (use 0 if only one card is used)", _init },
+    { "init", "initializes default card", _init },
     { "cid",  "print content of CID (Card IDentification) register", _cid },
     { "csd", "print content of CSD (Card-Specific Data) register", _csd },
     { "sds", "print SD status", _sds },

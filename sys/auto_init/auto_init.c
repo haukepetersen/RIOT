@@ -96,6 +96,10 @@
 #include "net/gnrc/coap.h"
 #endif
 
+#ifdef MODULE_SDCARD_SPI
+#include "sdcard_spi.h"
+#endif
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -172,6 +176,10 @@ void auto_init(void)
 #ifdef MODULE_GCOAP
     DEBUG("Auto init gcoap module.\n");
     gcoap_init();
+#endif
+#ifdef MODULE_SDCARD_SPI
+    DEBUG("Auto init sdcard_spi module.\n");
+    sdcard_spi_auto_init();
 #endif
 
 /* initialize network devices */

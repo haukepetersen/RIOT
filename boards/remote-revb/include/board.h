@@ -110,6 +110,19 @@
 #define CC1200_GPD2_GPIO    GPIO_PB0
 /** @} */
 
+/**
+ * @name Onboard micro-sd slot pin definitions
+ * @{
+ */
+#define SDCARD_SPI_PARAM_SPI       SPI_1
+#define SDCARD_SPI_PARAM_CS        GPIO_PA7
+#define SDCARD_SPI_PARAM_CLK       GPIO_PC4
+#define SDCARD_SPI_PARAM_MOSI      GPIO_PC5
+#define SDCARD_SPI_PARAM_MISO      GPIO_PC6
+#define SDCARD_SPI_PARAM_POWER     GPIO_PA6
+#define SDCARD_SPI_PARAM_POWER_AH  false
+/** @} */
+
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif
