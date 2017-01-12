@@ -117,6 +117,12 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
     if (cs != SPI_HWCS_MASK) {
         dev(bus)->CR1 |= (SPI_CR1_SSM | SPI_CR1_SSI);
     }
+    else {
+        dev(bus)->CR2 |= (SPI_CR2_SSOE);
+    }
+#ifdef CPU_FAM_STM32F0
+    dev(bus)->CR2 |= (7 << 8 | SPI_CR2_FRXTH);
+#endif
 
     return SPI_OK;
 }
@@ -125,6 +131,7 @@ void spi_release(spi_t bus)
 {
     /* disable device and release lock */
     dev(bus)->CR1 = 0;
+    dev(bus)->CR2 &= ~(SPI_CR2_SSOE);
     periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask);
     mutex_unlock(&locks[bus]);
 }
@@ -158,9 +165,9 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
         for (size_t i = 0; i < len; i++) {
             uint8_t tmp = (outbuf) ? outbuf[i] : 0;
             while (!(dev(bus)->SR & SPI_SR_TXE));
-            dev(bus)->DR = tmp;
+            *((volatile uint8_t *)(&dev(bus)->DR)) = tmp;
             while (!(dev(bus)->SR & SPI_SR_RXNE));
-            inbuf[i] = dev(bus)->DR;
+            inbuf[i] = *((volatile uint8_t *)(&dev(bus)->DR));
         }
     }
 
