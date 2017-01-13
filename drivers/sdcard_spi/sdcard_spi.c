@@ -19,6 +19,7 @@
  */
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+#include "sdcard_spi_internal.h"
 #include "sdcard_spi.h"
 #include "sdcard_spi_params.h"
 #include "periph/spi.h"
@@ -28,13 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-
-/**
- * @brief   Allocate memory for the device descriptors
- * @{
- */
-sdcard_spi_t sdcard_spi_devs[SDCARD_SPI_NUM];
-/** @} */
 
 static inline void _select_card_spi(sdcard_spi_t *card);
 static inline void _unselect_card_spi(sdcard_spi_t *card);
@@ -80,17 +74,6 @@ int sdcard_spi_init(sdcard_spi_t *card, const sdcard_spi_params_t *params)
         return SDCARD_SPI_OK;
     }
     return SDCARD_SPI_INIT_ERROR;
-}
-
-void sdcard_spi_auto_init(void)
-{
-    for (int i = 0; i < SDCARD_SPI_NUM; i++) {
-        DEBUG("sdcard_spi_auto_init(): initializing device [%i]...\n", i);
-        int resu = sdcard_spi_init(&sdcard_spi_devs[i], &sdcard_spi_params[i]);
-        if(resu != 0){
-            DEBUG("error initializing device [%i]\n", i);
-        }
-    }
 }
 
 static sd_init_fsm_state_t _init_sd_fsm_step(sdcard_spi_t *card, sd_init_fsm_state_t state)

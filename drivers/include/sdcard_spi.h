@@ -28,11 +28,150 @@ extern "C" {
 #include "periph/spi.h"
 #include "periph/gpio.h"
 #include "stdbool.h"
-#include "sdcard_spi_internal.h"
 
 #define SD_HC_BLOCK_SIZE      (512)
 #define SDCARD_SPI_INIT_ERROR (-1)
 #define SDCARD_SPI_OK         (0)
+
+#define SD_SIZE_OF_OID 2 /* OID (OEM/application ID field in CID reg) */
+#define SD_SIZE_OF_PNM 5 /* PNM (product name field in CID reg) */
+
+struct {
+    uint8_t MID;              /* Manufacturer ID */
+    char OID[SD_SIZE_OF_OID]; /* OEM/Application ID*/
+    char PNM[SD_SIZE_OF_PNM]; /* Product name */
+    uint8_t PRV;              /* Product revision */
+    uint32_t PSN;             /* Product serial number */
+    uint16_t MDT;             /* Manufacturing date */
+    uint8_t CID_CRC;          /* CRC7 checksum */
+} typedef cid_t;
+
+/* see sd spec. 5.3.2 CSD Register (CSD Version 1.0) */
+struct {
+    uint8_t CSD_STRUCTURE : 2;
+    uint8_t TAAC : 8;
+    uint8_t NSAC : 8;
+    uint8_t TRAN_SPEED : 8;
+    uint16_t CCC : 12;
+    uint8_t READ_BL_LEN : 4;
+    uint8_t READ_BL_PARTIAL : 1;
+    uint8_t WRITE_BLK_MISALIGN : 1;
+    uint8_t READ_BLK_MISALIGN : 1;
+    uint8_t DSR_IMP : 1;
+    uint16_t C_SIZE : 12;
+    uint8_t VDD_R_CURR_MIN : 3;
+    uint8_t VDD_R_CURR_MAX : 3;
+    uint8_t VDD_W_CURR_MIN : 3;
+    uint8_t VDD_W_CURR_MAX : 3;
+    uint8_t C_SIZE_MULT : 3;
+    uint8_t ERASE_BLK_EN : 1;
+    uint8_t SECTOR_SIZE : 7;
+    uint8_t WP_GRP_SIZE : 7;
+    uint8_t WP_GRP_ENABLE : 1;
+    uint8_t R2W_FACTOR : 3;
+    uint8_t WRITE_BL_LEN : 4;
+    uint8_t WRITE_BL_PARTIAL : 1;
+    uint8_t FILE_FORMAT_GRP : 1;
+    uint8_t COPY : 1;
+    uint8_t PERM_WRITE_PROTECT : 1;
+    uint8_t TMP_WRITE_PROTECT : 1;
+    uint8_t FILE_FORMAT : 2;
+    uint8_t CSD_CRC : 8;
+} typedef csd_v1_t;
+
+/* see sd spec. 5.3.3 CSD Register (CSD Version 2.0) */
+struct {
+    uint8_t CSD_STRUCTURE : 2;
+    uint8_t TAAC : 8;
+    uint8_t NSAC : 8;
+    uint8_t TRAN_SPEED : 8;
+    uint16_t CCC : 12;
+    uint8_t READ_BL_LEN : 4;
+    uint8_t READ_BL_PARTIAL : 1;
+    uint8_t WRITE_BLK_MISALIGN : 1;
+    uint8_t READ_BLK_MISALIGN : 1;
+    uint8_t DSR_IMP : 1;
+    uint32_t C_SIZE : 22;
+    uint8_t ERASE_BLK_EN : 1;
+    uint8_t SECTOR_SIZE : 7;
+    uint8_t WP_GRP_SIZE : 7;
+    uint8_t WP_GRP_ENABLE : 1;
+    uint8_t R2W_FACTOR : 3;
+    uint8_t WRITE_BL_LEN : 4;
+    uint8_t WRITE_BL_PARTIAL : 1;
+    uint8_t FILE_FORMAT_GRP : 1;
+    uint8_t COPY : 1;
+    uint8_t PERM_WRITE_PROTECT : 1;
+    uint8_t TMP_WRITE_PROTECT : 1;
+    uint8_t FILE_FORMAT : 2;
+    uint8_t CSD_CRC : 8;
+} typedef csd_v2_t;
+
+union {
+    csd_v1_t v1;
+    csd_v2_t v2;
+} typedef csd_t;
+
+struct {
+    uint32_t SIZE_OF_PROTECTED_AREA : 32;
+    uint32_t SUS_ADDR : 22;
+    uint32_t VSC_AU_SIZE : 10;
+    uint16_t SD_CARD_TYPE : 16;
+    uint16_t ERASE_SIZE : 16;
+    uint8_t  SPEED_CLASS : 8;
+    uint8_t  PERFORMANCE_MOVE : 8;
+    uint8_t  VIDEO_SPEED_CLASS : 8;
+    uint8_t  ERASE_TIMEOUT : 6;
+    uint8_t  ERASE_OFFSET : 2;
+    uint8_t  UHS_SPEED_GRADE : 4;
+    uint8_t  UHS_AU_SIZE : 4;
+    uint8_t  AU_SIZE : 4;
+    uint8_t  DAT_BUS_WIDTH : 2;
+    uint8_t  SECURED_MODE : 1;
+} typedef sd_status_t;
+
+typedef enum {
+    SD_V2,
+    SD_V1,
+    MMC_V3,
+    SD_UNKNOWN
+} sd_version_t;
+
+typedef enum {
+    SD_RW_OK = 0,
+    SD_RW_NO_TOKEN,
+    SD_RW_TIMEOUT,
+    SD_RW_RX_TX_ERROR,
+    SD_RW_WRITE_ERROR,
+    SD_RW_CRC_MISMATCH,
+    SD_RW_NOT_SUPPORTED
+} sd_rw_response_t;
+
+/**
+ * @brief   sdcard_spi device params
+ */
+typedef struct {
+    spi_t spi_dev;          /**< SPI bus used */
+    gpio_t cs;              /**< pin connected to the DAT3 sd pad */
+    gpio_t clk;             /**< pin connected to the CLK sd pad */
+    gpio_t mosi;            /**< pin connected to the CMD sd pad*/
+    gpio_t miso;            /**< pin connected to the DAT0 sd pad*/
+    gpio_t power;           /**< pin that controls sd power circuit*/
+    bool power_act_high;    /**< true if card power is enabled by 'power'-pin HIGH*/
+} sdcard_spi_params_t;
+
+/**
+ * @brief   Device descriptor for sdcard_spi
+ */
+struct {
+    sdcard_spi_params_t params;
+    bool use_block_addr;
+    bool init_done;
+    sd_version_t card_type;
+    int csd_structure;
+    cid_t cid;
+    csd_t csd;
+} typedef sdcard_spi_t;
 
 /**
  * @brief           Initializes the sd-card with the given parameters in sdcard_spi_t structure.
@@ -49,11 +188,6 @@ extern "C" {
  * @return          false if an error occured while initializing the card
  */
 int sdcard_spi_init(sdcard_spi_t *card, const sdcard_spi_params_t *params);
-
-/**
- * @brief           Auto-initializes all configured sdcard devices
- */
-void sdcard_spi_auto_init(void);
 
 /**
  * @brief                 Reads data blocks (usually multiples of 512 Bytes) from card to buffer.
@@ -75,7 +209,7 @@ void sdcard_spi_auto_init(void);
  *
  * @return                number of sucessfully read blocks (0 if no block was read).
  */
-int sdcard_spi_read_blocks(sdcard_spi_t *card, int blockaddr, char *data, int blocksize, 
+int sdcard_spi_read_blocks(sdcard_spi_t *card, int blockaddr, char *data, int blocksize,
 	                       int nblocks, sd_rw_response_t *state);
 
 /**
@@ -97,7 +231,7 @@ int sdcard_spi_read_blocks(sdcard_spi_t *card, int blockaddr, char *data, int bl
  *
  * @return                number of sucessfully written blocks (0 if no block was written).
  */
-int sdcard_spi_write_blocks(sdcard_spi_t *card, int blockaddr, char *data, int blocksize, 
+int sdcard_spi_write_blocks(sdcard_spi_t *card, int blockaddr, char *data, int blocksize,
 	                        int nblocks, sd_rw_response_t *state);
 
 /**

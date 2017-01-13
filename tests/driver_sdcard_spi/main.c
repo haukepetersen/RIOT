@@ -19,6 +19,7 @@
  */
 #include "shell.h"
 #include "sdcard_spi.h"
+#include "sdcard_spi_internal.h"
 #include "sdcard_spi_params.h"
 #include "fmt.h"
 #include <stdlib.h>

@@ -69,11 +69,6 @@ static const  sdcard_spi_params_t sdcard_spi_params[] = {
 };
 /** @} */
 
-/**
- * @brief   number of used sd cards
- */
-#define SDCARD_SPI_NUM (sizeof(sdcard_spi_params) / sizeof(sdcard_spi_params[0]))
-
 #ifdef __cplusplus
 }
 #endif
