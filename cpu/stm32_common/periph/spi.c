@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014 Hamburg University of Applied Sciences
- *               2014-2016 Freie Universität Berlin
+ *               2014-2017 Freie Universität Berlin
  *               2016 OTA keys S.A.
  *
  * This file is subject to the terms and conditions of the GNU Lesser
@@ -56,6 +56,20 @@ void spi_init(spi_t bus)
     mutex_init(&locks[bus]);
     /* trigger pin initialization */
     spi_init_pins(bus);
+
+    periph_clk_en(spi_config[bus].apbbus, spi_config[bus].rccmask);
+    /* reset configuration */
+    dev(bus)->CR1 = 0;
+#ifdef SPI_I2SCFGR_I2SE
+    dev(bus)->I2SCFGR = 0;
+#endif
+    /* configure SPI for 8-bit data width */
+#ifdef SPI_CR2_FRXTH
+    dev(bus)->CR2 = (SPI_CR2_FRXTH | SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2);
+#else
+    dev(bus)->CR2 = 0;
+#endif
+    periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask);
 }
 
 void spi_init_pins(spi_t bus)
@@ -118,6 +132,9 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
         dev(bus)->CR1 |= (SPI_CR1_SSM | SPI_CR1_SSI);
     }
 
+    printf("CR1: 0x%08x\n", (int)dev(bus)->CR1);
+    printf("CR2: 0x%08x\n", (int)dev(bus)->CR2);
+
     return SPI_OK;
 }
 
@@ -138,6 +155,9 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
     /* make sure at least one input or one output buffer is given */
     assert(outbuf || inbuf);
 
+    /* we need to recast the data register to uint_8 to force 8-bit access */
+    volatile uint8_t *DR = (volatile uint8_t*)&(dev(bus)->DR);
+
     /* active the given chip select line */
     dev(bus)->CR1 |= (SPI_CR1_SPE);     /* this pulls the HW CS line low */
     if ((cs != SPI_HWCS_MASK) && (cs != SPI_CS_UNDEF)) {
@@ -148,21 +168,35 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
     if (!inbuf) {
         for (size_t i = 0; i < len; i++) {
             while (!(dev(bus)->SR & SPI_SR_TXE));
-            dev(bus)->DR = outbuf[i];
+            *DR = outbuf[i];
         }
         /* wait until everything is finished and empty the receive buffer */
         while (dev(bus)->SR & SPI_SR_BSY) {}
-        dev(bus)->DR;
+        while (dev(bus)->SR & SPI_SR_RXNE) {
+            dev(bus)->DR;       /* we might just read 2 bytes at once here */
+        }
+    }
+    else if (!outbuf) {
+        for (size_t i = 0; i < len; i++) {
+            while (!(dev(bus)->SR & SPI_SR_TXE));
+            *DR = 0;
+            while (!(dev(bus)->SR & SPI_SR_RXNE));
+            inbuf[i] = *DR;
+        }
     }
     else {
         for (size_t i = 0; i < len; i++) {
-            uint8_t tmp = (outbuf) ? outbuf[i] : 0;
             while (!(dev(bus)->SR & SPI_SR_TXE));
-            dev(bus)->DR = tmp;
+            *DR = outbuf[i];
             while (!(dev(bus)->SR & SPI_SR_RXNE));
-            inbuf[i] = dev(bus)->DR;
+            inbuf[i] = *DR;
         }
     }
+
+    /* make sure the transfer is completed before continuing, see reference
+     * manual(s) -> section 'Disabling the SPI' */
+    while (!(dev(bus)->SR & SPI_SR_TXE)) {}
+    while (dev(bus)->SR & SPI_SR_BSY) {}
 
     /* release the chip select if not specified differently */
     if ((!cont) && (cs != SPI_CS_UNDEF)) {
@@ -171,6 +205,8 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
             gpio_set((gpio_t)cs);
         }
     }
+
+    printf("SR: 0x%08x\n", (int)dev(bus)->SR);
 }
 
 #endif /* SPI_NUMOF */
