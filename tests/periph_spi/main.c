@@ -195,9 +195,6 @@ int cmd_transfer(int argc, char **argv)
         return 1;
     }
 
-    printf("TRANSFER: mode is 0x%08x\n", (int)spiconf.mode);
-    printf("TRANSFER:  clk is 0x%08x\n", (int)spiconf.clk);
-
     /* get bus access */
     if (spi_acquire(spiconf.dev, spiconf.cs,
                     spiconf.mode, spiconf.clk) != SPI_OK) {
@@ -207,6 +204,7 @@ int cmd_transfer(int argc, char **argv)
 
     /* transfer data */
     len = strlen(argv[1]);
+    memset(buf, 0, sizeof(buf));
     spi_transfer_bytes(spiconf.dev, spiconf.cs, false, argv[1], buf, len);
 
     /* release the bus */
@@ -222,6 +220,7 @@ int cmd_transfer(int argc, char **argv)
 int cmd_bench(int argc, char **argv)
 {
     uint32_t start, stop;
+    uint32_t sum = 0;
     uint8_t in;
     uint8_t out = (uint8_t)BENCH_PAYLOAD;
 
@@ -240,6 +239,8 @@ int cmd_bench(int argc, char **argv)
         return 1;
     }
 
+    puts("### Running some benchmarks, all values in [us] ###\n");
+
     /* 1 - write 1000 times 1 byte */
     start = xtimer_now_usec();
     for (int i = 0; i < BENCH_REDOS; i++) {
@@ -247,8 +248,9 @@ int cmd_bench(int argc, char **argv)
         (void)in;
     }
     stop = xtimer_now_usec();
-    printf("1 - write %i times %i byte:\n", BENCH_REDOS, 1);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 1 - write %i times %i byte:", BENCH_REDOS, 1);
+    printf("\t\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 2 - write 1000 times 2 byte */
     start = xtimer_now_usec();
@@ -257,8 +259,9 @@ int cmd_bench(int argc, char **argv)
                            bench_wbuf, NULL, BENCH_SMALL);
     }
     stop = xtimer_now_usec();
-    printf("2 - write %i times %i byte:\n", BENCH_REDOS, BENCH_SMALL);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 2 - write %i times %i byte:", BENCH_REDOS, BENCH_SMALL);
+    printf("\t\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 3 - write 1000 times 100 byte */
     start = xtimer_now_usec();
@@ -267,8 +270,9 @@ int cmd_bench(int argc, char **argv)
                            bench_wbuf, NULL, BENCH_LARGE);
     }
     stop = xtimer_now_usec();
-    printf("3 - write %i times %i byte:\n", BENCH_REDOS, BENCH_LARGE);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 3 - write %i times %i byte:", BENCH_REDOS, BENCH_LARGE);
+    printf("\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 4 - write 1000 times 1 byte to register */
     start = xtimer_now_usec();
@@ -277,8 +281,9 @@ int cmd_bench(int argc, char **argv)
         (void)in;
     }
     stop = xtimer_now_usec();
-    printf("4 - write %i times %i byte to register:\n", BENCH_REDOS, 1);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 4 - write %i times %i byte to register:", BENCH_REDOS, 1);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 5 - write 1000 times 2 byte to register */
     start = xtimer_now_usec();
@@ -287,8 +292,9 @@ int cmd_bench(int argc, char **argv)
                           bench_wbuf, NULL, BENCH_SMALL);
     }
     stop = xtimer_now_usec();
-    printf("5 - write %i times %i byte to register:\n", BENCH_REDOS, BENCH_SMALL);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 5 - write %i times %i byte to register:", BENCH_REDOS, BENCH_SMALL);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 6 - write 1000 times 100 byte to register */
     start = xtimer_now_usec();
@@ -297,8 +303,9 @@ int cmd_bench(int argc, char **argv)
                           bench_wbuf, NULL, BENCH_LARGE);
     }
     stop = xtimer_now_usec();
-    printf("6 - write %i times %i byte to register:\n", BENCH_REDOS, BENCH_LARGE);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 6 - write %i times %i byte to register:", BENCH_REDOS, BENCH_LARGE);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 7 - read 1000 times 2 byte */
     start = xtimer_now_usec();
@@ -307,8 +314,9 @@ int cmd_bench(int argc, char **argv)
                            NULL, bench_rbuf, BENCH_SMALL);
     }
     stop = xtimer_now_usec();
-    printf("7 - read %i times %i byte:\n", BENCH_REDOS, BENCH_SMALL);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 7 - read %i times %i byte:", BENCH_REDOS, BENCH_SMALL);
+    printf("\t\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 8 - read 1000 times 100 byte */
     start = xtimer_now_usec();
@@ -317,8 +325,9 @@ int cmd_bench(int argc, char **argv)
                            NULL, bench_rbuf, BENCH_LARGE);
     }
     stop = xtimer_now_usec();
-    printf("8 - read %i times %i byte:\n", BENCH_REDOS, BENCH_LARGE);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 8 - read %i times %i byte:", BENCH_REDOS, BENCH_LARGE);
+    printf("\t\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 9 - read 1000 times 2 byte from register */
     start = xtimer_now_usec();
@@ -327,8 +336,9 @@ int cmd_bench(int argc, char **argv)
                           NULL, bench_rbuf, BENCH_SMALL);
     }
     stop = xtimer_now_usec();
-    printf("9 - read %i times %i byte to register:\n", BENCH_REDOS, BENCH_SMALL);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf(" 9 - read %i times %i byte from register:", BENCH_REDOS, BENCH_SMALL);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 10 - read 1000 times 100 byte from register */
     start = xtimer_now_usec();
@@ -337,8 +347,9 @@ int cmd_bench(int argc, char **argv)
                           NULL, bench_rbuf, BENCH_LARGE);
     }
     stop = xtimer_now_usec();
-    printf("10 - read %i times %i byte to register:\n", BENCH_REDOS, BENCH_LARGE);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf("10 - read %i times %i byte from register:", BENCH_REDOS, BENCH_LARGE);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 11 - transfer 1000 times 2 byte */
     start = xtimer_now_usec();
@@ -347,8 +358,9 @@ int cmd_bench(int argc, char **argv)
                            bench_wbuf, bench_rbuf, BENCH_SMALL);
     }
     stop = xtimer_now_usec();
-    printf("11 - transfer %i times %i byte:\n", BENCH_REDOS, BENCH_SMALL);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf("11 - transfer %i times %i byte:", BENCH_REDOS, BENCH_SMALL);
+    printf("\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 12 - transfer 1000 times 100 byte */
     start = xtimer_now_usec();
@@ -357,8 +369,9 @@ int cmd_bench(int argc, char **argv)
                            bench_wbuf, bench_rbuf, BENCH_LARGE);
     }
     stop = xtimer_now_usec();
-    printf("12 - transfer %i times %i byte:\n", BENCH_REDOS, BENCH_LARGE);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf("12 - transfer %i times %i byte:", BENCH_REDOS, BENCH_LARGE);
+    printf("\t\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 13 - transfer 1000 times 2 byte from/to register */
     start = xtimer_now_usec();
@@ -367,8 +380,9 @@ int cmd_bench(int argc, char **argv)
                           bench_wbuf, bench_rbuf, BENCH_SMALL);
     }
     stop = xtimer_now_usec();
-    printf("13 - transfer %i times %i byte to register:\n", BENCH_REDOS, BENCH_SMALL);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf("13 - transfer %i times %i byte to register:", BENCH_REDOS, BENCH_SMALL);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
     /* 14 - transfer 1000 times 100 byte from/to register */
     start = xtimer_now_usec();
@@ -377,9 +391,11 @@ int cmd_bench(int argc, char **argv)
                           bench_wbuf, bench_rbuf, BENCH_LARGE);
     }
     stop = xtimer_now_usec();
-    printf("14 - transfer %i times %i byte to register:\n", BENCH_REDOS, BENCH_LARGE);
-    printf("\t-> %ius\n", (int)(stop - start));
+    printf("14 - transfer %i times %i byte to register:", BENCH_REDOS, BENCH_LARGE);
+    printf("\t%i\n", (int)(stop - start));
+    sum += (stop - start);
 
+    printf("-- - SUM:\t\t\t\t\t%i\n", (int)sum);
 
     spi_release(spiconf.dev);
     puts("\n### All runs complete ###");
