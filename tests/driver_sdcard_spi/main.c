@@ -33,7 +33,8 @@
 #define FIRST_PRINTABLE_ASCII_CHAR 0x20
 #define ASCII_UNPRINTABLE_REPLACEMENT "."
 
-/* this is provided by the sdcard_spi driver see sdcard_spi.c*/
+/* this is provided by the sdcard_spi driver 
+ * see /home/michel/Projekte/fatfs/RIOT/sys/auto_init/storage/auto_init_sdcard_spi.c */
 extern sdcard_spi_t sdcard_spi_devs[sizeof(sdcard_spi_params) / sizeof(sdcard_spi_params[0])];
 sdcard_spi_t *card = &sdcard_spi_devs[0];
 

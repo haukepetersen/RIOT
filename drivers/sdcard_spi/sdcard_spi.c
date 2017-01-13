@@ -71,8 +71,10 @@ int sdcard_spi_init(sdcard_spi_t *card, const sdcard_spi_params_t *params)
     } while (state != SD_INIT_FINISH);
 
     if (card->card_type != SD_UNKNOWN) {
+        card->init_done = true;
         return SDCARD_SPI_OK;
     }
+    card->init_done = false;
     return SDCARD_SPI_INIT_ERROR;
 }
 
