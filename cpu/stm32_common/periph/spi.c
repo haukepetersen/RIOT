@@ -131,6 +131,9 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
     if (cs != SPI_HWCS_MASK) {
         dev(bus)->CR1 |= (SPI_CR1_SSM | SPI_CR1_SSI);
     }
+    else {
+        dev(bus)->CR2 |= (SPI_CR2_SSOE);
+    }
 
     printf("CR1: 0x%08x\n", (int)dev(bus)->CR1);
     printf("CR2: 0x%08x\n", (int)dev(bus)->CR2);
@@ -142,6 +145,7 @@ void spi_release(spi_t bus)
 {
     /* disable device and release lock */
     dev(bus)->CR1 = 0;
+    dev(bus)->CR2 &= ~(SPI_CR2_SSOE);
     periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask);
     mutex_unlock(&locks[bus]);
 }
