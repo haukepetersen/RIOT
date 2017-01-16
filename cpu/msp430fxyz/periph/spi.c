@@ -102,9 +102,9 @@ void spi_release(spi_t dev)
 {
     /* put SPI device back in reset state */
 #ifndef SPI_USE_USCI
-    SPI_BASE->CTL = (USART_CTL_SWRST);
+    SPI_BASE->CTL |= (USART_CTL_SWRST);
 #else
-    SPI_BASE->CTL1 = (USCI_SPI_CTL1_SWRST);
+    SPI_BASE->CTL1 |= (USCI_SPI_CTL1_SWRST);
 #endif
 
     /* release the bus */
