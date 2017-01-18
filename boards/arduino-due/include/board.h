@@ -44,6 +44,18 @@ extern "C" {
  */
 void board_init(void);
 
+/**
+ * @brief   SD card configuration
+ * @{
+ */
+#define SDCARD_SPI_PARAM_SPI         SPI_0
+#define SDCARD_SPI_PARAM_CS          GPIO_PIN(PA, 29)
+#define SDCARD_SPI_PARAM_CLK         GPIO_PIN(PA, 27)
+#define SDCARD_SPI_PARAM_MOSI        GPIO_PIN(PA, 26)
+#define SDCARD_SPI_PARAM_MISO        GPIO_PIN(PA, 25)
+#define SDCARD_SPI_PARAM_POWER       GPIO_UNDEF
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
