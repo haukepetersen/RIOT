@@ -90,10 +90,10 @@ int cmd_init(int argc, char **argv)
             printf("\t\t%i: SPI_DEV(%i)\n", i, i);
         }
         puts("\tmode:");
-        puts("\t\t0: POL:0, PHASE:0 - on first rising edge");
-        puts("\t\t1: POL:0, PHASE:1 - on second rising edge");
-        puts("\t\t2: POL:1, PHASE:0 - on first falling edge");
-        puts("\t\t3: POL:1, PHASE:1 - on second falling edge");
+        puts("\t\t0: POL:0, PHASE:0 - on first edge (rising)");
+        puts("\t\t1: POL:0, PHASE:1 - on second edge (falling)");
+        puts("\t\t2: POL:1, PHASE:0 - on first  edge (falling)");
+        puts("\t\t3: POL:1, PHASE:1 - on second edge (rising)");
         puts("\tclk:");
         puts("\t\t0: 100 KHz");
         puts("\t\t1: 400 KHz");
