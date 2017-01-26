@@ -112,8 +112,6 @@ int pn532_init(pn532_t *dev, const pn532_params_t *params, pn532_mode_t mode)
 {
     assert(dev != NULL);
 
-    int ret = -1;
-
     dev->conf = params;
 
     gpio_init_int(dev->conf->irq, GPIO_IN_PU, GPIO_FALLING,
@@ -143,7 +141,7 @@ int pn532_init(pn532_t *dev, const pn532_params_t *params, pn532_mode_t mode)
     mutex_init(&dev->trap);
     mutex_lock(&dev->trap);
 
-    return ret;
+    return 0;
 }
 
 static unsigned char chksum(char *b, unsigned len)
@@ -224,7 +222,7 @@ static int _read(pn532_t *dev, char *buff, unsigned len)
         spi_release(dev->conf->spi);
 
         buff[0] = 0x80;
-        reverse(buff, ret);
+        reverse(buff, len);
         ret = (int)len + 1;
 #endif
     }
