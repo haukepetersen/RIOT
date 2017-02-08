@@ -26,3 +26,6 @@ echo "i2c_poweron"
 git grep -l 'i2c_poweron' | xargs sed -i 's/i2c_poweron/i2c_depr_poweron/g'
 echo "i2c_poweroff"
 git grep -l 'i2c_poweroff' | xargs sed -i 's/i2c_poweroff/i2c_depr_poweroff/g'
+
+echo "periph/i2c"
+git grep -l 'periph/i2c_depr.h' | xargs sed -i 's/periph\/i2c.h/periph\/i2c_depr.h/g'
