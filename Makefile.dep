@@ -368,8 +368,28 @@ ifneq (,$(filter newlib,$(USEMODULE)))
   ifeq (,$(filter newlib_syscalls_%,$(USEMODULE)))
     USEMODULE += newlib_syscalls_default
   endif
-  ifeq (,$(filter rtt_stdio,$(USEMODULE)))
-    USEMODULE += uart_stdio
+  # if configured, use stdio_ethos per default, use stdio_uart otherwise
+  ifeq (,$(filter stdio_%,$(USEMODULE)))
+    ifeq (,$(filter ethos,$(USEMODULE)))
+      USEMODULE += stdio_uart
+    else
+      USEMODULE += stdio_ethos
+    endif
+  endif
+endif
+
+ifneq (,$(filter stdio_rtt,$(USEMODULE)))
+  USEMODULE += xtimer
+endif
+
+ifneq (,$(filter stdio_uart stdio_ethos,$(USEMODULE)))
+  USEMODULE += isrpipe
+endif
+
+ifneq (,$(filter stdio_udp,$(USEMODULE)))
+  USEMODULE += sock_udp
+  ifneq (,$(filter gnrc,$(USEMODULE)))
+    USEMODULE += gnrc_sock_udp
   endif
 endif
 
@@ -377,14 +397,6 @@ ifneq (,$(filter posix_sockets,$(USEMODULE)))
   USEMODULE += bitfield
   USEMODULE += posix
   USEMODULE += random
-endif
-
-ifneq (,$(filter rtt_stdio,$(USEMODULE)))
-  USEMODULE += xtimer
-endif
-
-ifneq (,$(filter uart_stdio,$(USEMODULE)))
-  USEMODULE += isrpipe
 endif
 
 ifneq (,$(filter isrpipe,$(USEMODULE)))

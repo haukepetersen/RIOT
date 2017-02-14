@@ -5,6 +5,11 @@ ifeq ($(BUILDOSXNATIVE),1)
     export NATIVEINCLUDES += -I$(RIOTCPU)/native/osx-libc-extra
 endif
 
+# Include default STDIO for native
+ifeq (,$(filter stdio_%,$(USEMODULE)))
+  USEMODULE += stdio_native
+endif
+
 export USEMODULE += periph
 
 ifeq ($(shell uname -s),Darwin)

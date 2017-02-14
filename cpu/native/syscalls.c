@@ -42,6 +42,10 @@
 
 #include "native_internal.h"
 
+#ifndef MODULE_STDIO_NATIVE
+#include "riot_stdio.h"
+#endif
+
 #define ENABLE_DEBUG (0)
 #if ENABLE_DEBUG
 #define LOCAL_DEBUG (1)
@@ -210,28 +214,46 @@ void *realloc(void *ptr, size_t size)
 
 ssize_t _native_read(int fd, void *buf, size_t count)
 {
+// #ifdef MODULE_STDIO_NATIVE
     ssize_t r;
 
     _native_syscall_enter();
     r = real_read(fd, buf, count);
     _native_syscall_leave();
 
+    // return r;
+// #else
+    // (void)fd;
+    // return (ssize_t)
+#ifndef MODULE_STDIO_NATIVE
+    stdio_read(buf, (int)count);
+#endif
     return r;
+// #endif
 }
 
 ssize_t _native_write(int fd, const void *buf, size_t count)
 {
+// #ifdef MODULE_STDIO_NATIVE
     ssize_t r;
 
     _native_syscall_enter();
     r = real_write(fd, buf, count);
     _native_syscall_leave();
 
+    // return r;
+#ifndef MODULE_STDIO_NATIVE
+    // (void)fd;
+    // return (ssize_t)
+    stdio_write(buf, (int)count);
+#endif
     return r;
+// #endif
 }
 
 ssize_t _native_writev(int fd, const struct iovec *iov, int iovcnt)
 {
+#ifdef MODULE_STDIO_NATIVE
     ssize_t r;
 
     _native_syscall_enter();
@@ -239,6 +261,16 @@ ssize_t _native_writev(int fd, const struct iovec *iov, int iovcnt)
     _native_syscall_leave();
 
     return r;
+#else
+    (void)fd;
+    ssize_t r = 0;
+
+    for (int i = 0; i < iovcnt; i++) {
+        r += stdio_write(iov->iov_base, (int)iov->iov_len);
+    }
+
+    return r;
+#endif
 }
 
 #if defined(__FreeBSD__)
