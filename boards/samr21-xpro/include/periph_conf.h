@@ -187,9 +187,9 @@ static const pwm_conf_t pwm_config[] = {
 #if PWM_1_EN
     {TCC0, {
         /* GPIO pin, MUX value, TCC channel */
-        { GPIO_PIN(PA, 16), GPIO_MUX_F, 0 },
         { GPIO_PIN(PA, 18), GPIO_MUX_F, 2 },
-        { GPIO_PIN(PA, 19), GPIO_MUX_F, 3 }
+        { GPIO_UNDEF, GPIO_MUX_F, 3 },
+        { GPIO_UNDEF, GPIO_MUX_F, 3 }
     }}
 #endif
 };
