@@ -153,6 +153,16 @@ int gcoap_cli_cmd(int argc, char **argv)
                 if (!_send(&buf[0], len, argv[2], argv[3])) {
                     puts("gcoap_cli: msg send failed");
                 }
+                else {
+                    /* send Observe notification for /cli/stats */
+                    int res = gcoap_obs_init(&pdu, &buf[0], GCOAP_PDU_BUF_SIZE,
+                                                            &_resources[0]);
+                    if (res == 0) {
+                        size_t payload_len = fmt_u16_dec((char *)pdu.payload, req_count);
+                        len = gcoap_finish(&pdu, payload_len, COAP_FORMAT_TEXT);
+                        gcoap_obs_send(&buf[0], len, &_resources[0]);
+                    }
+                }
                 return 0;
             }
             else {
