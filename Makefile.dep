@@ -668,6 +668,11 @@ ifneq (,$(filter ccn-lite,$(USEPKG)))
   USEMODULE += ccn-lite-utils
 endif
 
+
+ifneq (,$(filter harald_ibeacon,$(USEMODULE)))
+  USEMODULE += harald
+endif
+
 # always select gpio (until explicit dependencies are sorted out)
 FEATURES_OPTIONAL += periph_gpio
 
