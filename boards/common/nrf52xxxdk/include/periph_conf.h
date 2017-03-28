@@ -108,6 +108,20 @@ static const i2c_conf_t i2c_config[] = {
 #define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
+/**
+ * @name   PWM configuration
+ * @{
+ */
+static const pwm_conf_t pwm_config[] = {
+    {
+        .dev = NRF_PWM0,
+        .pin = { 23, 24, 25, GPIO_UNDEF },
+    },
+};
+
+#define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif

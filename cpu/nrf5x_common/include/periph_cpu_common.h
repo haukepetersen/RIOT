@@ -53,6 +53,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Override GPIO_UNDEF value
+ */
+#define GPIO_UNDEF          (UINT_MAX)
+
+/**
  * @brief   Generate GPIO mode bitfields
  *
  * We use 4 bit to encode the pin mode:

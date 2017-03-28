@@ -169,11 +169,13 @@ void pwm_start(pwm_t pwm)
 
 void pwm_poweron(pwm_t pwm)
 {
+    (void)pwm;
     /* nothing to do here */
 }
 
 void pwm_poweroff(pwm_t pwm)
 {
+    (void)pwm;
     /* nothing to do here */
 }
 
