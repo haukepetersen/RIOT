@@ -140,11 +140,15 @@
  *
  * Finally, call gcoap_obs_send() for the resource.
  *
- * ### Settings ###
+ * ### Other considerations ###
  *
  * By default, the value for the Observe option in a notification is three
  * bytes long. For resources that change slowly, this length can be reduced via
  * GCOAP_OBS_VALUE_WIDTH.
+ *
+ * To cancel a notification, the server expects to receive a GET request with
+ * the Observe option value set to 1. The server does not support cancellation
+ * via a reset (RST) response to a non-confirmable notification.
  *
  * ## Implementation Notes ##
  *
