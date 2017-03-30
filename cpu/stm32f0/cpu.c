@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2014-2017 Freie Universität Berlin
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
@@ -21,33 +21,104 @@
 #include "periph_conf.h"
 #include "periph/init.h"
 
-/* Check the source to be used for the PLL */
-#if defined(CLOCK_HSI) && defined(CLOCK_HSE)
-#error "Only provide one of two CLOCK_HSI/CLOCK_HSE"
-#elif CLOCK_HSI
-#define CLOCK_CR_SOURCE            RCC_CR_HSION
-#define CLOCK_CR_SOURCE_RDY        RCC_CR_HSIRDY
-#define CLOCK_PLL_SOURCE           (RCC_CFGR_PLLSRC_HSI_DIV2)
-#define CLOCK_PLL_MUL_MUL          2
-#define CLOCK_DISABLE_HSI          0
-
-#if (RCC_PLL_MUL * RCC_PLL_MUL_MUL) > 6
-#error PLL with HSI as clock source cant extend 6 times multiplier
-#endif
-#elif CLOCK_HSE
-#define CLOCK_CR_SOURCE            RCC_CR_HSEON
-#define CLOCK_CR_SOURCE_RDY        RCC_CR_HSERDY
-#define CLOCK_PLL_SOURCE           (RCC_CFGR_PLLSRC_HSE_PREDIV | RCC_CFGR_PLLXTPRE_HSE_PREDIV_DIV1)
-#define CLOCK_PLL_MUL_MUL          1
-#define CLOCK_DISABLE_HSI          1
+/* get base clock configuration */
+#if CLOCK_HSE       /* use external crystal with given clock rate */
+#define CLK_EN                  RCC_CR_HSEON
+#define CLK_STAT                RCC_CR_HSERDY
+#define CLK_SRC                 RCC_CFGR_SW_HSE
+#define CKL_SRC_STAT            RCC_CFGR_SWS_HSE
+#define PLL_IN                  (CLOCK_HSE / 2)
+#define PLL_SRC                 (RCC_CFGR_PLLSRC_HSE_PREDIV)
+#else               /* use internal 8MHz HSI oscillator */
+#define CLK_EN                  RCC_CR_HSION
+#define CLK_STAT                RCC_CR_HSIRDY
+#define CLK_SRC                 RCC_CFGR_SW_HSI
+#define CLK_SRC_STAT            RCC_CFGR_SWS_HSI
+#define PLL_IN                  (8000000 / 2)
+#define PLL_SRC                 (RCC_CFGR_PLLSRC_HSI_PREDIV)
 #else
-#error "Please provide CLOCK_HSI or CLOCK_HSE in boards/NAME/includes/perhip_cpu.h"
+#error "Please provide CLOCK_HSE in your board's periph_conf.h"
 #endif
 
-static void clock_init(void);
+/* further PLL settings */
+#define PLL_MUL_VAL             (CLOCK_CORECLOCK / PLL_IN)
+#if (PLL_MUL_VAL > 16 || PLL_MUL_VAL < 2)
+#error "PLL configuration: multiplier value is out of range"
+#endif
+#define PLL_MUL                 ((PLL_MUL_VAL - 2) << 18)
+
+/* set default bus prescalers */
+#ifndef CLOCK_AHB_DIV
+#define CLOCK_AHB_DIV               RCC_CFGR_HPRE_DIV1
+#endif
+#ifndef CLOCK_APB_DIV
+#define CLOCK_APB_DIV               RCC_CFGR_PPRE_DIV1
+#endif
+
+/* figure out flash wait states that we need */
+#if (CLOCK_CORECLOCK <= 24000000)
+#define FLASH_WS                    (0)
+#else
+#define FLASH_WS                    (FLASH_ACR_LATENCY)
+#endif
 
 /**
- * @brief Initialize the CPU, set IRQ priorities
+ * @brief   Configure the controllers clock system
+ *
+ * We use the following default configuration:
+ * - if configured, use HSE with given clock rate (CLOCK_HSE in periph_conf.h)
+ * - if HSE is not available (CLOCK_HSE := 0), use 8MHz HSI as base clock
+ * - we use the PLL to achieve desired core clock
+ */
+static void clock_init(void)
+{
+    /* disable interrupts (global + RCC) */
+    unsigned is = irq_disable();
+    RCC->CIR = 0;
+
+    /* set flash wait states to maximum during configuration */
+    FLASH->ACR = FLASH_ACR_LATENCY;
+
+    /* enable the base clock */
+    RCC->CR |= (CLK_EN);
+    while (!(RCC->CR & CLK_STAT)) {}
+    /* use base clock to drive the system during further initialization and
+     * set desired peripheral bus prescalers */
+    RCC_CFGR = (CLOCK_AHB_DIV | CLOCK_APB_DIV | CLK_SRC);
+    while ((RCC_CFGR & RCC_CFGR_SWS) != CKL_SRC_STAT) {}
+    /* show down all clocks except the base clock -> now we are in a defined
+     * state */
+    RCC->CR = CLK_EN;
+
+    /* configure the PLL: we simply re-write the previous CFGR settings once
+     * more + we add the new PWM configuration */
+    RCC->CFGR2 = 1;         /* pre-div fixed to 2 */
+    RCC->CFGR = (CLOCK_AHB_DIV | CLOCK_APB_DIV | CLK_SRC | PLL_MUL | PLL_SRC);
+
+    /* enable PLL */
+    RCC->CR |= RCC_CR_PLLON;
+    while (!(RCC->CR & RCC_CR_PLLRDY)) {}
+
+    /* configure PLL as system clock source */
+    RCC->CFGR &= ~(RCC_CFGR_SW);
+    RCC->CFGR |= RCC_CFGR_SW_PLL;
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}
+
+    /* now we just need to enable the correct low speed clock */
+#if CLOCK_LSE
+
+#else
+
+#endif
+
+    /* and set the flash configuration to the actual used values */
+    FLASH->ACR = (FLASH_WS | FLASH_ACR_PRFTBE);
+
+    irq_restore(is);
+}
+
+/**
+ * @brief   Initialize the CPU, set IRQ priorities
  */
 void cpu_init(void)
 {
@@ -57,79 +128,4 @@ void cpu_init(void)
     clock_init();
     /* trigger static peripheral initialization */
     periph_init();
-}
-
-/**
- * @brief Configure the controllers clock system
- *
- * The clock initialization make the following assumptions:
- * - the external HSE clock from an external oscillator is used as base clock
- * - the internal PLL circuit is used for clock refinement
- *
- * Use the following formulas to calculate the needed values:
- *
- * SYSCLK = ((HSE_VALUE / CLOCK_PLL_M) * CLOCK_PLL_N) / CLOCK_PLL_P
- * USB, SDIO and RNG Clock =  ((HSE_VALUE / CLOCK_PLL_M) * CLOCK_PLL_N) / CLOCK_PLL_Q
- *
- * The actual used values are specified in the board's `periph_conf.h` file.
- *
- * NOTE: currently there is not timeout for initialization of PLL and other locks
- *       -> when wrong values are chosen, the initialization could stall
- */
-static void clock_init(void)
-{
-    /* reset clock configuration register */
-    RCC->CFGR = 0;
-    RCC->CFGR2 = 0;
-
-    /* disable HSE, CSS and PLL */
-    RCC->CR &= ~(RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
-
-    /* disable all clock interrupts */
-    RCC->CIR = 0;
-
-    /* enable the high speed clock source */
-    RCC->CR |= CLOCK_CR_SOURCE;
-
-    /* wait for the high speed clock to be ready */
-    while (!(RCC->CR & CLOCK_CR_SOURCE_RDY)) {}
-
-    /* setup the peripheral bus prescalers */
-
-    /* set HCLK = SYSCLK, so no clock division here */
-    RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
-    /* set PCLK = HCLK, so its not divided */
-    RCC->CFGR |= RCC_CFGR_PPRE_DIV1;
-
-    /* configure the PLL */
-
-    /* reset PLL configuration bits */
-    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMUL);
-    /* set PLL configuration */
-    RCC->CFGR |= CLOCK_PLL_SOURCE | ((((CLOCK_PLL_MUL * CLOCK_PLL_MUL_MUL) - 2) & 0xf) << 18);
-
-    /* enable PLL again */
-    RCC->CR |= RCC_CR_PLLON;
-    /* wait until PLL is stable */
-    while(!(RCC->CR & RCC_CR_PLLRDY)) {}
-
-    /* configure flash latency */
-
-    /* enable pre-fetch buffer and set flash latency to 1 cycle*/
-    FLASH->ACR = FLASH_ACR_PRFTBE | FLASH_ACR_LATENCY;
-
-    /* configure the sysclock and the peripheral clocks */
-
-    /* set sysclock to be driven by the PLL clock */
-    RCC->CFGR &= ~RCC_CFGR_SW;
-    RCC->CFGR |= RCC_CFGR_SW_PLL;
-
-    /* wait for sysclock to be stable */
-    while (!(RCC->CFGR & RCC_CFGR_SWS_PLL)) {}
-
-#if CLOCK_DISABLE_HSI
-    /* disable the HSI if we use the HSE */
-    RCC->CR &= ~(RCC_CR_HSION);
-    while (RCC->CR & RCC_CR_HSIRDY) {}
-#endif
 }
