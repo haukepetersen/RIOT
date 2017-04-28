@@ -491,7 +491,7 @@ static int _find_observer(sock_udp_ep_t **observer, sock_udp_ep_t *remote)
 {
     int empty_slot = -1;
     *observer      = NULL;
-    for (int i = 0; i < GCOAP_OBS_CLIENTS_MAX; i++) {
+    for (unsigned i = 0; i < GCOAP_OBS_CLIENTS_MAX; i++) {
         unsigned cmplen = 0;
 
         if (_coap_state.observers[i].family == AF_UNSPEC) {
@@ -531,7 +531,7 @@ static int _find_obs_memo(gcoap_observe_memo_t **memo, sock_udp_ep_t *remote,
 {
     int empty_slot = -1;
     *memo          = NULL;
-    for (int i = 0; i < GCOAP_OBS_REGISTRATIONS_MAX; i++) {
+    for (unsigned i = 0; i < GCOAP_OBS_REGISTRATIONS_MAX; i++) {
         sock_udp_ep_t *local_observer = NULL;
 
         if (_coap_state.observe_memos[i].observer == NULL) {
@@ -752,14 +752,13 @@ int gcoap_obs_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     _find_obs_memo_resource(&memo, resource);
     if (memo == NULL) {
         /* Unique return value to specify there is not an observer */
-        return -2;
+        return GCOAP_OBS_INIT_UNUSED;
     }
 
     pdu->hdr = (coap_hdr_t *)buf;
     hdrlen   = coap_build_hdr(pdu->hdr, COAP_TYPE_NON, &memo->token[0],
-                                                       memo->token_len,
-                                                       COAP_CODE_CONTENT,
-                                                     ++_coap_state.last_message_id);
+                              memo->token_len, COAP_CODE_CONTENT,
+                              ++_coap_state.last_message_id);
     if (hdrlen > 0) {
         uint32_t now       = xtimer_now_usec();
         pdu->observe_value = (now >> GCOAP_OBS_TICK_EXPONENT) & 0xFFFFFF;
@@ -771,11 +770,11 @@ int gcoap_obs_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
         pdu->payload_len   = len - (pdu->payload - buf);
         pdu->content_type  = COAP_FORMAT_NONE;
 
-        return 0;
+        return GCOAP_OBS_INIT_OK;
     }
     else {
         /* reason for negative hdrlen is not defined, so we also are vague */
-        return -1;
+        return GCOAP_OBS_INIT_ERR;
     }
 }
 

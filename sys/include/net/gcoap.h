@@ -328,6 +328,15 @@ extern "C" {
 #endif
 
 /**
+ * @name Return values for gcoap_obs_init()
+ * @{
+ */
+#define GCOAP_OBS_INIT_OK       (0)
+#define GCOAP_OBS_INIT_ERR     (-1)
+#define GCOAP_OBS_INIT_UNUSED  (-2)
+/** @} */
+
+/**
  * @brief  A modular collection of resources for a server
  */
 typedef struct gcoap_listener {
@@ -528,9 +537,9 @@ static inline ssize_t gcoap_response(coap_pkt_t *pdu, uint8_t *buf, size_t len,
  * @param[in] len Length of the buffer
  * @param[in] resource Resource for the notification
  *
- * @return 0 on success
- * @return -1 on error
- * @return -2 if no observer for resource
+ * @return GCOAP_OBS_INIT_OK     on success
+ * @return GCOAP_OBS_INIT_ERR    on error
+ * @return GCOAP_OBS_INIT_UNUSED if no observer for resource
  */
 int gcoap_obs_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                                   const coap_resource_t *resource);
