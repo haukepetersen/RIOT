@@ -184,44 +184,41 @@ static size_t _handle_req(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     }
 
     if (coap_get_observe(pdu) == COAP_OBS_REGISTER) {
-        int empty_slot = _find_observer(&observer, remote);
-        /* record new observer */
-        if (observer == NULL) {
+        int empty_slot = _find_obs_memo(&memo, remote, pdu);
+        /* record observe memo */
+        if (memo == NULL) {
             if (empty_slot >= 0 && resource_memo == NULL) {
-                observer = &_coap_state.observers[empty_slot];
-                memcpy(observer, remote, sizeof(sock_udp_ep_t));
-            }
-            else {
-                coap_clear_observe(pdu);
-                DEBUG("gcoap: can't register observer\n");
-            }
-        }
 
-        /* register observer for resource */
-        if (observer != NULL) {
-            empty_slot = _find_obs_memo(&memo, remote, pdu);
-            /* record observe memo */
-            if (memo == NULL) {
-                if (empty_slot >= 0 && resource_memo == NULL) {
+                int obs_slot = _find_observer(&observer, remote);
+                /* cache new observer */
+                if (observer == NULL) {
+                    if (obs_slot >= 0) {
+                        observer = &_coap_state.observers[obs_slot];
+                        memcpy(observer, remote, sizeof(sock_udp_ep_t));
+                    } else {
+                        DEBUG("gcoap: can't register observer\n");
+                    }
+                }
+                if (observer != NULL) {
                     memo = &_coap_state.observe_memos[empty_slot];
                 }
-                else {
-                    coap_clear_observe(pdu);
-                    DEBUG("gcoap: can't register observe memo\n");
-                }
             }
-            if (memo != NULL) {
-                memo->observer  = observer;
-                memo->resource  = resource;
-                memo->token_len = coap_get_token_len(pdu);
-                if (memo->token_len) {
-                    memcpy(&memo->token[0], pdu->token, memo->token_len);
-                }
-                DEBUG("gcoap: Registered observer for: %s\n", memo->resource->path);
-                /* generate initial notification value */
-                uint32_t now       = xtimer_now_usec();
-                pdu->observe_value = (now >> GCOAP_OBS_TICK_EXPONENT) & 0xFFFFFF;
+            if (memo == NULL) {
+                coap_clear_observe(pdu);
+                DEBUG("gcoap: can't register observe memo\n");
             }
+        }
+        if (memo != NULL) {
+            memo->observer  = observer;
+            memo->resource  = resource;
+            memo->token_len = coap_get_token_len(pdu);
+            if (memo->token_len) {
+                memcpy(&memo->token[0], pdu->token, memo->token_len);
+            }
+            DEBUG("gcoap: Registered observer for: %s\n", memo->resource->path);
+            /* generate initial notification value */
+            uint32_t now       = xtimer_now_usec();
+            pdu->observe_value = (now >> GCOAP_OBS_TICK_EXPONENT) & 0xFFFFFF;
         }
 
     } else if (coap_get_observe(pdu) == COAP_OBS_DEREGISTER) {
