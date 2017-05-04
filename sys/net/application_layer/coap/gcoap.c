@@ -528,16 +528,17 @@ static int _find_obs_memo(gcoap_observe_memo_t **memo, sock_udp_ep_t *remote,
 {
     int empty_slot = -1;
     *memo          = NULL;
-    for (unsigned i = 0; i < GCOAP_OBS_REGISTRATIONS_MAX; i++) {
-        sock_udp_ep_t *local_observer = NULL;
 
+    sock_udp_ep_t *remote_observer = NULL;
+    _find_observer(&remote_observer, remote);
+
+    for (unsigned i = 0; i < GCOAP_OBS_REGISTRATIONS_MAX; i++) {
         if (_coap_state.observe_memos[i].observer == NULL) {
             empty_slot = i;
             continue;
         }
 
-        _find_observer(&local_observer, remote);
-        if (local_observer != NULL) {
+        if (_coap_state.observe_memos[i].observer == remote_observer) {
             if (pdu == NULL) {
                 *memo = &_coap_state.observe_memos[i];
                 break;
