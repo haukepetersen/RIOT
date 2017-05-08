@@ -146,8 +146,9 @@ do_flash() {
             -c 'init' \
             -c 'targets' \
             -c 'reset halt' \
+            -c 'flash banks' \
             ${OPENOCD_PRE_FLASH_CMDS} \
-            -c 'flash write_image erase \"${HEXFILE}\"' \
+            -c 'flash write_image erase \"${HEXFILE}\" 0' \
             -c 'reset halt' \
             ${OPENOCD_PRE_VERIFY_CMDS} \
             -c 'verify_image \"${HEXFILE}\"' \
