@@ -2,6 +2,10 @@ ifneq (,$(filter gnrc_netdev_default netdev_default,$(USEMODULE)))
   USEMODULE += at86rf233
 endif
 
-ifneq (,$(filter saul_default,$(USEMODULE)))
+# ifneq (,$(filter saul_default,$(USEMODULE)))
+#   USEMODULE += saul_gpio
+# endif
+
+ifneq (,$(filter devreg,$(USEMODULE)))
   USEMODULE += saul_gpio
 endif

@@ -42,6 +42,13 @@ static int write(void *dev, phydat_t *state)
     return 1;
 }
 
+const device_driver_t gpio_out_device = {
+    .type = DEVICE_ACT_SWITCH_GPIO,
+    .init = device_noinit,
+    .get  = device_nogetset,
+    .set  = device_nogetset
+};
+
 const saul_driver_t gpio_out_saul_driver = {
     .read = read,
     .write = write,

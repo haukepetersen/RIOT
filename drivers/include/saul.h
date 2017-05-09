@@ -46,6 +46,8 @@
 
 #include <stdint.h>
 
+#include "assert.h"
+#include "device.h"
 #include "phydat.h"
 
 #ifdef __cplusplus
@@ -142,10 +144,27 @@ typedef struct {
     uint8_t type;           /**< device class the device belongs to */
 } saul_driver_t;
 
+typedef struct {
+    device_t *base;
+    const saul_driver_t *saul;
+} saul_device_t;
+
 /**
  * @brief   Default not supported function
  */
 int saul_notsup(void *dev, phydat_t *dat);
+
+static inline int saul_read(device_t *dev, phydat_t *dat)
+{
+    assert(device_is_fam(dev, DEVICE_ACT) || device_is_fam(dev, DEVICE_SENSE));
+    return ((saul_device_t *)dev)->saul->read(dev, dat);
+}
+
+static inline int saul_write(device_t *dev, phydat_t *dat)
+{
+    assert(device_is_fam(dev, DEVICE_ACT) || device_is_fam(dev, DEVICE_SENSE));
+    return ((saul_device_t *)dev)->saul->write(dev, dat);
+}
 
 /**
  * @brief   Helper function converts a class ID to a string
