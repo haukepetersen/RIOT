@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#include "cpu.h"
+#include "cpu_defs.h"
 
 #ifdef __cplusplus
 extern "C" {
