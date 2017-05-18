@@ -40,10 +40,10 @@
 extern "C" {
 #endif
 
-#ifndef L2FILTER_ADDR_MAXLEN
 /**
  * @brief   Maximal length of addresses that can be stored in the filter list
  */
+#ifndef L2FILTER_ADDR_MAXLEN
 #define L2FILTER_ADDR_MAXLEN            (8U)
 #endif
 
@@ -73,6 +73,8 @@ typedef struct {
  * @param[in] addr      address to be added to list
  * @param[in] addr_len  size of @p addr [in byte]
  *
+ * @pre list and addr != NULL, and addr_len < L2FILTER_ADDR_MAXLEN
+ *
  * @return  0 on success
  * @return  -ENOMEM if no empty slot left in list
  */
@@ -84,6 +86,8 @@ int l2filter_add(l2filter_t *list, const void *addr, size_t addr_len);
  * @param[in] list      pointer to the filter list
  * @param[in] addr      address to remove from the list
  * @param[in] addr_len  length of @p addr [in byte]
+ *
+ * @pre list and addr != NULL, and addr_len < L2FILTER_ADDR_MAXLEN
  *
  * @return  0 on success
  * @return  -ENOENT if @p addr was not found in @p list
@@ -101,6 +105,8 @@ int l2filter_rm(l2filter_t *list, const void *addr, size_t addr_len);
  * @param[in] list      list with black-/whitelisted addresses
  * @param[in] addr      address to check against the entries in @p list
  * @param[in] addr_len  length of @p addr [in byte]
+ *
+ * @pre list and addr != NULL, and addr_len < L2FILTER_ADDR_MAXLEN
  *
  * @return  in whitelist mode: true if @p addr is in @p list
  * @return  in whitelist mode: false if @p addr is not in @p list
