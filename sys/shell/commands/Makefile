@@ -64,6 +64,9 @@ endif
 ifneq (,$(filter vfs,$(USEMODULE)))
   SRC += sc_vfs.c
 endif
+ifneq (,$(filter gcoap,$(USEMODULE)))
+  SRC += sc_gcoap.c
+endif
 
 # TODO
 # Conditional building not possible at the moment due to
