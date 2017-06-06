@@ -56,6 +56,7 @@ extern "C" {
 static const timer_conf_t timer_config[] = {
     {
         .dev      = TIM2,
+        .freq     = 1000000,
         .max      = 0xffffffff,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
         .bus      = APB1,
@@ -63,6 +64,7 @@ static const timer_conf_t timer_config[] = {
     },
     {
         .dev      = TIM5,
+        .freq     = 500000,
         .max      = 0xffffffff,
         .rcc_mask = RCC_APB1ENR_TIM5EN,
         .bus      = APB1,

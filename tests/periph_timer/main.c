@@ -58,7 +58,7 @@ static int test_timer(unsigned num)
     }
 
     /* initialize and halt timer */
-    if (timer_init(TIMER_DEV(num), TIM_SPEED, cb, NULL) < 0) {
+    if (timer_init(TIMER_DEV(num), cb, NULL) < 0) {
         printf("TIMER_%u: ERROR on initialization - skipping\n\n", num);
         return 0;
     }
@@ -124,6 +124,7 @@ int main(void)
     /* test all configured timers */
     for (unsigned i = 0; i < TIMER_NUMOF; i++) {
         printf("\nTesting TIMER_%u:\n", i);
+        printf("TIMER_DEV(%u) frequency: %u\n", i, (unsigned)timer_freq(TIMER_DEV(i)));
         res += test_timer(i);
     }
     /* draw conclusion */

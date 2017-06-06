@@ -195,6 +195,7 @@ typedef enum {
  */
 typedef struct {
     TIM_TypeDef *dev;       /**< timer device */
+    uint32_t freq;
     uint32_t max;           /**< maximum value to count to (16/32 bit) */
     uint32_t rcc_mask;      /**< corresponding bit in the RCC register */
     uint8_t bus;            /**< APBx bus the timer is clock from */

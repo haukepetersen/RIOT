@@ -20,6 +20,7 @@
  */
 
 #include "cpu.h"
+#include "assert.h"
 #include "periph/timer.h"
 
 /**
@@ -57,12 +58,9 @@ static inline TIM_TypeDef *dev(tim_t tim)
     return timer_config[tim].dev;
 }
 
-int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
+int timer_init(tim_t tim, timer_cb_t cb, void *arg)
 {
-    /* check if device is valid */
-    if (tim >= TIMER_NUMOF) {
-        return -1;
-    }
+    assert(tim < TIMER_NUMOF);
 
     /* remember the interrupt context */
     isr_ctx[tim].cb = cb;
@@ -71,14 +69,14 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     /* enable the peripheral clock */
     periph_clk_en(timer_config[tim].bus, timer_config[tim].rcc_mask);
 
-    /* configure the timer as upcounter in continuous mode */
+    /* configure the timer as up-counter in continuous mode */
     dev(tim)->CR1  = 0;
     dev(tim)->CR2  = 0;
     dev(tim)->ARR  = timer_config[tim].max;
 
     /* set prescaler */
     dev(tim)->PSC = (((periph_apb_clk(timer_config[tim].bus) *
-                       apbmul[timer_config[tim].bus]) / freq) - 1);
+                       apbmul[timer_config[tim].bus]) / timer_config[tim].freq) - 1);
     /* generate an update event to apply our configuration */
     dev(tim)->EGR = TIM_EGR_UG;
 
@@ -88,6 +86,11 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     timer_start(tim);
 
     return 0;
+}
+
+unsigned long timer_freq(tim_t tim)
+{
+    return (unsigned long)timer_config[tim].freq;
 }
 
 int timer_set(tim_t tim, int channel, unsigned int timeout)
