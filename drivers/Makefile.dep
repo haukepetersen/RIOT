@@ -193,6 +193,10 @@ ifneq (,$(filter si70xx,$(USEMODULE)))
     FEATURES_REQUIRED += periph_i2c
 endif
 
+ifneq (,$(filter spdf5408,$(USEMODULE)))
+  USEMODULE += xtimer
+endif
+
 ifneq (,$(filter srf02,$(USEMODULE)))
   USEMODULE += xtimer
 endif

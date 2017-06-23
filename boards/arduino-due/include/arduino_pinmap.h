@@ -111,6 +111,19 @@ extern "C" {
 #define ARDUINO_PIN_76          GPIO_PIN(PA, 27)
 #define ARDUINO_PIN_77          GPIO_PIN(PA, 28)
 #define ARDUINO_PIN_78          GPIO_PIN(PB, 23)
+/* add alternate names for analog pins */
+#define ARDUINO_PIN_A0          ARDUINO_PIN_54
+#define ARDUINO_PIN_A1          ARDUINO_PIN_55
+#define ARDUINO_PIN_A2          ARDUINO_PIN_56
+#define ARDUINO_PIN_A3          ARDUINO_PIN_57
+#define ARDUINO_PIN_A4          ARDUINO_PIN_58
+#define ARDUINO_PIN_A5          ARDUINO_PIN_59
+#define ARDUINO_PIN_A6          ARDUINO_PIN_60
+#define ARDUINO_PIN_A7          ARDUINO_PIN_61
+#define ARDUINO_PIN_A8          ARDUINO_PIN_62
+#define ARDUINO_PIN_A9          ARDUINO_PIN_63
+#define ARDUINO_PIN_A10         ARDUINO_PIN_64
+#define ARDUINO_PIN_A11         ARDUINO_PIN_65
 /** @ */
 
 #ifdef __cplusplus
@@ -119,3 +132,4 @@ extern "C" {
 
 #endif /* ARDUINO_PINMAP_H */
 /** @} */
+
