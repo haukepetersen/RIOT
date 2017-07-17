@@ -51,7 +51,7 @@ netdev_ieee802154_t nrf802154_dev = {
         .event_callback = NULL,
         .context = NULL,
     #ifdef MODULE_NETSTATS_L2
-        .stats = NULL
+        .stats = { 0 }
     #endif
     },
 #ifdef MODULE_GNRC
@@ -153,6 +153,9 @@ static int init(netdev_t *dev)
     /* initialize local variables */
     mutex_init(&txlock);
 
+    /* reset buffers */
+    rxbuf[0] = 0;
+
     /* power on peripheral */
     NRF_RADIO->POWER = 1;
     /* make sure the radio is disabled/stopped */
@@ -165,6 +168,11 @@ static int init(netdev_t *dev)
                         (RADIO_PCNF0_PLEN_32bitZero << RADIO_PCNF0_PLEN_Pos) |
                         (RADIO_PCNF0_CRCINC_Include << RADIO_PCNF0_CRCINC_Pos));
     NRF_RADIO->PCNF1 = (IEEE802154_FRAME_LEN_MAX);
+    /* set start frame delimiter */
+    NRF_RADIO->SFD = IEEE802154_SFD;
+    /* set MHR filters */
+    NRF_RADIO->MHRMATCHCONF = 0;
+    NRF_RADIO->MHRMATCHMAS = 0xff0007ff;
     /* configure CRC conform to IEEE802154 */
     NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two | RADIO_CRCCNF_SKIPADDR_Ieee802154);
     NRF_RADIO->CRCPOLY = 0x011021;
@@ -178,7 +186,8 @@ static int init(netdev_t *dev)
     set_chan(nrf802154_dev.chan);
 
     /* configure some shortcuts */
-    NRF_RADIO->SHORTS = (RADIO_SHORTS_TXREADY_START_Msk);// |
+    NRF_RADIO->SHORTS = (RADIO_SHORTS_TXREADY_START_Msk |
+                         RADIO_SHORTS_RXREADY_START_Msk);// |
                          // RADIO_SHORTS_END_DISABLE_Msk);
 
     /* enable interrupts */
@@ -229,7 +238,7 @@ static int send(netdev_t *dev, const struct iovec *vector, unsigned count)
 
 static int recv(netdev_t *dev, void *buf, size_t len, void *info)
 {
-    return 123;
+    return 0;
 }
 
 static void isr(netdev_t *dev)
@@ -287,16 +296,25 @@ static int set(netdev_t *dev, netopt_t opt, void *value, size_t value_len)
 
 void isr_radio(void)
 {
+    DEBUG("radio: ISR\n");
+
     if (NRF_RADIO->EVENTS_END == 1) {
+        DEBUG("-> END\n");
         NRF_RADIO->EVENTS_END = 0;
         /* did we just send or receive something? */
         if (NRF_RADIO->STATE == RADIO_STATE_STATE_RxIdle) {
             /* drop packet on invalid CRC */
             if ((NRF_RADIO->CRCSTATUS != 1) ||
                 !(nrf802154_dev.netdev.event_callback)) {
+                DEBUG("CRC ok\n");
                 rxbuf[0] = 0;
+
+                /* set radio back into receive mode */
                 NRF_RADIO->TASKS_START = 1;
                 return;
+            }
+            else {
+                DEBUG("CRC off\n");
             }
             nrf802154_dev.netdev.event_callback(&nrf802154_dev.netdev, NETDEV_EVENT_ISR);
         }

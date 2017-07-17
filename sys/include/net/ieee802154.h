@@ -32,14 +32,17 @@ extern "C" {
 #endif
 
 /**
- * @brief IEEE 802.15.4 address lengths
+ * @brief   Default start frame delimiter
+ */
+#define IEEE802154_SFD                      (0xa7)
+
+/**
+ * @brief   IEEE 802.15.4 address lengths
  * @{
  */
 #define IEEE802154_SHORT_ADDRESS_LEN        (2U)    /**< short (16-bit) address */
 #define IEEE802154_LONG_ADDRESS_LEN         (8U)    /**< long address (EUI-64) */
-/**
- * @}
- */
+/** @} */
 
 /**
  * @brief IEEE802.15.4 FCF field definitions
