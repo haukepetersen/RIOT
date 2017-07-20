@@ -113,6 +113,11 @@ extern const uint8_t ieee802154_addr_bcast[IEEE802154_ADDR_BCAST_LEN];
 /** @} */
 
 /**
+ * @brief   Broadcast PAN ID
+ */
+#define IEEE802154_PANID_BCAST              { 0xff, 0xff }
+
+/**
  * @{
  * @name    Default values
  * @brief   Default values for devices to choose

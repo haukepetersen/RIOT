@@ -303,20 +303,21 @@ void isr_radio(void)
         NRF_RADIO->EVENTS_END = 0;
         /* did we just send or receive something? */
         if (NRF_RADIO->STATE == RADIO_STATE_STATE_RxIdle) {
-            /* drop packet on invalid CRC */
-            if ((NRF_RADIO->CRCSTATUS != 1) ||
-                !(nrf802154_dev.netdev.event_callback)) {
-                DEBUG("CRC ok\n");
-                rxbuf[0] = 0;
-
-                /* set radio back into receive mode */
-                NRF_RADIO->TASKS_START = 1;
-                return;
+            /* only process packet if event callback is set and CRC is valid */
+            if ((nrf802154_dev.netdev.event_callback) &&
+                (NRF_RADIO->CRCSTATUS == 1) &&
+                (netdev_ieee802154_dst_filter(&nrf802154_dev, &rxbuf[1]) != 0)) {
+                DEBUG("isr-rx: packet valid -> processing\n");
+                /* TODO: send ACK */
+                nrf802154_dev.netdev.event_callback(&nrf802154_dev.netdev,
+                                                    NETDEV_EVENT_RX_COMPLETE);
             }
             else {
-                DEBUG("CRC off\n");
+                DEBUG("isr-rx: dropping incoming packet\n");
+                /* reset RX buffer and listen for new packets */
+                rxbuf[0] = 0;
+                NRF_RADIO->TASKS_START = 1;
             }
-            nrf802154_dev.netdev.event_callback(&nrf802154_dev.netdev, NETDEV_EVENT_ISR);
         }
         else if (NRF_RADIO->STATE == RADIO_STATE_STATE_TxIdle) {
             mutex_unlock(&txlock);
