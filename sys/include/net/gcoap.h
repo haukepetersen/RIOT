@@ -391,6 +391,11 @@ extern "C" {
 /** @} */
 
 /**
+ * @brief   Character used for defining wildcard resources
+ */
+#define GCOAP_WILDCARD_CHAR     ('*')
+
+/**
  * @brief Stack size for module thread
  */
 #ifndef GCOAP_STACK_SIZE

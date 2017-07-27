@@ -274,15 +274,22 @@ static void _find_resource(coap_pkt_t *pdu, coap_resource_t **resource_ptr,
     gcoap_listener_t *listener = _coap_state.listeners;
     while (listener) {
         coap_resource_t *resource = listener->resources;
-        for (size_t i = 0; i < listener->resources_len; i++) {
-            if (i) {
-                resource++;
-            }
+        for (size_t i = 0; i < listener->resources_len; i++, resource++) {
             if (! (resource->methods & method_flag)) {
                 continue;
             }
 
-            int res = strcmp((char *)&pdu->url[0], resource->path);
+            /* if it is a wildcard resource, we only match the prefix */
+            size_t path_len = strlen(resource->path);
+            int res;
+
+            if (resource->path[path_len - 1] == GCOAP_WILDCARD_CHAR) {
+                res = memcmp(pdu->url, resource->path, path_len - 1);
+            }
+            else {
+                res = strcmp((char *)&pdu->url[0], resource->path);
+            }
+
             if (res > 0) {
                 continue;
             }
