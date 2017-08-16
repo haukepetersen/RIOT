@@ -1,0 +1,9 @@
+---
+#
+parse_dir:
+  - board: 1
+  - core: 1
+  - cpu: 1
+  - drivers: 1
+  - pkg: 1
+  - sys: 0
