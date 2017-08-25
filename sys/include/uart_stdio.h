@@ -32,7 +32,7 @@ extern "C" {
 /**
  * @brief UART device to use for STDIO
  */
-#define UART_STDIO_DEV           UART_DEV(0)
+#define UART_STDIO_DEV           UART_PERIPH(0)
 #endif
 
 #ifndef UART_STDIO_BAUDRATE

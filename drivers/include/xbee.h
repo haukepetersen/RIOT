@@ -27,7 +27,7 @@
 
 #include "mutex.h"
 #include "xtimer.h"
-#include "periph/uart.h"
+#include "periph/uart2.h"
 #include "periph/gpio.h"
 #include "net/netdev.h"
 #include "net/ieee802154.h"
@@ -115,7 +115,7 @@ typedef enum {
  * @brief   Configuration parameters for XBee devices
  */
 typedef struct {
-    uart_t uart;            /**< UART interfaced the device is connected to */
+    uart_t *uart;           /**< UART interfaced the device is connected to */
     uint32_t br;            /**< baudrate to use */
     gpio_t pin_sleep;       /**< GPIO pin that is connected to the SLEEP pin
                                  set to GPIO_UNDEF if not used */

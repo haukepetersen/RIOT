@@ -34,7 +34,7 @@
 #include "uart_stdio.h"
 
 #include "board.h"
-#include "periph/uart.h"
+#include "periph/uart2.h"
 #include "isrpipe.h"
 
 #ifdef USE_ETHOS_FOR_STDIO

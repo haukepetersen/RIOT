@@ -475,7 +475,7 @@ static int _set_encryption_key(xbee_t *dev, const uint8_t *val, size_t len)
 
 void xbee_setup(xbee_t *dev, const xbee_params_t *params)
 {
-    assert(dev && (params->uart < UART_NUMOF));
+    assert(dev && params->uart);
 
     /* set device driver */
     dev->driver = &xbee_driver;

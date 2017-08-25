@@ -35,6 +35,21 @@ extern "C" {
 #define XTIMER_BACKOFF      (5)
 /** @} */
 
+#include "periph_conf.h"
+#include "periph/uart2.h"
+// #include "periph_stm32.h"
+
+#define UART_PERIPH_NUMOF   (sizeof(uart_periph) / sizeof(uart_periph[0]))
+#define UART_PERIPH(x)      (&uart_periph[x])
+
+extern const uart_api_t stm32_uart;
+
+static const uart_t uart_periph[] = {
+    // { .api = &stm32_lpuart, .cfg = &lpuart_config[0] },
+    { .api = &stm32_uart, .cfg = (void *)0 },
+    { .api = &stm32_uart, .cfg = (void *)1 }
+};
+
 #ifdef __cplusplus
 }
 #endif
