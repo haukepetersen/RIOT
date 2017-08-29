@@ -110,7 +110,7 @@ WEAK_DEFAULT void isr_fpu(void);
 WEAK_DEFAULT void isr_crs(void);
 
 /* CPU specific interrupt vector table */
-ISR_VECTOR(1) const isr_t vector_cpu[] = {
+ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [ 0] = isr_wwdg,                /* [0] Window WatchDog Interrupt */
     [ 1] = isr_pvd_pvm,             /* [1] PVD/PVM1/PVM2/PVM3/PVM4 through EXTI Line detection Interrupts */
     [ 2] = isr_tamp_stamp,          /* [2] Tamper and TimeStamp interrupts through the EXTI line */
@@ -177,7 +177,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[] = {
     [77] = isr_tsc,                 /* [77] Touch Sense Controller global interrupt */
 
     [80] = isr_rng,                 /* [80] RNG global interrupt */
-    [81] = isr_fpu                  /* [81] FPU global interrupt */
+    [81] = isr_fpu,                 /* [81] FPU global interrupt */
 
 #if defined(CPU_MODEL_STM32L476RG)
     [29] = isr_tim3,                /* [29] TIM3 global Interrupt */
