@@ -66,86 +66,72 @@ WEAK_DEFAULT void isr_usb(void);
 
 /* CPU specific interrupt vector table */
 ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
-    isr_wwdg,               /* [0] windowed watchdog */
-    isr_pvd,                /* [1] power control */
-    isr_rtc,                /* [2] real time clock */
-    isr_flash,              /* [3] flash memory controller */
-    isr_rcc,                /* [4] reset and clock control */
-    isr_exti,               /* [5] external interrupt lines 0 and 1 */
-    isr_exti,               /* [6] external interrupt lines 2 and 3 */
-    isr_exti,               /* [7] external interrupt lines 4 to 15 */
-#if defined(CPU_MODEL_STM32L031K6)
-    (0UL),                  /* [8] reserved */
-    isr_dma1_ch1,           /* [9] direct memory access controller 1, channel 1*/
-    isr_dma1_ch2_3,         /* [10] direct memory access controller 1, channel 2 and 3*/
-    isr_dma1_ch4_5_6_7,     /* [11] direct memory access controller 1, channel 4, 5, 6 and 7*/
-    isr_adc1_comp,          /* [12] analog digital converter */
-    isr_lptim1,             /* [13] low power timer 1 */
-    (0UL),                  /* [14] reserved */
-    isr_tim2,               /* [15] timer 2 */
-    (0UL),                  /* [16] reserved */
-    (0UL),                  /* [17] reserved */
-    (0UL),                  /* [18] reserved */
-    (0UL),                  /* [19] reserved */
-    isr_tim21,              /* [20] timer 21 */
-    (0UL),                  /* [21] reserved */
-    isr_tim22,              /* [22] timer 22 */
-    isr_i2c1,               /* [23] I2C 1 */
-    (0UL),                  /* [24] reserved */
-    isr_spi1,               /* [25] SPI 1 */
-    (0UL),                  /* [26] reserved */
-    (0UL),                  /* [27] reserved */
-    isr_usart2,             /* [28] USART 2 */
-    isr_lpuart1             /* [29] Low power UART 1 */
-#elif defined(CPU_MODEL_STM32L053R8)
-    isr_ts,                 /* [8] touch sensing input*/
-    isr_dma1_ch1,           /* [9] direct memory access controller 1, channel 1*/
-    isr_dma1_ch2_3,         /* [10] direct memory access controller 1, channel 2 and 3*/
-    isr_dma1_ch4_5_6_7,     /* [11] direct memory access controller 1, channel 4, 5, 6 and 7*/
-    isr_adc1_comp,          /* [12] analog digital converter */
-    isr_lptim1,             /* [13] low power timer 1 */
-    (0UL),                  /* [14] reserved */
-    isr_tim2,               /* [15] timer 2 */
-    (0UL),                  /* [16] reserved */
-    isr_tim6_dac,           /* [17] timer 6 and digital to analog converter */
-    (0UL),                  /* [18] reserved */
-    (0UL),                  /* [19] reserved */
-    isr_tim21,              /* [20] timer 21 */
-    (0UL),                  /* [21] reserved */
-    isr_tim22,              /* [22] timer 22 */
-    isr_i2c1,               /* [23] I2C 1 */
-    isr_i2c2,               /* [24] I2C 2 */
-    isr_spi1,               /* [25] SPI 1 */
-    isr_spi2,               /* [26] SPI 2 */
-    isr_usart1,             /* [27] USART 1 */
-    isr_usart2,             /* [28] USART 2 */
-    isr_rng_lpuart1,        /* [29] RNG and Low power UART 1 */
-    isr_lcd,                /* [30] LCD */
-    isr_usb                 /* [31] USB */
-#else /* CPU_MODEL_STM32L073RZ, CPU_MODEL_STM32L072CZ */
-    isr_ts,                 /* [8] touch sensing input*/
-    isr_dma1_ch1,           /* [9] direct memory access controller 1, channel 1*/
-    isr_dma1_ch2_3,         /* [10] direct memory access controller 1, channel 2 and 3*/
-    isr_dma1_ch4_5_6_7,     /* [11] direct memory access controller 1, channel 4, 5, 6 and 7*/
-    isr_adc1_comp,          /* [12] analog digital converter */
-    isr_lptim1,             /* [13] low power timer 1 */
-    isr_usart4_5,           /* [14] usart 4 to 5 */
-    isr_tim2,               /* [15] timer 2 */
-    isr_tim3,               /* [16] timer 3 */
-    isr_tim6_dac,           /* [17] timer 6 and digital to analog converter */
-    isr_tim7,               /* [18] timer 7 */
-    (0UL),                  /* [19] reserved */
-    isr_tim21,              /* [20] timer 21 */
-    isr_i2c3,               /* [21] I2C 3 */
-    isr_tim22,              /* [22] timer 22 */
-    isr_i2c1,               /* [23] I2C 1 */
-    isr_i2c2,               /* [24] I2C 2 */
-    isr_spi1,               /* [25] SPI 1 */
-    isr_spi2,               /* [26] SPI 2 */
-    isr_usart1,             /* [27] USART 1 */
-    isr_usart2,             /* [28] USART 2 */
-    isr_rng_lpuart1,        /* [29] RNG and Low power UART 1 */
-    isr_lcd,                /* [30] LCD */
-    isr_usb                 /* [31] USB */
+    [0] = isr_wwdg,               /* [0] windowed watchdog */
+    [1] = isr_pvd,                /* [1] power control */
+    [2] = isr_rtc,                /* [2] real time clock */
+    [3] = isr_flash,              /* [3] flash memory controller */
+    [4] = isr_rcc,                /* [4] reset and clock control */
+    [5] = isr_exti,               /* [5] external interrupt lines 0 and 1 */
+    [6] = isr_exti,               /* [6] external interrupt lines 2 and 3 */
+    [7] = isr_exti,               /* [7] external interrupt lines 4 to 15 */
+
+#if defined(CPU_MODEL_STM32L053R8) || defined(CPU_MODEL_STM32L073RZ) || \
+    defined(CPU_MODEL_STM32L072CZ)
+    [8]  = isr_ts,                 /* [8] touch sensing input*/
+#endif
+
+    [9]  = isr_dma1_ch1,           /* [9] direct memory access controller 1, channel 1*/
+    [10] = isr_dma1_ch2_3,         /* [10] direct memory access controller 1, channel 2 and 3*/
+    [11] = isr_dma1_ch4_5_6_7,     /* [11] direct memory access controller 1, channel 4, 5, 6 and 7*/
+    [12] = isr_adc1_comp,          /* [12] analog digital converter */
+    [13] = isr_lptim1,             /* [13] low power timer 1 */
+
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ)
+    [14] = isr_usart4_5,           /* [14] usart 4 to 5 */
+#endif
+
+    [15] = isr_tim2,               /* [15] timer 2 */
+
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ)
+    [16] = isr_tim3,               /* [16] timer 3 */
+#endif
+
+#if defined(CPU_MODEL_STM32L053R8) || defined(CPU_MODEL_STM32L073RZ) || \
+    defined(CPU_MODEL_STM32L072CZ)
+    [17] = isr_tim6_dac,           /* [17] timer 6 and digital to analog converter */
+#endif
+
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ)
+    [18] = isr_tim7,               /* [18] timer 7 */
+#endif
+
+    [20] = isr_tim21,              /* [20] timer 21 */
+
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ)
+    [21] = isr_i2c3,               /* [21] I2C 3 */
+#endif
+
+    [22] = isr_tim22,              /* [22] timer 22 */
+    [23] = isr_i2c1,               /* [23] I2C 1 */
+
+#if defined(CPU_MODEL_STM32L053R8)
+    [24] = isr_i2c2,               /* [24] I2C 2 */
+#endif
+
+    [25] = isr_spi1,               /* [25] SPI 1 */
+
+#if defined(CPU_MODEL_STM32L053R8) || defined(CPU_MODEL_STM32L073RZ) || \
+    defined(CPU_MODEL_STM32L072CZ)
+    [26] = isr_spi2,               /* [26] SPI 2 */
+    [27] = isr_usart1,             /* [27] USART 1 */
+#endif
+
+    [28] = isr_usart2,             /* [28] USART 2 */
+    [29] = isr_lpuart1,            /* [29] Low power UART 1 */
+
+#if defined(CPU_MODEL_STM32L053R8) || defined(CPU_MODEL_STM32L073RZ) || \
+    defined(CPU_MODEL_STM32L072CZ)
+    [30] = isr_lcd,                /* [30] LCD */
+    [31] = isr_usb                 /* [31] USB */
 #endif
 };
