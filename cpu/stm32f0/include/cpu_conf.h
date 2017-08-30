@@ -25,27 +25,22 @@
 
 #include "cpu_conf_common.h"
 
-#ifdef CPU_MODEL_STM32F051R8
+#if defined(CPU_MODEL_STM32F051R8)
 #include "vendor/stm32f051x8.h"
-#endif
-#ifdef CPU_MODEL_STM32F091RC
+#elif defined(CPU_MODEL_STM32F091RC)
 #include "vendor/stm32f091xc.h"
-#endif
-#ifdef CPU_MODEL_STM32F072RB
+#elif defined(CPU_MODEL_STM32F072RB)
 #include "vendor/stm32f072xb.h"
-#endif
-#ifdef CPU_MODEL_STM32F070RB
+#elif defined(CPU_MODEL_STM32F070RB)
 #include "vendor/stm32f070xb.h"
-#endif
-#ifdef CPU_MODEL_STM32F030R8
+#elif defined(CPU_MODEL_STM32F030R8)
 #include "vendor/stm32f030x8.h"
-#endif
-#ifdef CPU_MODEL_STM32F042K6
+#elif defined(CPU_MODEL_STM32F042K6)
 #include "vendor/stm32f042x6.h"
-#endif
-#ifdef CPU_MODEL_STM32F031K6
+#elif defined(CPU_MODEL_STM32F031K6)
 #include "vendor/stm32f031x6.h"
 #endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
