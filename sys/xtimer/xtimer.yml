@@ -1,0 +1,13 @@
+---
+xtimer:
+  # module dependencies and requirements
+  uses: [div]
+  requires: [timer]
+  provides:
+
+  # module content
+  includes:
+  files:
+    - xtimer.c
+    - xtimer_core.c
+    - xtimer_posix.c

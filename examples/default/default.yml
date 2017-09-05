@@ -1,0 +1,23 @@
+---
+default:
+
+  uses:
+    - shell
+    - shell_commands
+    - ps
+  optional:
+    config: [config]
+    rtc: [periph_rtc]
+    netif:
+      - gnrc
+      - gnrc_netdev_default
+      - auto_init_gnrc_netif
+      - gnrc_txtsnd
+      - gnrc_pktdump
+
+  env:
+    DEVELHELP: true
+    QUIET: true
+  env-opt:
+    netif:
+      GNRC_PKTBUF_SIZE: 512

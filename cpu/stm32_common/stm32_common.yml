@@ -1,0 +1,10 @@
+---
+stm32_common:
+  uses: [cortexm_common stm32_common_periph]
+
+  includes:
+    - include
+  files:
+    - cpu_common.c
+    - stmclk.c
+    - stmclk_common.c

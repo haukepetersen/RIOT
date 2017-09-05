@@ -1,0 +1,11 @@
+---
+shell_commands:
+  uses: [shell]
+
+  files:
+    - shell_commands.c
+    - sc_sys.c
+    - ps: [sc_ps.c]
+    - mci: [sc_disk.c]
+    - sht11: [sc_sht11.c]
+    - rtc: [sc_rtc.c]

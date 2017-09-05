@@ -1,0 +1,14 @@
+---
+stm32f4:
+  uses: [stm32f4_periph stm32_common pm_layered]
+
+  env:
+    - CPU: stm32f4
+    - CPU_FAM: stm32
+    - CPU_ARCH: cortex-m4f
+
+  includes:
+    - include
+  files:
+    - cpu.c
+    - vectors.c

@@ -1,5 +1,11 @@
 # Dependency / Module System in RIOT
 
+## Tooling needed:
+- module parsing: parse `module.yml` files and build global tree
+- dependency resolution: parse app and get app specific deps
+- buildfile generator(s): get app context and generate Makefile/Ninja
+- module verification: static test to verify module config consistency
+
 ## Feature vs. Module
 
 Module: something that is actually build and linked

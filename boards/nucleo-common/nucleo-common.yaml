@@ -1,0 +1,10 @@
+---
+nucleo-common:
+  optional:
+    saul_default: [saul_gpio]
+
+  provides:
+    arduino
+
+  includes:
+    include

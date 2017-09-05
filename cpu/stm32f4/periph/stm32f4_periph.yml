@@ -1,0 +1,7 @@
+---
+stm32f4_periph:
+
+  # files to include
+  files:
+    - adc: adc.c
+    - i2c: i2c.c

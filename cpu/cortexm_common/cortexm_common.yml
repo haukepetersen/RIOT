@@ -1,0 +1,16 @@
+---
+cortexm_common:
+  uses: [cortexm_common_periph]
+  provides: [cpp]
+
+  env:
+    IMAGE_HDR_SIZE: 512
+
+  includes:
+    - include
+    - include/vendor
+  files:
+    - cortexm_init.c
+    - irq_arch.c
+    - mpu: mpu.c
+    - vectors_cortexm.c

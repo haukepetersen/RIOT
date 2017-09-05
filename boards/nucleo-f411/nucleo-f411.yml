@@ -1,0 +1,24 @@
+---
+nucleo-f411:
+  uses:
+    - stm32f4
+    - nucleo-common
+  provides:
+    - periph_adc
+    - periph_cpuid
+    - periph_i2c
+    - periph_gpio
+    - periph_pwm
+    - periph_rtc
+    - periph_spi
+    - periph_timer
+    - periph_uart
+    - cpp
+
+  env:
+    CPU_MODEL: stm32f411re
+
+  includes:
+    - include
+  files:
+    - board.c

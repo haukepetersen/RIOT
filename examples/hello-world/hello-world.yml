@@ -1,0 +1,8 @@
+hello-world:
+  board: samr21-xpro
+  riotbase: ../../
+
+  uses:
+
+  flags:
+    - DEVELHELP

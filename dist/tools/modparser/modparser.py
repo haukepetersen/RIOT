@@ -23,22 +23,38 @@
 import argparse
 import os, sys
 import yaml
+import re
+from pathlib import Path
 
-moddirs = [ "board", "core", "cpu", "drivers", "pkg", "sys"]
+moddirs = [ "boards", "core", "cpu", "drivers", "pkg", "sys"]
+dirskip = [ "include" ]
+
+modules = dict()
+
+def parse_module(cfg):
+    with open(cfg, "r") as ymlfile:
+        module = yaml.load(ymlfile)
+        modules.update(module)
+
+def readdir(base):
+    for file in os.listdir(base):
+        path = base + "/" + file
+        if re.match(".+\.yml", file):
+            parse_module(path)
+        if os.path.isdir(path) and not file in dirskip:
+            readdir(path)
+
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("riotbase", default="../..", nargs="?", help="RIOT base directory")
+    p.add_argument("riotbase", default="../../..", nargs="?", help="RIOT base directory")
     args = p.parse_args()
 
-    print("Hello")
-    print(sys.path[0])
-
-    with open("config.yml", 'r') as ymlfile:
-        config = yaml.load(ymlfile)
-        print(config)
+    # with open("config.yml", 'r') as ymlfile:
+    #     config = yaml.load(ymlfile)
+    #     print(config)
 
     for target in moddirs:
-        for current, dirs, files in os.walk(args.riotbase + "/" + target):
-            # print(current)
-            dirs = "foo"
+        readdir(args.riotbase + "/" + target)
+
+    # print(modules)
