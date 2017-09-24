@@ -667,6 +667,18 @@ ifneq (,$(filter firmware,$(USEMODULE)))
   FEATURES_REQUIRED += multislot
 endif
 
+ifneq (,$(filter ota_update_%,$(USEMODULE)))
+  USEMODULE += ota_update
+  USEMODULE += sema
+  ifneq (,$(filter ota_update_tftp,$(USEMODULE)))
+    USEMODULE += gnrc_tftp
+  endif
+  USEMODULE += gcoap
+  USEMODULE += firmware
+  USEMODULE += hashes
+  FEATURES_REQUIRED += periph_flashpage
+endif
+
 # include package dependencies
 -include $(USEPKG:%=$(RIOTPKG)/%/Makefile.dep)
 

@@ -88,6 +88,10 @@
 #include "net/gcoap.h"
 #endif
 
+#ifdef MODULE_OTA_UPDATE
+#include "ota_update.h"
+#endif
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -156,6 +160,14 @@ void auto_init(void)
     DEBUG("Mounting /dev\n");
     extern void auto_init_devfs(void);
     auto_init_devfs();
+#endif
+#ifdef MODULE_OTA_UPDATE
+    DEBUG("Auto init ota_update module.\n");
+    ota_update_init();
+    #ifdef MODULE_OTA_UPDATE_TFTP
+        ota_update_tftp_server_start();
+        DEBUG("Auto init ota_update_tftp server module.\n");
+    #endif
 #endif
 
 /* initialize network devices */
