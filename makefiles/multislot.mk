@@ -55,14 +55,15 @@ ELFSLOT2        := $(ELFFILE:%.elf=%.slot2.elf)
 BINSLOT0        := $(ELFSLOT0:%.elf=%.bin)
 BINSLOT1        := $(ELFSLOT1:%.elf=%.bin)
 BINSLOT2        := $(ELFSLOT2:%.elf=%.bin)
-IMAGE_SLOT1     := $(ELFFILE:%.elf=%-slot1-$(APP_ID)-$(APP_VERSION).img)
-IMAGE_SLOT2     := $(ELFFILE:%.elf=%-slot2-$(APP_ID)-$(APP_VERSION).img)
+IMAGE_SLOT1     := $(ELFFILE:%.elf=%-slot1-$(APP_ID)-$(APP_VERSION).bin)
+IMAGE_SLOT2     := $(ELFFILE:%.elf=%-slot2-$(APP_ID)-$(APP_VERSION).bin)
 COMBINED_BIN    := $(ELFFILE:%.elf=%.combined.bin)
 BOOTLOADER_BIN  := $(RIOTBASE)/bootloader/bin/$(BOARD)/bootloader.slot0.bin
 
 FIRMWARE_METADATA_SIZE ?= 0x100
 FIRMWARE_TOOLS = $(RIOTBASE)/dist/tools/firmware
 FIRMWARE       = $(FIRMWARE_TOOLS)/bin/firmware
+PUBKEY_DIR     = $(RIOTBASE)/sys/include
 GENMETA        = $(FIRMWARE) genmeta
 GENKEYS        = $(FIRMWARE) genkeys
 VERIFY         = $(FIRMWARE) verify
@@ -81,6 +82,9 @@ $(FIRMWARE):
 
 $(SECKEY) $(PUBKEY): $(FIRMWARE)
 	$(Q)$(GENKEYS) $(SECKEY) $(PUBKEY)
+	$(Q)cp $(PUBKEY) ./ota_public_key
+	$(Q)xxd -i ota_public_key > $(PUBKEY_DIR)/ota_pubkey.h
+	$(Q)rm ./ota_public_key
 
 bootloader: link
 	@$(_LINK) \
