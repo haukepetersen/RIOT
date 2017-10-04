@@ -133,7 +133,10 @@ enum {
  * in most cases.
  */
 typedef struct {
-    int16_t val[PHYDAT_DIM];    /**< the 3 generic dimensions of data */
+    enum {
+        int16_t val[PHYDAT_DIM];    /**< the 3 generic dimensions of data */
+        bool state;                 /**< for saving a single state only */
+    };
     uint8_t unit;               /**< the (physical) unit of the data */
     int8_t scale;               /**< the scale factor, 10^*scale* */
 } phydat_t;
