@@ -126,8 +126,8 @@ static inline void cpu_jump_to_image(uint32_t image_address)
     /* Disable IRQ */
     __disable_irq();
 
-    /* set PSP */
-    __set_PSP(*(uint32_t*)image_address);
+    /* set MSP */
+    __set_MSP(*(uint32_t*)image_address);
 
     /* skip stack pointer */
     image_address += 4;
