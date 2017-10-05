@@ -663,8 +663,10 @@ endif
 
 ifneq (,$(filter firmware,$(USEMODULE)))
   USEMODULE += checksum
+  USEMODULE += hashes
   USEPKG += tweetnacl
   FEATURES_REQUIRED += multislot
+  FEATURES_REQUIRED += periph_flashpage
 endif
 
 ifneq (,$(filter ota_update_%,$(USEMODULE)))
@@ -675,8 +677,11 @@ ifneq (,$(filter ota_update_%,$(USEMODULE)))
   endif
   USEMODULE += gcoap
   USEMODULE += firmware
-  USEMODULE += hashes
-  FEATURES_REQUIRED += periph_flashpage
+endif
+
+ifneq (,$(filter ota_tftp_server,$(USEMODULE)))
+  USEMODULE += gnrc_tftp
+  USEMODULE += firmware
 endif
 
 # include package dependencies
