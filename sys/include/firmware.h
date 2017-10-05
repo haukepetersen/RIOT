@@ -72,7 +72,7 @@ extern "C" {
 /**
  *  @brief FIRMWARE_METADATA_SIZE:
  *         Length of appended metadata on firmware binaries.
- *         It can be overrode.
+ *         It can be overridden.
  */
 #ifndef FIRMWARE_METADATA_SIZE
 #define FIRMWARE_METADATA_SIZE      (256)
@@ -103,7 +103,8 @@ typedef struct {
     uint32_t chksum;                    /**< checksum of metadata                   */
     uint8_t hash[SHA256_DIGEST_LENGTH]; /**< SHA256 Hash of firmware image          */
     uint8_t sig[FIRMWARE_SIG_LEN];      /**< Firmware signature                     */
-    uint8_t pad[FIRMWARE_PADDING];     /**< padding to total of FIRMWARE_METADATA_SIZE bytes */
+    uint8_t pad[FIRMWARE_PADDING];      /**< padding to total of
+                                             FIRMWARE_METADATA_SIZE bytes           */
 } firmware_metadata_t;
 /** @} */
 
