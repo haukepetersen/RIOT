@@ -65,7 +65,7 @@ extern "C" {
 #define OTA_UPDATE_STOP           (0x1000)
 
 /**
- * @brief Peiodic request time for update
+ * @brief Periodic request time for update
  */
 #ifndef OTA_PERIODIC_REQ_TIME
 #define OTA_PERIODIC_REQ_TIME     (30 * US_PER_SEC)
@@ -79,7 +79,7 @@ extern "C" {
 /**
  * @brief Length of the firmware string filename
  */
-#define FIRMWARE_NAME_LENGTH            (128)
+#define FIRMWARE_NAME_LENGTH      (128)
 
 /**
  * @brief Enum for CoAP requests types for the update process
@@ -100,18 +100,6 @@ typedef enum {
 kernel_pid_t ota_update_init(void);
 
 int ota_update_stop(void);
-
-#ifdef MODULE_OTA_UPDATE_TFTP
-/**
- * @brief  Init function for the ota_update_tftp server module
- *
- * @return The kernel PID for the running module
- *
- */
-kernel_pid_t ota_update_tftp_server_start(void);
-
-void ota_update_tftp_server_stop(void);
-#endif
 
 #ifdef __cplusplus
 }

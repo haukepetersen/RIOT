@@ -26,34 +26,19 @@
 #include <inttypes.h>
 
 #include "thread.h"
-#include "net/gnrc/tftp.h"
-#include "firmware_update.h"
 #include "net/gcoap.h"
 #include "ota_update.h"
+#include "firmware_update.h"
 #include "xtimer.h"
-#include "periph/pm.h"
 #include "sema.h"
-
 #include "log.h"
 
-static firmware_update_t _state;
 static ota_request_t ota_request;
 
 static kernel_pid_t ota_update_pid = KERNEL_PID_UNDEF;
 static char _msg_stack[OTA_UPDATE_STACK];
 static msg_t _ota_update_msg_queue[OTA_UPDATE_MSG_QUEUE_SIZE];
 
-#ifdef MODULE_OTA_UPDATE_TFTP
-static kernel_pid_t ota_update_tftp_server_pid = KERNEL_PID_UNDEF;
-static tftp_action_t _tftp_action;
-/* the message queues */
-#define TFTP_QUEUE_SIZE     (4)
-static msg_t _tftp_msg_queue[TFTP_QUEUE_SIZE];
-
-/* allocate the stack */
-char _tftp_stack[THREAD_STACKSIZE_MAIN + THREAD_EXTRA_STACKSIZE_PRINTF + 4096];
-
-#endif
 static uint16_t remote_version = 0;
 static uint16_t local_version;
 static uint32_t local_appid;
@@ -63,6 +48,10 @@ static char update_name[FIRMWARE_NAME_LENGTH];
 static uint16_t req_count = 0;
 static sema_t sema_fw_version = SEMA_CREATE_LOCKED();
 static sema_t sema_fw_name = SEMA_CREATE_LOCKED();
+
+#ifdef MODULE_OTA_UPDATE_TFTP
+extern void ota_update_tftp_client_start(uint8_t firmware_slot, char *name, char *server_ip_address);
+#endif /* MODULE_OTA_UPDATE_TFTP */
 
 /*
  * Response callback.
@@ -139,235 +128,6 @@ static size_t _send(uint8_t *buf, size_t len, char *addr_str, char *port_str)
     return bytes_sent;
 }
 
-#ifdef MODULE_OTA_UPDATE_TFTP
-/* default server text which can be received */
-static const char _tftp_client_hello[] = "Hello,\n"
-                                         "\n"
-                                         "Client text would also need to exist to be able to put data.\n"
-                                         "\n"
-                                         "Enjoy the RIOT-OS\n";
-
-static int _tftp_client_data_cb(uint32_t offset, void *data, size_t data_len)
-{
-    return firmware_update_putbytes(&_state, offset, data, data_len);
-}
-
-/**
- * @brief called at every transaction start
- */
-static bool _tftp_client_start_cb(tftp_action_t action, tftp_mode_t mode,
-                                  const char *file_name, size_t *len)
-{
-    /* translate the mode */
-    const char *str_mode = "ascii";
-
-    if (mode == TTM_OCTET) {
-        str_mode = "bin";
-    }
-    else if (mode == TTM_MAIL) {
-        str_mode = "mail";
-    }
-
-    /* translate the action */
-    const char *str_action = "read";
-    if (action == TFTP_WRITE) {
-        str_action = "write";
-    }
-
-    /* display the action being performed */
-    printf("tftp_client: %s %s %s:%lu\n", str_mode, str_action, file_name, (unsigned long)*len);
-
-    /* return the length of the text, if this is an read action */
-    if (action == TFTP_READ) {
-        *len = sizeof(_tftp_client_hello);
-    }
-
-    /* remember the action of the current transfer */
-    _tftp_action = action;
-
-    /* initialize firmware upgrade state struct */
-    firmware_update_init(&_state, firmware_target_slot());
-
-    /* we accept the transfer to take place so we return true */
-    return true;
-}
-
-/**
- * @brief the transfer has stopped, see the event argument to determined if it was successful
- *        or not.
- */
-static void _tftp_client_stop_cb(tftp_event_t event, const char *msg)
-{
-    /* decode the stop event received */
-    const char *cause = "UNKOWN";
-    int error = 0;
-
-    if (event == TFTP_SUCCESS) {
-        cause = "SUCCESS";
-        puts("tftp_client: writing last page");
-        error = firmware_update_finish(&_state);
-    }
-    else if (event == TFTP_PEER_ERROR) {
-        cause = "ERROR From Client";
-    }
-    else if (event == TFTP_INTERN_ERROR) {
-        cause = "ERROR Internal Server Error";
-    }
-
-    if (error != 0) {
-        puts("tftp_client: Update failed!");
-        printf("tftp_client: Error: %d\n", error);
-        ota_update_tftp_server_start();
-    }
-    else {
-        /* print the transfer result to the console */
-        printf("tftp_client: transfer stopped: %s: %s\n", cause, (msg == NULL) ? "NULL" : msg);
-    }
-}
-
-static void ota_update_tftp_client_start(uint8_t firmware_slot, char *name, char *server_ip_address)
-{
-    ipv6_addr_t ip;
-    tftp_mode_t mode = TTM_OCTET;
-    bool use_options = true;
-    int ret;
-
-    puts("tftp_client: Stopping TFTP update server...");
-    ota_update_tftp_server_stop();
-    puts("tftp_client: TFTP OTA update starting...");
-
-    ipv6_addr_from_str(&ip, server_ip_address);
-    _tftp_action = TFTP_READ;
-
-    printf("tftp_client: Sending request for %s to the server %s\n",
-           name,
-           server_ip_address);
-
-    ret = gnrc_tftp_client_read(&ip, name, mode, _tftp_client_data_cb,
-                                _tftp_client_start_cb, _tftp_client_stop_cb,
-                                use_options);
-
-    if (ret > 0) {
-        puts("tftp_client: Update finished, rebooting in 5 seconds...");
-        xtimer_sleep(5);
-        pm_reboot();
-    } else {
-        puts("tftp_client: Update failed!");
-        printf("tftp_client: Error: %d\n", ret);
-        ota_update_tftp_server_start();
-    }
-}
-/**
- * @brief called at every transaction start
- */
-static bool _tftp_server_start_cb(tftp_action_t action, tftp_mode_t mode,
-                                  const char *file_name, size_t *len)
-{
-    LOG_INFO("%s: start %s %u\n", __func__, file_name, *len);
-
-    /* make sure this is a write using octets request */
-    if (mode != TTM_OCTET || action != TFTP_WRITE) {
-        return false;
-    }
-
-    /* initialize firmware upgrade state struct */
-    firmware_update_init(&_state, firmware_target_slot());
-
-    /* stop the ota_update client */
-    ota_update_stop();
-
-    /* we accept the transfer to take place so we return true */
-    return true;
-}
-
-/**
- * @brief called to get or put data, depending on the mode received by `_tftp_start_cb(action, ...)`
- */
-static int _tftp_server_data_cb(uint32_t offset, void *data, size_t data_len)
-{
-    return firmware_update_putbytes(&_state, offset, data, data_len);
-}
-
-/**
- * @brief the transfer has stopped, see the event argument to determined if it was successful
- *        or not.
- */
-static void _tftp_server_stop_cb(tftp_event_t event, const char *msg)
-{
-    /* decode the stop event received */
-    const char *cause = "UNKOWN";
-
-    if (event == TFTP_SUCCESS) {
-        cause = "SUCCESS";
-        firmware_update_finish(&_state);
-    }
-    else if (event == TFTP_PEER_ERROR) {
-        cause = "ERROR From Client";
-    }
-    else if (event == TFTP_INTERN_ERROR) {
-        cause = "ERROR Internal Server Error";
-    }
-
-    /* print the transfer result to the console */
-    printf("tftp_server: transfer stopped: %s: %s\n", cause, (msg == NULL) ? "NULL" : msg);
-
-    if (event == TFTP_SUCCESS) {
-        puts("tftp_server: Update finished, rebooting in 5 seconds...");
-        xtimer_sleep(5);
-        pm_reboot();
-    }
-    else {
-        ota_update_init();
-    }
-}
-
-/**
- * @brief the TFTP server thread
- */
-static void *tftp_server_wrapper(void *arg)
-{
-    (void)arg;
-
-    /* A message queue is needed to register for incoming packets */
-    msg_init_queue(_tftp_msg_queue, TFTP_QUEUE_SIZE);
-
-    /* inform the user */
-    puts("[ota_update] Starting TFTP service at port 69");
-
-    /* run the TFTP server */
-    gnrc_tftp_server(_tftp_server_data_cb, _tftp_server_start_cb, _tftp_server_stop_cb, true);
-
-    /* the TFTP server has been stopped */
-    puts("[ota_update] Server stopped");
-
-    return NULL;
-}
-
-/**
- * @brief start the TFTP server by creating a thread
- */
-kernel_pid_t ota_update_tftp_server_start(void)
-{
-    if (ota_update_tftp_server_pid != KERNEL_PID_UNDEF) {
-        return -EEXIST;
-    }
-
-    thread_create(_tftp_stack, sizeof(_tftp_stack),
-                  1, THREAD_CREATE_WOUT_YIELD | THREAD_CREATE_STACKTEST,
-                  tftp_server_wrapper, NULL, "ota_tftp_server");
-
-    return ota_update_tftp_server_pid;
-}
-
-/**
- * @brief stop the TFTP server by sending a message to the thread
- */
-void ota_update_tftp_server_stop(void)
-{
-    gnrc_tftp_server_stop();
-}
-#endif /* MODULE_OTA_UPDATE_TFTP */
-
 int ota_update_stop(void)
 {
     /* check if there is a server running */
@@ -402,10 +162,10 @@ static void *ota_update_start(void *arg)
     firmware_metadata_t metadata;
     uint8_t buf[GCOAP_PDU_BUF_SIZE];
     char coap_resource[32];
-    int local_slot = firmware_current_slot();
+    int current_slot = firmware_current_slot();
     int target_slot = firmware_target_slot();
 
-    memcpy(&metadata, firmware_get_metadata(local_slot), sizeof(firmware_metadata_t));
+    memcpy(&metadata, firmware_get_metadata(current_slot), sizeof(firmware_metadata_t));
 
     if (firmware_validate_metadata_checksum(&metadata) != -1) {
         local_appid = metadata.appid;
@@ -452,7 +212,7 @@ static void *ota_update_start(void *arg)
             else {
                 ota_request = 1;
                 memset(coap_resource, 0, sizeof(coap_resource));
-                sprintf(coap_resource, "/0x%lX/slot%u/name", local_appid, target_slot);
+                sprintf(coap_resource, "/0x%lX/slot%d/name", local_appid, target_slot);
                 printf("[ota_update] Requesting resource %s\n", coap_resource);
                 len = gcoap_request(&pdu, &buf[0], GCOAP_PDU_BUF_SIZE, COAP_METHOD_GET,
                                     coap_resource);
