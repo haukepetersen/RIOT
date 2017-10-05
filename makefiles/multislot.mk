@@ -67,6 +67,8 @@ PUBKEY_DIR     = $(RIOTBASE)/sys/include
 GENMETA        = $(FIRMWARE) genmeta
 GENKEYS        = $(FIRMWARE) genkeys
 VERIFY         = $(FIRMWARE) verify
+APP_VERSION   ?= 0
+APP_ID        ?= 0
 
 SECKEY ?= $(RIOTBASE)/key.sec
 PUBKEY ?= $(RIOTBASE)/key.pub
