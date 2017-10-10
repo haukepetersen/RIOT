@@ -42,7 +42,7 @@ char _tftp_stack[OTA_TFTP_SERVER_STACK];
 static bool _tftp_server_start_cb(tftp_action_t action, tftp_mode_t mode,
                                   const char *file_name, size_t *len)
 {
-    LOG_INFO("%s: start %s %u\n", __func__, file_name, *len);
+    LOG_INFO("ota_tftp_server: starting update (filename=%s length=%u)\n", file_name, (unsigned)*len);
 
     /* make sure this is a write using octets request */
     if (mode != TTM_OCTET || action != TFTP_WRITE) {
@@ -70,27 +70,28 @@ static int _tftp_server_data_cb(uint32_t offset, void *data, size_t data_len)
  */
 static void _tftp_server_stop_cb(tftp_event_t event, const char *msg)
 {
-    /* decode the stop event received */
-    const char *cause = "UNKOWN";
-
     if (event == TFTP_SUCCESS) {
-        cause = "SUCCESS";
-        firmware_update_finish(&_state);
+        if (firmware_update_finish(&_state) == 0) {
+            LOG_INFO("ota_tftp_server: update finished, rebooting...\n");
+            pm_reboot();
+        }
+        else {
+            LOG_WARNING("ota_tftp_server: update failed.\n");
+        }
     }
-    else if (event == TFTP_PEER_ERROR) {
-        cause = "ERROR From Client";
-    }
-    else if (event == TFTP_INTERN_ERROR) {
-        cause = "ERROR Internal Server Error";
-    }
+    else {
+        /* decode the stop event received */
+        const char *cause = "UNKOWN";
 
-    /* print the transfer result to the console */
-    printf("tftp_server: transfer stopped: %s: %s\n", cause, (msg == NULL) ? "NULL" : msg);
+        if (event == TFTP_PEER_ERROR) {
+            cause = "ERROR From Client";
+        }
+        else if (event == TFTP_INTERN_ERROR) {
+            cause = "ERROR Internal Server Error";
+        }
 
-    if (event == TFTP_SUCCESS) {
-        puts("[ota_tftp_server] Update finished, rebooting in 5 seconds...");
-        xtimer_sleep(5);
-        pm_reboot();
+        /* print the transfer result to the console */
+        LOG_WARNING("ota_tftp_server: transfer stopped: %s: %s\n", cause, (msg == NULL) ? "NULL" : msg);
     }
 }
 
@@ -105,13 +106,13 @@ static void *tftp_server_wrapper(void *arg)
     msg_init_queue(_tftp_msg_queue, TFTP_QUEUE_SIZE);
 
     /* inform the user */
-    puts("[ota_tftp_server] Starting TFTP service at port 69");
+    LOG_INFO("ota_tftp_server: starting TFTP service at port 69\n");
 
     /* run the TFTP server */
     gnrc_tftp_server(_tftp_server_data_cb, _tftp_server_start_cb, _tftp_server_stop_cb, true);
 
     /* the TFTP server has been stopped */
-    puts("[ota_tftp_server] Server stopped");
+    LOG_INFO("ota_tftp_server: server stopped\n");
 
     return NULL;
 }
