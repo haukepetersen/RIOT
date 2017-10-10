@@ -51,13 +51,6 @@ extern "C" {
 #define FIRMWARE_PUBKEY_LEN         (crypto_sign_PUBLICKEYBYTES)
 
 /**
- *  @brief FIRMWARE_CHECKSUM_WORDS:
- *         number of words to be fletcher32()'ed
- *
- */
-#define FIRMWARE_CHECKSUM_WORDS     (10)
-
-/**
  *  @brief FIRMWARE_CHECKSUM_LEN:
  *         TODO.
  */
@@ -98,7 +91,7 @@ typedef struct {
     uint32_t magic_number;              /**< metadata magic_number (always "RIOT")  */
     uint32_t appid;                     /**< Integer representing the application ID*/
     uint32_t version;                   /**< Integer representing firmware version  */
-    uint32_t size;                      /**< Size of firmware image                 */
+    uint32_t size;                      /**< Size of firmware image (w/o metadata)  */
     uint32_t start_addr;                /**< Start address in flash                 */
     uint32_t chksum;                    /**< checksum of metadata                   */
     uint8_t hash[SHA256_DIGEST_LENGTH]; /**< SHA256 Hash of firmware image          */
