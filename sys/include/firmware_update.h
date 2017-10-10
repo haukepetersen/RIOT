@@ -28,6 +28,12 @@ extern "C" {
 #include "firmware.h"
 #include "periph/flashpage.h"
 
+enum {
+    FIRMWARE_UPDATE_IDLE,
+    FIRMWARE_UPDATE_INITIALIZED,
+    FIRMWARE_UPDATE_VERIFIED,
+};
+
 typedef struct {
     unsigned state;
     int target_slot;
@@ -35,7 +41,7 @@ typedef struct {
     unsigned flashpage;
     sha256_context_t sha256;
     uint8_t flashpage_buf[FLASHPAGE_SIZE];
-    uint8_t metadata_buf[FLASHPAGE_SIZE];
+    firmware_metadata_t metadata_buf;
 } firmware_update_t;
 
 int firmware_update_init(firmware_update_t *firmware_update, int target_slot);
