@@ -72,7 +72,8 @@ static void _tftp_server_stop_cb(tftp_event_t event, const char *msg)
 {
     if (event == TFTP_SUCCESS) {
         if (firmware_update_finish(&_state) == 0) {
-            LOG_INFO("ota_tftp_server: update finished, rebooting...\n");
+            LOG_INFO("ota_tftp_server: update finished, rebooting after 1s...\n");
+            xtimer_sleep(1);
             pm_reboot();
         }
         else {
