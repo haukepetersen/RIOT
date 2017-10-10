@@ -49,6 +49,16 @@ flash-mcuboot: mcuboot $(FLASHDEPS) flash-bootloader
 
 ###############################################################################
 
+FIRMWARE_METADATA_SIZE ?= 0x100
+FIRMWARE_TOOLS = $(RIOTBASE)/dist/tools/firmware
+FIRMWARE       = $(FIRMWARE_TOOLS)/bin/firmware
+PUBKEY_DIR     = $(RIOTBASE)/sys/include
+GENMETA        = $(FIRMWARE) genmeta
+GENKEYS        = $(FIRMWARE) genkeys
+VERIFY         = $(FIRMWARE) verify
+APP_VERSION   ?= 0
+APP_ID        ?= 0
+
 ELFSLOT0        := $(ELFFILE:%.elf=%.slot0.elf)
 ELFSLOT1        := $(ELFFILE:%.elf=%.slot1.elf)
 ELFSLOT2        := $(ELFFILE:%.elf=%.slot2.elf)
@@ -59,16 +69,6 @@ IMAGE_SLOT1     := $(ELFFILE:%.elf=%-slot1-$(APP_ID)-$(APP_VERSION).bin)
 IMAGE_SLOT2     := $(ELFFILE:%.elf=%-slot2-$(APP_ID)-$(APP_VERSION).bin)
 COMBINED_BIN    := $(ELFFILE:%.elf=%.combined.bin)
 BOOTLOADER_BIN  := $(RIOTBASE)/bootloader/bin/$(BOARD)/bootloader.slot0.bin
-
-FIRMWARE_METADATA_SIZE ?= 0x100
-FIRMWARE_TOOLS = $(RIOTBASE)/dist/tools/firmware
-FIRMWARE       = $(FIRMWARE_TOOLS)/bin/firmware
-PUBKEY_DIR     = $(RIOTBASE)/sys/include
-GENMETA        = $(FIRMWARE) genmeta
-GENKEYS        = $(FIRMWARE) genkeys
-VERIFY         = $(FIRMWARE) verify
-APP_VERSION   ?= 0
-APP_ID        ?= 0
 
 SECKEY ?= $(RIOTBASE)/key.sec
 PUBKEY ?= $(RIOTBASE)/key.pub
