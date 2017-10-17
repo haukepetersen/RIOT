@@ -19,11 +19,28 @@
  * @}
  */
 
-#include <string.h>
-
 #include "saul.h"
-#include "bmp180.h"
-#include "xtimer.h"
+#include "saul/saul_bmp180.h"
+
+const saul_driver_t bmp180_temperature_saul_driver;
+const saul_driver_t bmp180_pressure_saul_driver;
+
+int saul_bmp180_init(saul_bmp180_t *saul, saul_bmp180_params_t *params)
+{
+    assert(saul && params);
+
+    saul->temp.next = &saul->press;
+    saul->temp.dev = &saul->dev;
+    saul->temp.name = params->name_temp;
+    saul->temp.driver = &bmp180_temperature_saul_driver;
+
+    saul->press.next = NULL;
+    saul->press.dev = &saul->dev;
+    saul->press.name = params->name_press;
+    saul->press.driver = &bmp180_pressure_saul_driver;
+
+    return bmp180_init(&saul->dev, params->devconf);
+}
 
 static int read_temperature(const void *dev, phydat_t *res)
 {

@@ -47,10 +47,15 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include "assert.h"
 #include "phydat.h"
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifndef SAUL_SKIP_NAME
+#define SAUL_NAME(f,x)          f = x,
 #endif
 
 /**
@@ -143,10 +148,33 @@ typedef struct {
     uint8_t type;           /**< device class the device belongs to */
 } saul_driver_t;
 
+typedef struct saul saul_t;
+
+struct saul {
+    saul_t *next;
+    void *dev;
+#ifndef SAUL_SKIP_NAME
+    const char *name;
+#endif
+    saul_driver_t const *driver;
+};
+
 /**
  * @brief   Default not supported function
  */
 int saul_notsup(const void *dev, phydat_t *dat);
+
+static inline int saul_read(saul_t *saul, phydat_t *data)
+{
+    assert(saul && data);
+    return saul->driver->read(saul, data);
+}
+
+static inline int saul_write(saul_t *saul, phydat_t *data)
+{
+    assert(saul && data);
+    return saul->driver->write(saul, data);
+}
 
 /**
  * @brief   Helper function converts a class ID to a string
