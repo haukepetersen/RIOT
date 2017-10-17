@@ -54,7 +54,16 @@ if __name__ == "__main__":
     #     config = yaml.load(ymlfile)
     #     print(config)
 
-    for target in moddirs:
-        readdir(args.riotbase + "/" + target)
+    # for target in moddirs:
+    #     readdir(args.riotbase + "/" + target)
 
-    # print(modules)
+    for target in moddirs:
+        for current, folders, files in os.walk(args.riotbase + "/" + target):
+            for f in files:
+                # print(f)
+                m = re.match("(.+)\.yml", f)
+                if m:
+                    # print(m.group(1))
+                    modules[m.group(1)] = current + "/" + f
+
+    print(modules)
