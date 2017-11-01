@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include "periph_conf.h"
@@ -71,37 +72,30 @@ int cmd_init_master(int argc, char **argv)
 
 int cmd_write(int argc, char **argv)
 {
-    int res;
-    uint8_t addr;
-    int length = argc - 2;
-    uint8_t data[BUFSIZE];
-
     if (i2c_dev < 0) {
         puts("Error: no I2C device was initialized");
         return 1;
     }
     if (argc < 3) {
-        puts("Error: not enough arguments given");
-        printf("Usage:\n%s: ADDR BYTE0 [BYTE1 [BYTE_n [...]]]\n", argv[0]);
+        printf("usage: %s <addr> <data>\n", argv[0]);
         return 1;
     }
 
-    addr = atoi(argv[1]);
-    for (int i = 0; i < length; i++) {
-        data[i] = atoi(argv[i + 2]);
-    }
+    int res;
+    uint8_t addr = (uint8_t)atoi(argv[1]);
+    size_t len = strlen(argv[2]);
 
-    if (length == 1) {
-        printf("i2c_write_byte(I2C_%i, 0x%02x, 0x%02x)\n", i2c_dev, addr, data[0]);
-        res = i2c_write_byte(i2c_dev, addr, data[0]);
+    if (len == 1) {
+        printf("i2c_write_byte(I2C_%i, 0x%02x, 0x%02x)\n", i2c_dev, addr, (int)argv[2][0]);
+        res = i2c_write_byte(i2c_dev, addr, argv[2][0]);
     }
     else {
         printf("i2c_write_bytes(I2C_%i, 0x%02x, [", i2c_dev, addr);
-        for (int i = 0; i < length; i++) {
-            printf(", 0x%02x", data[i]);
+        for (size_t i = 0; i < len; i++) {
+            printf("0x%02x ", (int)argv[2][i]);
         }
         puts("])");
-        res = i2c_write_bytes(i2c_dev, addr, data, length);
+        res = i2c_write_bytes(i2c_dev, addr, argv[2], len);
     }
 
     if (res < 0) {

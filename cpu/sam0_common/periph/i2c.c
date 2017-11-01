@@ -247,6 +247,8 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
             return -1;
     }
 
+    DEBUG("i2c: reading %i byte\n", (int)length);
+
     /* start transmission and send slave address */
     if (_start(i2c, address, I2C_FLAG_READ) < 0) {
         return 0;
@@ -482,13 +484,16 @@ static inline int _write(SercomI2cm *dev, const uint8_t *data, int length)
 
 static inline int _read(SercomI2cm *dev, uint8_t *data, int length)
 {
-    uint8_t count = 0;
-
-    /* Set action to ack. */
-    dev->CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
-
     /* Read data buffer. */
-    while (count != length) {
+    for (size_t cnt = 0; cnt < length; cnt ++) {
+        if (cnt == (length - 1)) {
+            /* Send NACK before STOP */
+            dev->CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
+        }
+        else {
+            /* Set action to ack. */
+            dev->CTRLB.reg &= ~SERCOM_I2CM_CTRLB_ACKACT;
+        }
         /* Check that bus ownership is not lost. */
         if ((dev->STATUS.reg & SERCOM_I2CM_STATUS_BUSSTATE_Msk) != BUSSTATE_OWNER) {
             DEBUG("STATUS_ERR_PACKET_COLLISION\n");
@@ -498,16 +503,13 @@ static inline int _read(SercomI2cm *dev, uint8_t *data, int length)
         /* Wait for hardware module to sync */
         while (dev->SYNCBUSY.reg & SERCOM_I2CM_SYNCBUSY_MASK) {}
         /* Save data to buffer. */
-        data[count] = dev->DATA.reg;
+        data[cnt] = dev->DATA.reg;
 
         /* Wait for response on bus. */
-        if (_wait_for_response(dev, SAMD21_I2C_TIMEOUT) < 0)
+        if (_wait_for_response(dev, SAMD21_I2C_TIMEOUT) < 0) {
             return -1;
-
-        count++;
+        }
     }
-    /* Send NACK before STOP */
-    dev->CTRLB.reg |= SERCOM_I2CM_CTRLB_ACKACT;
     return 0;
 }
 
