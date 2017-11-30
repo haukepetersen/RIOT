@@ -82,11 +82,15 @@ $(FIRMWARE):
 	$(Q)env -i CFLAGS+=-DFIRMWARE_METADATA_SIZE=$(FIRMWARE_METADATA_SIZE) \
 	make clean all -C $(FIRMWARE_TOOLS)
 
+create_keys:  $(SECKEY) $(PUBKEY)
+	true
+
+.PHONY: $(SECKEY) $(PUBKEY)
 $(SECKEY) $(PUBKEY): $(FIRMWARE)
 	$(Q)$(GENKEYS) $(SECKEY) $(PUBKEY)
 	$(Q)cp $(PUBKEY) ./ota_public_key
 	$(Q)xxd -i ota_public_key > $(PUBKEY_DIR)/ota_pubkey.h
-	$(Q)rm ./ota_public_key
+	$(Q)rm -f ./ota_public_key
 
 bootloader: link
 	@$(_LINK) \
