@@ -53,6 +53,8 @@ CFLAGS += -DDEVELHELP
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
+USEMODULE += ota_update_tftp
+
 include $(RIOTBASE)/Makefile.include
 
 # Set a custom channel if needed
