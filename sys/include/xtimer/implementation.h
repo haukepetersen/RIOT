@@ -64,13 +64,12 @@ static inline uint32_t _xtimer_lltimer_mask(uint32_t val)
 uint64_t _xtimer_now64(void);
 int _xtimer_set_absolute(xtimer_t *timer, uint32_t target);
 void _xtimer_set64(xtimer_t *timer, uint32_t offset, uint32_t long_offset);
-void _xtimer_set(xtimer_t *timer, uint32_t offset);
 void _xtimer_periodic_wakeup(uint32_t *last_wakeup, uint32_t period);
 void _xtimer_set_msg(xtimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
 void _xtimer_set_msg64(xtimer_t *timer, uint64_t offset, msg_t *msg, kernel_pid_t target_pid);
 void _xtimer_set_wakeup(xtimer_t *timer, uint32_t offset, kernel_pid_t pid);
 void _xtimer_set_wakeup64(xtimer_t *timer, uint64_t offset, kernel_pid_t pid);
-void _xtimer_set(xtimer_t *timer, uint32_t offset);
+void _xtimer_set_relative(xtimer_t *timer, uint32_t offset, uint32_t base);
 int _xtimer_msg_receive_timeout(msg_t *msg, uint32_t ticks);
 int _xtimer_msg_receive_timeout64(msg_t *msg, uint64_t ticks);
 
@@ -132,6 +131,11 @@ static inline uint32_t xtimer_now_usec(void)
 static inline uint64_t xtimer_now_usec64(void)
 {
     return xtimer_usec_from_ticks64(xtimer_now64());
+}
+
+static inline void _xtimer_set(xtimer_t *timer, uint32_t offset)
+{
+    _xtimer_set_relative(timer, offset, _xtimer_now());
 }
 
 static inline void _xtimer_spin(uint32_t offset) {
@@ -215,7 +219,12 @@ static inline void xtimer_set_wakeup64(xtimer_t *timer, uint64_t offset, kernel_
 
 static inline void xtimer_set(xtimer_t *timer, uint32_t offset)
 {
-    _xtimer_set(timer, _xtimer_ticks_from_usec(offset));
+    _xtimer_set(timer, offset);
+}
+
+static inline void xtimer_set_relative(xtimer_t *timer, uint32_t offset)
+{
+    _xtimer_set_relative(timer, _xtimer_ticks_from_usec(offset), timer->target);
 }
 
 static inline int xtimer_msg_receive_timeout(msg_t *msg, uint32_t timeout)

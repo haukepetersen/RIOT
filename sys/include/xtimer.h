@@ -291,6 +291,10 @@ static inline void xtimer_set_wakeup64(xtimer_t *timer, uint64_t offset, kernel_
  */
 static inline void xtimer_set(xtimer_t *timer, uint32_t offset);
 
+static inline void xtimer_set_relative(xtimer_t *timer, uint32_t offset);
+
+void xtimer_reset(xtimer_t *timer);
+
 /**
  * @brief remove a timer
  *

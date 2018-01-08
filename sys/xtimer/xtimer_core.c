@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <string.h>
+
 #include "board.h"
 #include "periph/timer.h"
 #include "periph_conf.h"
@@ -25,7 +26,7 @@
 #include "irq.h"
 
 /* WARNING! enabling this will have side effects and can lead to timer underflows. */
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 static volatile int _in_handler = 0;
@@ -126,10 +127,12 @@ void _xtimer_set64(xtimer_t *timer, uint32_t offset, uint32_t long_offset)
     }
 }
 
-void _xtimer_set(xtimer_t *timer, uint32_t offset)
+void _xtimer_set_relative(xtimer_t *timer, uint32_t offset, uint32_t base)
 {
-    DEBUG("timer_set(): offset=%" PRIu32 " now=%" PRIu32 " (%" PRIu32 ")\n",
-          offset, xtimer_now().ticks32, _xtimer_lltimer_now());
+    DEBUG("timer_set_relative(): offset=%" PRIu32 " base=%" PRIu32 ""
+          " now=%" PRIu32 " (%" PRIu32 ")\n",
+          offset, base, xtimer_now().ticks32, _xtimer_lltimer_now());
+
     if (!timer->callback) {
         DEBUG("timer_set(): timer has no callback.\n");
         return;
@@ -142,8 +145,7 @@ void _xtimer_set(xtimer_t *timer, uint32_t offset)
         _shoot(timer);
     }
     else {
-        uint32_t target = _xtimer_now() + offset;
-        _xtimer_set_absolute(timer, target);
+        _xtimer_set_absolute(timer, (base + offset));
     }
 }
 
@@ -284,6 +286,13 @@ void xtimer_remove(xtimer_t *timer)
         _remove(timer);
     }
     irq_restore(state);
+}
+
+void xtimer_reset(xtimer_t *timer)
+{
+    xtimer_remove(timer);
+    timer->target = _xtimer_now();
+    timer->long_target = _long_cnt;
 }
 
 static uint32_t _time_left(uint32_t target, uint32_t reference)
