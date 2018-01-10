@@ -1,0 +1,10 @@
+include $(RIOTBOARD)/common/nrf52xxxdk/Makefile.dep
+
+ifneq (,$(filter saul_default,$(USEMODULE)))
+  USEMODULE += bmx280_spi
+  # USEMODULE += lis2dh18
+endif
+
+ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
+  USEMODULE += nrfmin
+endif
