@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 Kees Bakker, SODAQ
  *               2017 Inria
+ *               2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -34,6 +35,8 @@
  *
  * @author      Kees Bakker <kees@sodaq.com>
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ *
  */
 
 #ifndef BMX280_H
@@ -41,7 +44,13 @@
 
 #include <inttypes.h>
 #include "saul.h"
+
+#if defined(MODULE_BME280_SPI) || defined(MODULE_BMP280_SPI)
+#define BMX280_USE_SPI
+#include "periph/spi.h"
+#else
 #include "periph/i2c.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,9 +142,15 @@ typedef enum {
  * These parameters are needed to configure the device at startup.
  */
 typedef struct {
+#ifdef BMX280_USE_SPI
+    /* SPI configuration */
+    spi_t spi;                          /**< SPI bus */
+    gpio_t cs;                          /**< chip select pin */
+#else
     /* I2C details */
     i2c_t i2c_dev;                      /**< I2C device which is used */
     uint8_t i2c_addr;                   /**< I2C address */
+#endif
 
     /* Config Register */
     bmx280_t_sb_t t_sb;                 /**< standby */
@@ -164,7 +179,7 @@ typedef struct {
  */
 enum {
     BMX280_OK           =  0,     /**< everything was fine */
-    BMX280_ERR_I2C      = -1,     /**< error initializing the I2C bus */
+    BMX280_ERR_BUS      = -1,     /**< bus error */
     BMX280_ERR_NODEV    = -2,     /**< did not detect BME280 or BMP280 */
     BMX280_ERR_NOCAL    = -3,     /**< could not read calibration data */
 };
@@ -176,7 +191,7 @@ enum {
  * @param[in]  params       The parameters for the BMX280 device (sampling rate, etc)
  *
  * @return                  BMX280_OK on success
- * @return                  BMX280_ERR_I2C
+ * @return                  BMX280_ERR_BUS
  * @return                  BMX280_ERR_NODEV
  * @return                  BMX280_ERR_NOCAL
  */

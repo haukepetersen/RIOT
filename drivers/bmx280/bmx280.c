@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 Kees Bakker, SODAQ
  *               2017 Inria
+ *               2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -15,6 +16,7 @@
  * @brief       Device driver implementation for sensors BMX280 (BME280 and BMP280).
  *
  * @author      Kees Bakker <kees@sodaq.com>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  *
  * @}
  */
@@ -26,18 +28,27 @@
 #include "bmx280.h"
 #include "bmx280_internals.h"
 #include "bmx280_params.h"
-#include "periph/i2c.h"
 #include "xtimer.h"
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
+#ifdef BMX280_USE_SPI
+#define BUS                 (dev->params.spi)
+#define CS                  (dev->params.cs)
+#define CLK                 SPI_CLK_5MHZ
+#define MODE                SPI_MODE_0
+#endif
+
+static inline int acquire(const bmx280_t *dev);
+static inline void release(const bmx280_t *dev);
 static int read_calibration_data(bmx280_t* dev);
 static int do_measurement(const bmx280_t* dev);
 static uint8_t get_ctrl_meas(const bmx280_t* dev);
 static uint8_t get_status(const bmx280_t* dev);
 static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg);
 static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t b);
+static int read_burst(const bmx280_t *dev, uint8_t addr, void *buf, size_t len);
 static uint16_t get_uint16_le(const uint8_t *buffer, size_t offset);
 static int16_t get_int16_le(const uint8_t *buffer, size_t offset);
 
@@ -68,20 +79,33 @@ static uint8_t measurement_regs[8];
 int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
 {
     uint8_t chip_id;
-
     dev->params = *params;
 
+    /* test bus configuration by acquiring SPI bus access */
+    if (acquire(dev) != BMX280_OK) {
+        LOG_ERROR("[bmx280] error: unable to acquire bus\n");
+        return BMX280_ERR_BUS;
+    }
+
+#ifdef BMX280_USE_SPI
+    /* configure the chip-select pin */
+    if (spi_init_cs(BUS, CS) != SPI_OK) {
+        LOG_ERROR("[bmx280] error: unable to configure chip the select pin\n");
+        release(dev);
+        return BMX280_ERR_BUS;
+    }
+#else
     /* Initialize I2C interface */
     if (i2c_init_master(dev->params.i2c_dev, I2C_SPEED_NORMAL)) {
         DEBUG("[Error] I2C device not enabled\n");
-        return BMX280_ERR_I2C;
+        return BMX280_ERR_BUS;
     }
+#endif
 
     /* Read chip ID */
     chip_id = read_u8_reg(dev, BMX280_CHIP_ID_REG);
     if ((chip_id != BME280_CHIP_ID) && (chip_id != BMP280_CHIP_ID)) {
-        DEBUG("[Error] Did not detect a BMX280 at address %02x (%02x != %02x or %02x)\n",
-              dev->params.i2c_addr, chip_id, BME280_CHIP_ID, BMP280_CHIP_ID);
+        DEBUG("[bmx280] error: invalid chip ID, no connection to device\n");
         return BMX280_ERR_NODEV;
     }
 
@@ -91,6 +115,7 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
         return BMX280_ERR_NOCAL;
     }
 
+    release(dev);
     return BMX280_OK;
 }
 
@@ -225,8 +250,8 @@ static int read_calibration_data(bmx280_t* dev)
     uint8_t offset = 0x88;
 
     memset(buffer, 0, sizeof(buffer));
-    nr_bytes = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, offset,
-                             buffer, nr_bytes_to_read);
+    nr_bytes = read_burst(dev, offset, buffer, (size_t)nr_bytes_to_read);
+
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read calibration data\n");
         return -1;
@@ -262,8 +287,7 @@ static int read_calibration_data(bmx280_t* dev)
     DEBUG("[INFO] Chip ID = 0x%02X\n", buffer[BMX280_CHIP_ID_REG - offset]);
 
     /* Config is only be writable in sleep mode */
-    (void)i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr,
-                        BMX280_CTRL_MEAS_REG, 0);
+    write_u8_reg(dev, BMX280_CTRL_MEAS_REG, 0);
 
     uint8_t b;
 
@@ -319,8 +343,7 @@ static int do_measurement(const bmx280_t* dev)
     int nr_bytes_to_read = sizeof(measurement_regs);
     uint8_t offset = BMX280_PRESSURE_MSB_REG;
 
-    nr_bytes = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr,
-                             offset, measurement_regs, nr_bytes_to_read);
+    nr_bytes = read_burst(dev, offset, measurement_regs, (size_t)nr_bytes_to_read);
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read temperature data\n");
         return -1;
@@ -340,6 +363,60 @@ static uint8_t get_status(const bmx280_t* dev)
     return read_u8_reg(dev, BMX280_STAT_REG);
 }
 
+static uint16_t get_uint16_le(const uint8_t *buffer, size_t offset)
+{
+    return (((uint16_t)buffer[offset + 1]) << 8) + buffer[offset];
+}
+
+static int16_t get_int16_le(const uint8_t *buffer, size_t offset)
+{
+    return (((int16_t)buffer[offset + 1]) << 8) + buffer[offset];
+}
+
+#ifdef BMX280_USE_SPI
+static inline int acquire(const bmx280_t *dev)
+{
+    if (spi_acquire(BUS, CS, MODE, CLK) != SPI_OK) {
+        return BMX280_ERR_BUS;
+    }
+    return BMX280_OK;
+}
+
+static inline void release(const bmx280_t *dev)
+{
+    spi_release(BUS);
+}
+
+static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg)
+{
+    return spi_transfer_reg(BUS, CS, reg, 0);
+}
+
+static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t data)
+{
+    (void)spi_transfer_reg(BUS, CS, reg, data);
+}
+
+static int read_burst(const bmx280_t *dev, uint8_t addr, void *buf, size_t len)
+{
+    spi_transfer_regs(BUS, CS, addr, NULL, buf, len);
+    return (int)len;
+}
+
+#else
+static inline int acquire(const bmx280_t *dev)
+{
+    /* @todo: acquire I2C bus */
+    (void)dev;
+    return BMX280_OK;
+}
+
+static inline void release(const bmx280_t *dev)
+{
+    (void)dev;
+    /* @todo: release I2C bus */
+}
+
 static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg)
 {
     uint8_t b;
@@ -354,15 +431,12 @@ static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t b)
     (void)i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, b);
 }
 
-static uint16_t get_uint16_le(const uint8_t *buffer, size_t offset)
+static int read_burst(const bmx280_t *dev, uint8_t reg, void *buf, size_t len)
 {
-    return (((uint16_t)buffer[offset + 1]) << 8) + buffer[offset];
+    return i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, reg,
+                         buf, len);
 }
-
-static int16_t get_int16_le(const uint8_t *buffer, size_t offset)
-{
-    return (((int16_t)buffer[offset + 1]) << 8) + buffer[offset];
-}
+#endif
 
 #if ENABLE_DEBUG
 static void dump_buffer(const char *txt, uint8_t *buffer, size_t size)

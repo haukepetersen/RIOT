@@ -82,7 +82,9 @@ PSEUDOMODULES += at86rf21%
 
 # include variants of the BMX280 drivers as pseudo modules
 PSEUDOMODULES += bmp280
+PSEUDOMODULES += bmp280_spi
 PSEUDOMODULES += bme280
+PSEUDOMODULES += bme280_spi
 
 # variants of TI ADCXX1C
 PSEUDOMODULES += adc081c
