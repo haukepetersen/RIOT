@@ -8,12 +8,12 @@
  */
 
 /**
- * @ingroup tests
+ * @ingroup     tests
  * @{
  *
  * @file
- * @brief       Test application for the BM280 temperature, pressure
- *              and humidity sensor.
+ * @brief       Test application for the BMX280 temperature, pressure
+ *              and humidity sensor driver
  *
  * @author      Kees Bakker <kees@sodaq.com>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
@@ -22,13 +22,13 @@
  */
 
 #include <stdio.h>
-#include <inttypes.h>
 
 #include "bmx280_params.h"
 #include "bmx280.h"
 #include "xtimer.h"
+#include "fmt.h"
 
-#define MAINLOOP_DELAY  (2 * 1000 * 1000u)      /* 2 seconds delay between printf's */
+#define MAINLOOP_DELAY  (2 * US_PER_SEC)      /* read sensor every 2 seconds */
 
 int main(void)
 {
@@ -37,25 +37,30 @@ int main(void)
 
     puts("BMX280 test application\n");
 
-    printf("+------------Initializing------------+\n");
+    puts("+------------Initializing------------+");
     result = bmx280_init(&dev, &bmx280_params[0]);
-    if (result == -1) {
-        puts("[Error] The given i2c is not enabled");
+    if (result != BMX280_OK) {
+        switch (result) {
+            case BMX280_ERR_BUS:
+                puts("[Error] The given i2c is not enabled");
+                break;
+            case BMX280_ERR_NODEV:
+                puts("[Error] Unable to communicate with any BMX280 device");
+                break;
+            case BMX280_ERR_NOCAL:
+                puts("[Error] Unable to retrieve calibration data from device");
+                break;
+            default:
+                /* do nothing */
+                break;
+        }
+
         return 1;
     }
 
-    if (result == -2) {
-#ifdef BMX280_USE_SPI
-        puts("[Error] Unable to communicate with any BMX280 device");
-#else
-        printf("[Error] The sensor did not answer correctly at address 0x%02X\n", bmx280_params[0].i2c_addr);
-#endif
-        return 1;
-    }
+    puts("Initialization successful\n");
 
-    printf("Initialization successful\n\n");
-
-    printf("+------------Calibration Data------------+\n");
+    puts("+------------Calibration Data------------+");
     printf("dig_T1: %u\n", dev.calibration.dig_T1);
     printf("dig_T2: %i\n", dev.calibration.dig_T2);
     printf("dig_T3: %i\n", dev.calibration.dig_T3);
@@ -79,44 +84,32 @@ int main(void)
     printf("dig_H6: %i\n", dev.calibration.dig_H6);
 #endif
 
-    printf("\n+--------Starting Measurements--------+\n");
+    puts("\n+--------Starting Measurements--------+");
     while (1) {
-        int16_t temperature;
-        uint32_t pressure;
+        /* read temperature, pressure [and humidity] values */
+        int16_t temperature = bmx280_read_temperature(&dev);
+        uint32_t pressure = bmx280_read_pressure(&dev);
 #if defined(MODULE_BME280) || defined(MODULE_BME280_SPI)
-        uint16_t humidity;
+        uint16_t humidity = bme280_read_humidity(&dev);
 #endif
 
-        /* Get temperature in centi degrees Celsius */
-        temperature = bmx280_read_temperature(&dev);
-        bool negative = (temperature < 0);
-        if (negative) {
-            temperature = -temperature;
-        }
-
-        /* Get pressure in Pa */
-        pressure = bmx280_read_pressure(&dev);
-
+        /* prepare values for printing */
+        char str_temp[8];
+        size_t len = fmt_s16_dfp(str_temp, temperature, 2);
+        str_temp[len] = '\0';
 #if defined(MODULE_BME280) || defined(MODULE_BME280_SPI)
-        /* Get pressure in %rH */
-        humidity = bme280_read_humidity(&dev);
+        char str_hum[8];
+        len = fmt_s16_dfp(str_hum, humidity, 2);
+        str_hum[len] = '\0';
 #endif
 
-        printf("Temperature [°C]:%c%d.%d\n"
-               "Pressure [Pa]: %lu\n"
+        /* print values to STDIO */
+        printf("Temperature [°C]: %s\n", str_temp);
+        printf("   Pressure [Pa]: %" PRIu32 "\n", pressure);
 #if defined(MODULE_BME280) || defined(MODULE_BME280_SPI)
-               "Humidity [%%rH]: %u.%02u\n"
+        printf("  Humidity [%%rH]: %s\n", str_hum);
 #endif
-               "\n+-------------------------------------+\n",
-               (negative) ? '-' : ' ',
-               temperature / 100, (temperature % 100) / 10,
-#if defined(MODULE_BME280) || defined(MODULE_BME280_SPI)
-               (unsigned long)pressure,
-               (unsigned int)(humidity / 100), (unsigned int)(humidity % 100)
-#else
-               (unsigned long)pressure
-#endif
-               );
+        puts("\n+-------------------------------------+\n");
 
         xtimer_usleep(MAINLOOP_DELAY);
     }
