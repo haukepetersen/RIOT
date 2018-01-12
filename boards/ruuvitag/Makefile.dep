@@ -1,8 +1,8 @@
 include $(RIOTBOARD)/common/nrf52xxxdk/Makefile.dep
 
 ifneq (,$(filter saul_default,$(USEMODULE)))
-  USEMODULE += bmx280_spi
-  # USEMODULE += lis2dh18
+  #USEMODULE += bmx280_spi
+  USEMODULE += lis2dh12_spi
 endif
 
 ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
