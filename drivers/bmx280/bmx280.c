@@ -13,7 +13,7 @@
  * @{
  *
  * @file
- * @brief       Device driver implementation for sensors BMX280 (BME280 and BMP280).
+ * @brief       Device driver implementation for BME280 and BMP280 sensors
  *
  * @author      Kees Bakker <kees@sodaq.com>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
@@ -60,12 +60,14 @@ static void dump_buffer(const char *txt, uint8_t *buffer, size_t size);
 #endif
 
 /**
- * @brief   Fine resolution temperature value, also needed for pressure and humidity.
+ * @brief   Fine resolution temperature value, also needed for pressure and
+ *          humidity
  */
 static int32_t t_fine;
 
 /**
- * @brief   The measurement registers, including temperature, pressure and humidity
+ * @brief   The measurement registers, including temperature, pressure and
+ *          humidity
  *
  * A temporary buffer for the memory map 0xF7..0xFE
  * These are read all at once and then used to compute the three sensor values.
@@ -138,9 +140,9 @@ int16_t bmx280_read_temperature(const bmx280_t* dev)
 
     /*
      * Compensate the temperature value.
-     * The following is code from Bosch's BME280_driver bme280_compensate_temperature_int32()
-     * The variable names and the many defines have been modified to make the code
-     * more readable.
+     * The following is code from Bosch's BME280_driver
+     * bme280_compensate_temperature_int32(). The variable names and the many
+     * defines have been modified to make the code more readable.
      */
     int32_t var1;
     int32_t var2;
@@ -173,9 +175,9 @@ uint32_t bmx280_read_pressure(const bmx280_t *dev)
 
     /*
      * Compensate the pressure value.
-     * The following is code from Bosch's BME280_driver bme280_compensate_pressure_int64()
-     * The variable names and the many defines have been modified to make the code
-     * more readable.
+     * The following is code from Bosch's BME280_driver
+     * bme280_compensate_pressure_int64(). The variable names and the many
+     * defines have been modified to make the code more readable.
      */
     var1 = ((int64_t)t_fine) - 128000;
     var2 = var1 * var1 * (int64_t)cal->dig_P6;
@@ -208,9 +210,9 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
 
     /*
      * Compensate the humidity value.
-     * The following is code from Bosch's BME280_driver bme280_compensate_humidity_int32()
-     * The variable names and the many defines have been modified to make the code
-     * more readable.
+     * The following is code from Bosch's BME280_driver
+     * bme280_compensate_humidity_int32(). The variable names and the many
+     * defines have been modified to make the code more readable.
      * The value is first computed as a value in %rH as unsigned 32bit integer
      * in Q22.10 format(22 integer 10 fractional bits).
      */
@@ -240,7 +242,8 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
  */
 static int read_calibration_data(bmx280_t* dev)
 {
-    uint8_t buffer[128];        /* 128 should be enough to read all calibration bytes */
+    uint8_t buffer[128];        /* 128 should be enough to read all calibration
+                                 * bytes */
     int nr_bytes;
 #ifdef MODULE_BME280
     int nr_bytes_to_read = (BME280_DIG_H6_REG - BMX280_DIG_T1_LSB_REG) + 1;
@@ -298,8 +301,8 @@ static int read_calibration_data(bmx280_t* dev)
 
 #if defined(MODULE_BME280)
     /*
-     * Note from the datasheet about ctrl_hum: "Changes to this register only become effective
-     * after a write operation to "ctrl_meas".
+     * Note from the datasheet about ctrl_hum: "Changes to this register only
+     * become effective after a write operation to "ctrl_meas".
      * So, set ctrl_hum first.
      */
     b = dev->params.humid_oversample & 7;
@@ -343,7 +346,8 @@ static int do_measurement(const bmx280_t* dev)
     int nr_bytes_to_read = sizeof(measurement_regs);
     uint8_t offset = BMX280_PRESSURE_MSB_REG;
 
-    nr_bytes = read_burst(dev, offset, measurement_regs, (size_t)nr_bytes_to_read);
+    nr_bytes = read_burst(dev, offset, measurement_regs,
+                          (size_t)nr_bytes_to_read);
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read temperature data\n");
         return -1;
