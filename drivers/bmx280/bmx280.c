@@ -25,6 +25,7 @@
 #include <math.h>
 
 #include "log.h"
+#include "assert.h"
 #include "bmx280.h"
 #include "bmx280_internals.h"
 #include "xtimer.h"
@@ -83,6 +84,8 @@ static uint8_t measurement_regs[8];
 
 int bmx280_init(bmx280_t *dev, const bmx280_params_t *params)
 {
+    assert(dev && params);
+
     uint8_t chip_id;
     dev->params = *params;
 
@@ -130,6 +133,8 @@ int bmx280_init(bmx280_t *dev, const bmx280_params_t *params)
  */
 int16_t bmx280_read_temperature(const bmx280_t *dev)
 {
+    assert(dev);
+
     if (do_measurement(dev) < 0) {
         return INT16_MIN;
     }
@@ -165,6 +170,8 @@ int16_t bmx280_read_temperature(const bmx280_t *dev)
  */
 uint32_t bmx280_read_pressure(const bmx280_t *dev)
 {
+    assert(dev);
+
     const bmx280_calibration_t *cal = &dev->calibration; /* helper variable */
 
     /* Read the uncompensated pressure */
@@ -205,6 +212,8 @@ uint32_t bmx280_read_pressure(const bmx280_t *dev)
 #ifdef MODULE_BME280
 uint16_t bme280_read_humidity(const bmx280_t *dev)
 {
+    assert(dev);
+
     const bmx280_calibration_t *cal = &dev->calibration; /* helper variable */
 
     /* Read the uncompensated pressure */
