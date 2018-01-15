@@ -185,6 +185,23 @@ enum {
 };
 
 /**
+ * @brief   Export of SAUL interface for temperature sensor
+ */
+extern const saul_driver_t bmx280_temperature_saul_driver;
+
+/**
+ * @brief   Export of SAUL interface for pressure sensor
+ */
+extern const saul_driver_t bmx280_pressure_saul_driver;
+
+#if defined(MODULE_BME280)
+/**
+ * @brief   Export of SAUL interface for humidity sensor
+ */
+extern const saul_driver_t bme280_relative_humidity_saul_driver;
+#endif
+
+/**
  * @brief   Initialize the given BMX280 device
  *
  * @param[out] dev          Initialized device descriptor of BMX280 device

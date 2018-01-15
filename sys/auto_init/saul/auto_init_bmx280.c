@@ -34,17 +34,6 @@
 static bmx280_t bmx280_devs[BMX280_NUMOF];
 
 /**
- * @brief   Reference the driver structs.
- * @{
- */
-extern const saul_driver_t bmx280_temperature_saul_driver;
-extern const saul_driver_t bmx280_pressure_saul_driver;
-#if defined(MODULE_BME280)
-extern const saul_driver_t bme280_relative_humidity_saul_driver;
-#endif
-/** @} */
-
-/**
  * @brief   Memory for the SAUL registry entries
  */
 #if defined(MODULE_BME280)
