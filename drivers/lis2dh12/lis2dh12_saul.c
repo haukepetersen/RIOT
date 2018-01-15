@@ -31,7 +31,7 @@ static int read_accelerometer(const void *dev, phydat_t *res)
     return 3;
 }
 
-const saul_driver_t dht_temp_saul_driver = {
+const saul_driver_t lis2dh12_saul_driver = {
     .read = read_accelerometer,
     .write = saul_notsup,
     .type = SAUL_SENSE_ACCEL
