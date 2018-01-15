@@ -44,10 +44,13 @@
 #define CLK                 I2C_SPEED_NORMAL
 #endif
 
+/* shortcut for accessing byte x of the latest sensor reading */
+#define DATA                (dev->last_reading)
+
 static inline int acquire(const bmx280_t *dev);
 static inline void release(const bmx280_t *dev);
 static int read_calibration_data(bmx280_t *dev);
-static int do_measurement(const bmx280_t *dev);
+static int do_measurement(bmx280_t *dev);
 static uint8_t read_u8_reg(const bmx280_t *dev, uint8_t reg);
 static void write_u8_reg(const bmx280_t *dev, uint8_t reg, uint8_t b);
 static int read_burst(const bmx280_t *dev, uint8_t addr, void *buf, size_t len);
@@ -60,21 +63,6 @@ static void dump_buffer(const char *txt, uint8_t *buffer, size_t size);
 #else
 #define DUMP_BUFFER(txt, buffer, size)
 #endif
-
-/**
- * @brief   Fine resolution temperature value, also needed for pressure and
- *          humidity
- */
-static int32_t t_fine;
-
-/**
- * @brief   The measurement registers, including temperature, pressure and
- *          humidity
- *
- * A temporary buffer for the memory map 0xF7..0xFE
- * These are read all at once and then used to compute the three sensor values.
- */
-static uint8_t measurement_regs[8];
 
 /*---------------------------------------------------------------------------*
  *                          BMX280 Core API                                  *
@@ -127,9 +115,8 @@ int bmx280_init(bmx280_t *dev, const bmx280_params_t *params)
 
 /*
  * Returns temperature in DegC, resolution is 0.01 DegC.
- * t_fine carries fine temperature as global value
  */
-int16_t bmx280_read_temperature(const bmx280_t *dev)
+int16_t bmx280_read_temperature(bmx280_t *dev)
 {
     assert(dev);
 
@@ -140,9 +127,9 @@ int16_t bmx280_read_temperature(const bmx280_t *dev)
     const bmx280_calibration_t *cal = &dev->calibration; /* helper variable */
 
     /* Read the uncompensated temperature */
-    int32_t adc_T = (((uint32_t)measurement_regs[3 + 0]) << 12) |
-        (((uint32_t)measurement_regs[3 + 1]) << 4) |
-        ((((uint32_t)measurement_regs[3 + 2]) >> 4) & 0x0F);
+    int32_t adc_T = (((uint32_t)DATA[3 + 0]) << 12) |
+        (((uint32_t)DATA[3 + 1]) << 4) |
+        ((((uint32_t)DATA[3 + 2]) >> 4) & 0x0F);
 
     /*
      * Compensate the temperature value.
@@ -158,9 +145,9 @@ int16_t bmx280_read_temperature(const bmx280_t *dev)
             ((int32_t)cal->dig_T3)) >> 14;
 
     /* calculate t_fine (used for pressure and humidity too) */
-    t_fine = var1 + var2;
+    dev->t_fine = var1 + var2;
 
-    return (t_fine * 5 + 128) >> 8;
+    return (dev->t_fine * 5 + 128) >> 8;
 }
 
 /*
@@ -173,9 +160,9 @@ uint32_t bmx280_read_pressure(const bmx280_t *dev)
     const bmx280_calibration_t *cal = &dev->calibration; /* helper variable */
 
     /* Read the uncompensated pressure */
-    int32_t adc_P = (((uint32_t)measurement_regs[0 + 0]) << 12) |
-        (((uint32_t)measurement_regs[0 + 1]) << 4) |
-        ((((uint32_t)measurement_regs[0 + 2]) >> 4) & 0x0F);
+    int32_t adc_P = (((uint32_t)DATA[0 + 0]) << 12) |
+        (((uint32_t)DATA[0 + 1]) << 4) |
+        ((((uint32_t)DATA[0 + 2]) >> 4) & 0x0F);
 
     int64_t var1;
     int64_t var2;
@@ -187,7 +174,7 @@ uint32_t bmx280_read_pressure(const bmx280_t *dev)
      * bme280_compensate_pressure_int64(). The variable names and the many
      * defines have been modified to make the code more readable.
      */
-    var1 = ((int64_t)t_fine) - 128000;
+    var1 = ((int64_t)dev->t_fine) - 128000;
     var2 = var1 * var1 * (int64_t)cal->dig_P6;
     var2 = var2 + ((var1 * (int64_t)cal->dig_P5) << 17);
     var2 = var2 + (((int64_t)cal->dig_P4) << 35);
@@ -215,8 +202,8 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
     const bmx280_calibration_t *cal = &dev->calibration; /* helper variable */
 
     /* Read the uncompensated pressure */
-    int32_t adc_H = (((uint32_t)measurement_regs[6 + 0]) << 8) |
-        (((uint32_t)measurement_regs[6 + 1]));
+    int32_t adc_H = (((uint32_t)DATA[6 + 0]) << 8) |
+        (((uint32_t)DATA[6 + 1]));
 
     /*
      * Compensate the humidity value.
@@ -229,7 +216,7 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
     int32_t var1;
 
     /* calculate x1*/
-    var1 = (t_fine - ((int32_t)76800));
+    var1 = (dev->t_fine - ((int32_t)76800));
     /* calculate x1*/
     var1 = (((((adc_H << 14) - (((int32_t)cal->dig_H4) << 20) - (((int32_t)cal->dig_H5) * var1)) +
               ((int32_t)16384)) >> 15) *
@@ -330,7 +317,7 @@ static int read_calibration_data(bmx280_t *dev)
 /**
  * @brief Start a measurement and read the registers
  */
-static int do_measurement(const bmx280_t *dev)
+static int do_measurement(bmx280_t *dev)
 {
     /*
      * If settings has FORCED mode, then the device go to sleep after
@@ -353,16 +340,16 @@ static int do_measurement(const bmx280_t *dev)
         /* What to do when measuring is still on? */
     }
     int nr_bytes;
-    int nr_bytes_to_read = sizeof(measurement_regs);
+    int nr_bytes_to_read = sizeof(DATA);
     uint8_t offset = BMX280_PRESSURE_MSB_REG;
 
-    nr_bytes = read_burst(dev, offset, measurement_regs,
+    nr_bytes = read_burst(dev, offset, DATA,
                           (size_t)nr_bytes_to_read);
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read temperature data\n");
         return BMX280_ERR_BUS;
     }
-    DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes);
+    DUMP_BUFFER("Raw Sensor Data", DATA, nr_bytes);
 
     return BMX280_OK;
 }

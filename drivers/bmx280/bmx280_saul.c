@@ -26,7 +26,7 @@
 
 static int read_temperature(const void *dev, phydat_t *res)
 {
-    res->val[0] = bmx280_read_temperature((const bmx280_t *)dev);
+    res->val[0] = bmx280_read_temperature((bmx280_t *)dev);
     res->unit = UNIT_TEMP_C;
     res->scale = -2;
 

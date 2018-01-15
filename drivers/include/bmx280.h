@@ -172,6 +172,8 @@ typedef struct {
 typedef struct {
     bmx280_params_t params;             /**< Device Parameters */
     bmx280_calibration_t calibration;   /**< Calibration Data */
+    int32_t t_fine;                     /**< temperature compensation value */
+    uint8_t last_reading[8];            /**< cache the latest sensor reading */
 } bmx280_t;
 
 /**
@@ -222,7 +224,7 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params);
  * @returns                 The temperature in centi Celsius. In case of an error
  *                          it returns INT16_MIN.
  */
-int16_t bmx280_read_temperature(const bmx280_t* dev);
+int16_t bmx280_read_temperature(bmx280_t* dev);
 
 /**
  * @brief   Read air pressure value from the given BMX280 device, returned in PA
