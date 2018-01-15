@@ -259,7 +259,7 @@ static int read_calibration_data(bmx280_t *dev)
     nr_bytes = read_burst(dev, offset, buffer, (size_t)nr_bytes_to_read);
 
     if (nr_bytes != nr_bytes_to_read) {
-        LOG_ERROR("Unable to read calibration data\n");
+        LOG_ERROR("[bmx280] error: unable to read calibration data\n");
         return BMX280_ERR_BUS;
     }
     DUMP_BUFFER("Raw Calibration Data", buffer, nr_bytes);
