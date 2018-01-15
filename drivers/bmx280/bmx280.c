@@ -48,8 +48,6 @@ static inline int acquire(const bmx280_t *dev);
 static inline void release(const bmx280_t *dev);
 static int read_calibration_data(bmx280_t *dev);
 static int do_measurement(const bmx280_t *dev);
-static uint8_t get_ctrl_meas(const bmx280_t *dev);
-static uint8_t get_status(const bmx280_t *dev);
 static uint8_t read_u8_reg(const bmx280_t *dev, uint8_t reg);
 static void write_u8_reg(const bmx280_t *dev, uint8_t reg, uint8_t b);
 static int read_burst(const bmx280_t *dev, uint8_t addr, void *buf, size_t len);
@@ -339,7 +337,7 @@ static int do_measurement(const bmx280_t *dev)
      * it finished the measurement. To read again we have to set the
      * run_mode back to FORCED.
      */
-    uint8_t ctrl_meas = get_ctrl_meas(dev);
+    uint8_t ctrl_meas = read_u8_reg(dev, BMX280_CTRL_MEAS_REG);
     uint8_t run_mode = ctrl_meas & 3;
     if (run_mode != dev->params.run_mode) {
         /* Set the run_mode back to what we want. */
@@ -349,7 +347,7 @@ static int do_measurement(const bmx280_t *dev)
 
         /* Wait for measurement ready? */
         size_t count = 0;
-        while (count < 10 && (get_status(dev) & 0x08) != 0) {
+        while (count < 10 && (read_u8_reg(dev, BMX280_STAT_REG) & 0x08) != 0) {
             ++count;
         }
         /* What to do when measuring is still on? */
@@ -367,16 +365,6 @@ static int do_measurement(const bmx280_t *dev)
     DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes);
 
     return BMX280_OK;
-}
-
-static uint8_t get_ctrl_meas(const bmx280_t *dev)
-{
-    return read_u8_reg(dev, BMX280_CTRL_MEAS_REG);
-}
-
-static uint8_t get_status(const bmx280_t *dev)
-{
-    return read_u8_reg(dev, BMX280_STAT_REG);
 }
 
 static uint16_t get_uint16_le(const uint8_t *buffer, size_t offset)
