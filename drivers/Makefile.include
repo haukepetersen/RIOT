@@ -157,3 +157,6 @@ endif
 ifneq (,$(filter lis3mdl,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lis3mdl/include
 endif
+ifneq (,$(filter lis2dh12,$(USEMODULE)))
+  USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lis2dh12/include
+endif
