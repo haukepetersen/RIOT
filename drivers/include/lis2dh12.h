@@ -40,6 +40,11 @@
 extern "C" {
 #endif
 
+/* So for I2C support is not implemented, so throw an error when selected */
+#ifndef MODULE_LIS2DH12_SPI
+#error "LIS2DH12 error: I2C mode is not supported, yet. Use module li2dh12_spi"
+#endif
+
 /**
  * @brief   Available scale values
  */
@@ -93,12 +98,47 @@ enum {
     LIS2DH12_NODEV = -2,            /**< unable to talk to device */
 };
 
+/**
+ * @brief   Initialize the given LIS2DH12 sensor device
+ *
+ * @param[out] dev      device descriptor
+ * @param[in]  params   static device configuration
+ *
+ * @return  LIS2DH12_OK on success
+ * @return  LIS2DH12_NOBUS on bus errors
+ * @return  LIS2DH12_NODEV if no LIS2DH12 device was found on the bus
+ */
 int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params);
 
+/**
+ * @brief   Read acceleration data from the given device
+ *
+ * @param[in]  dev      device descriptor
+ * @param[out] data     acceleration data in mili-g, **MUST** hold 3 values
+ *
+ * @return  LIS2DH12_OK on success
+ * @return  LIS2DH12_NOBUS on bus error
+ */
 int lis2dh12_read(const lis2dh12_t *dev, int16_t *data);
 
+/**
+ * @brief   Power on the given device
+ *
+ * @param[in] dev       device descriptor
+ *
+ * @return  LIS2DH12_OK on success
+ * @return  LIS2DH12_NOBUS on bus error
+ */
 int lis2dh12_poweron(const lis2dh12_t *dev);
 
+/**
+ * @brief   Power off the given device
+ *
+ * @param[in] dev       device descriptor
+ *
+ * @return  LIS2DH12_OK on success
+ * @return  LIS2DH12_NOBUS on bus error
+ */
 int lis2dh12_poweroff(const lis2dh12_t *dev);
 
 #ifdef __cplusplus
