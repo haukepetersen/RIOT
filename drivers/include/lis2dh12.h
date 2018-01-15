@@ -102,7 +102,7 @@ enum {
 /**
  * @brief   Export the SAUL interface for this driver
  */
-extern saul_driver_t lis2dh12_saul_driver;
+extern const saul_driver_t lis2dh12_saul_driver;
 
 /**
  * @brief   Initialize the given LIS2DH12 sensor device
