@@ -26,11 +26,18 @@ extern "C" {
 #endif
 
 /**
+ * @name    Device specific chip ID
+ */
+#ifdef MODULE_BME280
+#define BMX280_CHIP_ID_VAL                      0x60
+#else
+#define BMP280_CHIP_ID_VAL                      0x58
+#endif
+
+/**
  * @name    BME280 registers
  * @{
  */
-#define BME280_CHIP_ID                          0x60    /* The identifier of the BME280 */
-#define BMP280_CHIP_ID                          0x58    /* The identifier of the BMP280 */
 #define BMX280_CHIP_ID_REG                      0xD0
 #define BMEX80_RST_REG                          0xE0 /* Softreset Reg */
 

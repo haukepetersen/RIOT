@@ -109,7 +109,7 @@ int bmx280_init(bmx280_t *dev, const bmx280_params_t *params)
 
     /* Read chip ID */
     chip_id = read_u8_reg(dev, BMX280_CHIP_ID_REG);
-    if ((chip_id != BME280_CHIP_ID) && (chip_id != BMP280_CHIP_ID)) {
+    if (chip_id != BMX280_CHIP_ID_VAL) {
         DEBUG("[bmx280] error: invalid chip ID, no connection to device\n");
         return BMX280_ERR_NODEV;
     }
