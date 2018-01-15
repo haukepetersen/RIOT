@@ -105,7 +105,7 @@ static const bmx280_params_t bmx280_params[] =
  */
 static const saul_reg_info_t bmx280_saul_reg_info[BMX280_NUMOF] =
 {
-#if defined(MODULE_BME280)
+#ifdef MODULE_BME280
         { .name = "bme280" }
 #else
         { .name = "bmp280" }

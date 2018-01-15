@@ -42,7 +42,7 @@
 #ifndef BMX280_H
 #define BMX280_H
 
-#include <inttypes.h>
+#include <stdint.h>
 #include "saul.h"
 
 #if defined(MODULE_BME280_SPI) || defined(MODULE_BMP280_SPI)
@@ -194,7 +194,7 @@ extern const saul_driver_t bmx280_temperature_saul_driver;
  */
 extern const saul_driver_t bmx280_pressure_saul_driver;
 
-#if defined(MODULE_BME280)
+#ifdef MODULE_BME280
 /**
  * @brief   Export of SAUL interface for humidity sensor
  */
@@ -236,7 +236,7 @@ int16_t bmx280_read_temperature(const bmx280_t* dev);
  */
 uint32_t bmx280_read_pressure(const bmx280_t *dev);
 
-#if defined(MODULE_BME280)
+#ifdef MODULE_BME280
 /**
  * @brief   Read humidity value from the given BME280 device, returned in centi %RH
  *

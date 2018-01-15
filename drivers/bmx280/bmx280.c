@@ -27,7 +27,6 @@
 #include "log.h"
 #include "bmx280.h"
 #include "bmx280_internals.h"
-#include "bmx280_params.h"
 #include "xtimer.h"
 
 #define ENABLE_DEBUG        (0)
@@ -42,12 +41,12 @@
 
 static inline int acquire(const bmx280_t *dev);
 static inline void release(const bmx280_t *dev);
-static int read_calibration_data(bmx280_t* dev);
-static int do_measurement(const bmx280_t* dev);
-static uint8_t get_ctrl_meas(const bmx280_t* dev);
-static uint8_t get_status(const bmx280_t* dev);
-static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg);
-static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t b);
+static int read_calibration_data(bmx280_t *dev);
+static int do_measurement(const bmx280_t *dev);
+static uint8_t get_ctrl_meas(const bmx280_t *dev);
+static uint8_t get_status(const bmx280_t *dev);
+static uint8_t read_u8_reg(const bmx280_t *dev, uint8_t reg);
+static void write_u8_reg(const bmx280_t *dev, uint8_t reg, uint8_t b);
 static int read_burst(const bmx280_t *dev, uint8_t addr, void *buf, size_t len);
 static uint16_t get_uint16_le(const uint8_t *buffer, size_t offset);
 static int16_t get_int16_le(const uint8_t *buffer, size_t offset);
@@ -78,7 +77,7 @@ static uint8_t measurement_regs[8];
  *                          BMX280 Core API                                  *
  *---------------------------------------------------------------------------*/
 
-int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
+int bmx280_init(bmx280_t *dev, const bmx280_params_t *params)
 {
     uint8_t chip_id;
     dev->params = *params;
@@ -99,7 +98,7 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
 #else
     /* Initialize I2C interface */
     if (i2c_init_master(dev->params.i2c_dev, I2C_SPEED_NORMAL)) {
-        DEBUG("[Error] I2C device not enabled\n");
+        DEBUG("[bmx280] error: unable to initialize I2C device\n");
         return BMX280_ERR_BUS;
     }
 #endif
@@ -113,7 +112,7 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
 
     /* Read compensation data, 0x88..0x9F, 0xA1, 0xE1..0xE7 */
     if (read_calibration_data(dev)) {
-        DEBUG("[Error] Could not read calibration data\n");
+        DEBUG("[bmx280] error: could not read calibration data\n");
         return BMX280_ERR_NOCAL;
     }
 
@@ -125,7 +124,7 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
  * Returns temperature in DegC, resolution is 0.01 DegC.
  * t_fine carries fine temperature as global value
  */
-int16_t bmx280_read_temperature(const bmx280_t* dev)
+int16_t bmx280_read_temperature(const bmx280_t *dev)
 {
     if (do_measurement(dev) < 0) {
         return INT16_MIN;
@@ -199,7 +198,7 @@ uint32_t bmx280_read_pressure(const bmx280_t *dev)
     return p_acc >> 8;
 }
 
-#if defined(MODULE_BME280)
+#ifdef MODULE_BME280
 uint16_t bme280_read_humidity(const bmx280_t *dev)
 {
     const bmx280_calibration_t *cal = &dev->calibration; /* helper variable */
@@ -240,7 +239,7 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
  * This function reads all calibration bytes at once. These are
  * the registers DIG_T1_LSB (0x88) upto and including DIG_H6 (0xE7).
  */
-static int read_calibration_data(bmx280_t* dev)
+static int read_calibration_data(bmx280_t *dev)
 {
     uint8_t buffer[128];        /* 128 should be enough to read all calibration
                                  * bytes */
@@ -257,7 +256,7 @@ static int read_calibration_data(bmx280_t* dev)
 
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read calibration data\n");
-        return -1;
+        return BMX280_ERR_BUS;
     }
     DUMP_BUFFER("Raw Calibration Data", buffer, nr_bytes);
 
@@ -276,7 +275,7 @@ static int read_calibration_data(bmx280_t* dev)
     dev->calibration.dig_P8 = get_int16_le(buffer, BMX280_DIG_P8_LSB_REG - offset);
     dev->calibration.dig_P9 = get_int16_le(buffer, BMX280_DIG_P9_LSB_REG - offset);
 
-#if defined(MODULE_BME280)
+#ifdef MODULE_BME280
     dev->calibration.dig_H1 = buffer[BME280_DIG_H1_REG - offset];
     dev->calibration.dig_H2 = get_int16_le(buffer, BME280_DIG_H2_LSB_REG - offset);
     dev->calibration.dig_H3 = buffer[BME280_DIG_H3_REG - offset];
@@ -287,7 +286,7 @@ static int read_calibration_data(bmx280_t* dev)
     dev->calibration.dig_H6 = buffer[BME280_DIG_H6_REG - offset];
 #endif
 
-    DEBUG("[INFO] Chip ID = 0x%02X\n", buffer[BMX280_CHIP_ID_REG - offset]);
+    DEBUG("[bmx280] info: chip ID = 0x%02X\n", buffer[BMX280_CHIP_ID_REG - offset]);
 
     /* Config is only be writable in sleep mode */
     write_u8_reg(dev, BMX280_CTRL_MEAS_REG, 0);
@@ -299,7 +298,7 @@ static int read_calibration_data(bmx280_t* dev)
     b = ((dev->params.t_sb & 7) << 5) | ((dev->params.filter & 7) << 2);
     write_u8_reg(dev, BMX280_CONFIG_REG, b);
 
-#if defined(MODULE_BME280)
+#ifdef MODULE_BME280
     /*
      * Note from the datasheet about ctrl_hum: "Changes to this register only
      * become effective after a write operation to "ctrl_meas".
@@ -314,13 +313,13 @@ static int read_calibration_data(bmx280_t* dev)
         (dev->params.run_mode & 3);
     write_u8_reg(dev, BMX280_CTRL_MEAS_REG, b);
 
-    return 0;
+    return BMX280_OK;
 }
 
 /**
  * @brief Start a measurement and read the registers
  */
-static int do_measurement(const bmx280_t* dev)
+static int do_measurement(const bmx280_t *dev)
 {
     /*
      * If settings has FORCED mode, then the device go to sleep after
@@ -350,19 +349,19 @@ static int do_measurement(const bmx280_t* dev)
                           (size_t)nr_bytes_to_read);
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read temperature data\n");
-        return -1;
+        return BMX280_ERR_BUS;
     }
     DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes);
 
-    return 0;
+    return BMX280_OK;
 }
 
-static uint8_t get_ctrl_meas(const bmx280_t* dev)
+static uint8_t get_ctrl_meas(const bmx280_t *dev)
 {
     return read_u8_reg(dev, BMX280_CTRL_MEAS_REG);
 }
 
-static uint8_t get_status(const bmx280_t* dev)
+static uint8_t get_status(const bmx280_t *dev)
 {
     return read_u8_reg(dev, BMX280_STAT_REG);
 }
@@ -391,12 +390,12 @@ static inline void release(const bmx280_t *dev)
     spi_release(BUS);
 }
 
-static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg)
+static uint8_t read_u8_reg(const bmx280_t *dev, uint8_t reg)
 {
     return spi_transfer_reg(BUS, CS, reg, 0);
 }
 
-static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t data)
+static void write_u8_reg(const bmx280_t *dev, uint8_t reg, uint8_t data)
 {
     (void)spi_transfer_reg(BUS, CS, reg, data);
 }
@@ -421,7 +420,7 @@ static inline void release(const bmx280_t *dev)
     /* @todo: release I2C bus */
 }
 
-static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg)
+static uint8_t read_u8_reg(const bmx280_t *dev, uint8_t reg)
 {
     uint8_t b;
     /* Assuming device is correct, it should return 1 (nr bytes) */
@@ -429,7 +428,7 @@ static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg)
     return b;
 }
 
-static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t b)
+static void write_u8_reg(const bmx280_t *dev, uint8_t reg, uint8_t b)
 {
     /* Assuming device is correct, it should return 1 (nr bytes) */
     (void)i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, b);
