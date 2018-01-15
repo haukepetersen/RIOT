@@ -46,10 +46,10 @@ extern "C" {
 #else
 /* I2C configuration */
 #ifndef BMX280_PARAM_I2C_DEV
-#define BMX280_PARAM_I2C_DEV         I2C_DEV(0)
+#define BMX280_PARAM_I2C_DEV        I2C_DEV(0)
 #endif
 #ifndef BMX280_PARAM_I2C_ADDR
-#define BMX280_PARAM_I2C_ADDR        (0x77)
+#define BMX280_PARAM_I2C_ADDR       (0x77)
 #endif
 #endif
 
@@ -62,20 +62,22 @@ extern "C" {
         .humid_oversample = BMX280_OSRS_X1, \
 
 /* Defaults for Weather Monitoring */
+#ifndef BMX280_PARAMS
 #ifdef BMX280_USE_SPI
-#define BMX280_PARAMS_DEFAULT               \
+#define BMX280_PARAMS                       \
     {                                       \
         .spi = BMX280_PARAM_SPI,            \
         .cs  = BMX280_PARAM_CS,             \
         BMX280_PARAM_MISC                   \
     }
 #else
-#define BMX280_PARAMS_DEFAULT               \
+#define BMX280_PARAMS                       \
     {                                       \
         .i2c_dev  = BMX280_PARAM_I2C_DEV,   \
         .i2c_addr = BMX280_PARAM_I2C_ADDR,  \
         BMX280_PARAM_MISC                   \
     }
+#endif
 #endif
 /**@}*/
 
@@ -84,11 +86,7 @@ extern "C" {
  */
 static const bmx280_params_t bmx280_params[] =
 {
-#ifdef BMX280_PARAMS_BOARD
-    BMX280_PARAMS_BOARD,
-#else
-    BMX280_PARAMS_DEFAULT
-#endif
+    BMX280_PARAMS
 };
 
 /**
