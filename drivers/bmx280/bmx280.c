@@ -37,6 +37,10 @@
 #define CS                  (dev->params.cs)
 #define CLK                 SPI_CLK_5MHZ
 #define MODE                SPI_MODE_0
+#else
+#define BUS                 (dev->params.i2c_dev)
+#define ADDR                (dev->params.i2c_addr)
+#define CLK                 I2C_SPEED_NORMAL
 #endif
 
 static inline int acquire(const bmx280_t *dev);
@@ -97,7 +101,7 @@ int bmx280_init(bmx280_t *dev, const bmx280_params_t *params)
     }
 #else
     /* Initialize I2C interface */
-    if (i2c_init_master(dev->params.i2c_dev, I2C_SPEED_NORMAL)) {
+    if (i2c_init_master(BUS, CLK)) {
         DEBUG("[bmx280] error: unable to initialize I2C device\n");
         return BMX280_ERR_BUS;
     }
@@ -424,19 +428,19 @@ static uint8_t read_u8_reg(const bmx280_t *dev, uint8_t reg)
 {
     uint8_t b;
     /* Assuming device is correct, it should return 1 (nr bytes) */
-    (void)i2c_read_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, &b);
+    (void)i2c_read_reg(BUS, ADDR, reg, &b);
     return b;
 }
 
 static void write_u8_reg(const bmx280_t *dev, uint8_t reg, uint8_t b)
 {
     /* Assuming device is correct, it should return 1 (nr bytes) */
-    (void)i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, b);
+    (void)i2c_write_reg(BUS, ADDR, reg, b);
 }
 
 static int read_burst(const bmx280_t *dev, uint8_t reg, void *buf, size_t len)
 {
-    return i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, reg,
+    return i2c_read_regs(BUS, ADDR, reg,
                          buf, len);
 }
 #endif
