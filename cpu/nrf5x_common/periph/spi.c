@@ -27,6 +27,9 @@
 #include "periph/spi.h"
 #include "periph/gpio.h"
 
+#define ENABLE_DEBUG        (0)
+#include "debug.h"
+
 /**
  * @brief   array holding one pre-initialized mutex for each SPI device
  */
@@ -95,12 +98,17 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
 
     assert(out_buf || in_buf);
 
+
     if (cs != SPI_CS_UNDEF) {
         gpio_clear((gpio_t)cs);
+        DEBUG("[spi] CS pull low\n");
     }
+
+    DEBUG("[spi] transfer_bytes: len: %i, in %p, out %p\n", (int)len, in, out);
 
     for (int i = 0; i < (int)len; i++) {
         uint8_t tmp = (out_buf) ? out_buf[i] : 0;
+        DEBUG("[spi] -> out: 0x%02x\n", (int)tmp);
 
         dev(bus)->EVENTS_READY = 0;
         dev(bus)->TXD = (uint8_t)tmp;
@@ -108,11 +116,13 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
         tmp = (uint8_t)dev(bus)->RXD;
 
         if (in_buf) {
+            DEBUG("[spi] -> in : 0x%02x\n", (int)tmp);
             in_buf[i] = tmp;
         }
     }
 
     if ((cs != SPI_CS_UNDEF) && (!cont)) {
         gpio_set((gpio_t)cs);
+        DEBUG("[spi] CS release\n");
     }
 }

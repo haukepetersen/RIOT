@@ -23,12 +23,12 @@
 #include "lis2dh12.h"
 #include "lis2dh12_internal.h"
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
 
 /* SPI bus speed and mode */
 #define CLK                 SPI_CLK_5MHZ
-#define MODE                SPI_MODE_0
+#define MODE                SPI_MODE_3
 #define BUS_OK              SPI_OK
 
 /* shortcuts for SPI bus parameters */
@@ -37,6 +37,9 @@
 
 /* flag to set when reading from the device */
 #define READ                (0x80)
+
+/* flag to enable address auto incrementation on read or write */
+#define AUTOINC             (0x40)
 
 static inline int acquire(const lis2dh12_t *dev)
 {
@@ -50,17 +53,20 @@ static inline void release(const lis2dh12_t *dev)
 
 static inline uint8_t read(const lis2dh12_t *dev, uint8_t reg)
 {
-    return spi_transfer_reg(BUS, CS, (READ | reg), 0);
+    uint8_t tmp = spi_transfer_reg(BUS, CS, (READ | reg), 0);
+    DEBUG("[lis2dh12] read: reg 0x%02x, val 0x%02x\n", (int)(READ | reg), (int)tmp);
+    return tmp;
 }
 
 static inline void read_burst(const lis2dh12_t *dev, uint8_t reg,
                               void *data, size_t len)
 {
-    spi_transfer_regs(BUS, CS, (READ | reg), NULL, data, len);
+    spi_transfer_regs(BUS, CS, (READ | AUTOINC | reg), NULL, data, len);
 }
 
 static inline void write(const lis2dh12_t *dev, uint8_t reg, uint8_t data)
 {
+    DEBUG("[lis2dh12] write: reg 0x%02x, val 0x%02x\n", (int)reg, (int)data);
     spi_transfer_reg(BUS, CS, reg, data);
 }
 
@@ -71,20 +77,27 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     dev->p = params;
     dev->comp = (1000 * (0x02 << (dev->p->scale >> 4)));
 
+    /* DEBUG */
+    #include "board.h"
+    gpio_init(LIS2DH12_PARAM_INT1, GPIO_IN);
+    gpio_init(LIS2DH12_PARAM_INT2, GPIO_IN);
+
+    /* start by setting up the chip select pin */
+    if (spi_init_cs(BUS, CS) != SPI_OK) {
+        DEBUG("[lis2dh12] error: unable to initialize CS pin\n");
+        return LIS2DH12_NOBUS;
+    }
+
     /* acquire the SPI bus and verify that our parameters are valid */
     if (acquire(dev) != BUS_OK) {
         DEBUG("[lis2dh12] error: unable to acquire SPI bus\n");
         return LIS2DH12_NOBUS;
     }
 
-    if (spi_init_cs(BUS, CS) != SPI_OK) {
-        DEBUG("[lis2dh12] error: unable to initialize CS pin\n");
-        return LIS2DH12_NOBUS;
-    }
-
     /* read the WHO_IM_I register to verify the connections to the device */
     if (read(dev, REG_WHO_AM_I) != WHO_AM_I_VAL) {
         DEBUG("[lis2dh12] error: invalid value read from WHO_AM_I register\n");
+        release(dev);
         return LIS2DH12_NODEV;
     }
 
@@ -123,7 +136,7 @@ int lis2dh12_read(const lis2dh12_t *dev, int16_t *data)
 
     /* REMOVE: initial debugging only */
     for (int i = 0; i < 3; i++) {
-        DEBUG("RES %i -> %" PRIi16 "\n", data[i]);
+        DEBUG("RES %i -> %" PRIi16 "\n", i, data[i]);
     }
 
     return LIS2DH12_OK;
