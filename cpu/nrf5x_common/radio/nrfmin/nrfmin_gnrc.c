@@ -24,7 +24,7 @@
 
 #include "nrfmin_gnrc.h"
 
-#define ENABLE_DEBUG            (0)
+#define ENABLE_DEBUG            (1)
 #include "debug.h"
 
 /**
@@ -49,6 +49,21 @@
  * @brief   Allocate the stack for the GNRC netdev thread to run in
  */
 static char stack[NRFMIN_GNRC_STACKSIZE];
+
+static void dump(void *buf, int len)
+{
+    // uint8_t *tmp = (uint8_t *)buf;
+    // for (int i = 0; i < (int)len; ) {
+    //     printf("[%02i] ", i);
+    //     for (int l = 0; (l < 16) && (i < (int)len); l++) {
+    //         printf("%02x ", (int)tmp[i++]);
+    //     }
+    //     puts("");
+    // }
+
+    (void)buf;
+    (void)len;
+}
 
 static int hdr_netif_to_nrfmin(nrfmin_hdr_t *nrfmin, gnrc_pktsnip_t *pkt)
 {
@@ -112,6 +127,15 @@ static int gnrc_nrfmin_send(gnrc_netif_t *dev, gnrc_pktsnip_t *pkt)
     vec[0].iov_base = &nrfmin_hdr;
     vec[0].iov_len = NRFMIN_HDR_LEN;
 
+    size_t tmplen = 0;
+    for (int i = 0; i < (int)vec_len; i++) {
+        tmplen += vec[i].iov_len;
+    }
+    DEBUG("[nrfmin_gnrc] send: send packet, len is %i\n", (int)tmplen);
+    for (int i = 0; i < (int)vec_len; i++) {
+        dump(vec[i].iov_base, vec[i].iov_len);
+    }
+
     /* and finally send out the data and release the packet */
     res = dev->dev->driver->send(dev->dev, vec, vec_len);
     gnrc_pktbuf_release(vec_snip);
@@ -135,6 +159,8 @@ static gnrc_pktsnip_t *gnrc_nrfmin_recv(gnrc_netif_t *dev)
         return NULL;
     }
 
+    DEBUG("[nrfmin_gnrc] recv: got packet len: %i\n", (int)pktsize);
+
     /* allocate space in the packet buffer */
     pkt_snip = gnrc_pktbuf_add(NULL, NULL, pktsize, GNRC_NETTYPE_UNDEF);
     if (pkt_snip == NULL) {
@@ -144,6 +170,8 @@ static gnrc_pktsnip_t *gnrc_nrfmin_recv(gnrc_netif_t *dev)
 
     /* read the incoming data into the packet buffer */
     nrfmin_dev.driver->recv(NULL, pkt_snip->data, pktsize, NULL);
+
+    dump(pkt_snip->data, pktsize);
 
     /* now we mark the nrfmin header */
     hdr_snip = gnrc_pktbuf_mark(pkt_snip, NRFMIN_HDR_LEN, GNRC_NETTYPE_UNDEF);

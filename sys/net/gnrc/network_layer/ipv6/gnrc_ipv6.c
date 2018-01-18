@@ -34,7 +34,7 @@
 
 #include "net/gnrc/ipv6.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 #define _MAX_L2_ADDR_LEN    (8U)
@@ -219,6 +219,7 @@ static void _dispatch_next_header(gnrc_pktsnip_t *current, gnrc_pktsnip_t *pkt,
 
     /* dispatch IPv6 extension header only once */
     if (should_dispatch_current_type) {
+        DEBUG("ipv7: dispatch current type\n");
         bool should_release = (gnrc_netreg_num(GNRC_NETTYPE_IPV6, nh) == 0) &&
                               (!interested);
 
@@ -237,10 +238,12 @@ static void _dispatch_next_header(gnrc_pktsnip_t *current, gnrc_pktsnip_t *pkt,
         }
     }
     if (interested) {
+        DEBUG("ipv7: interesetd\n");
         gnrc_pktbuf_hold(pkt, 1);   /* don't remove from packet buffer in
                                      * next dispatch */
     }
     if (gnrc_netapi_dispatch_receive(GNRC_NETTYPE_IPV6, nh, pkt) == 0) {
+        DEBUG("ipv7: dispatch receive ok\n");
         gnrc_pktbuf_release(pkt);
     }
 }

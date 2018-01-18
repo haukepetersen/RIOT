@@ -33,7 +33,7 @@
 #include "_nib-6ln.h"
 #include "_nib-6lr.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 #if ENABLE_DEBUG
 #include "xtimer.h"
