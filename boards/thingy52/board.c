@@ -20,6 +20,10 @@
 
 #include "cpu.h"
 #include "board.h"
+// #include "sx150x.h"
+// #include "sx150x_params.h"
+
+// sx150x_t thingy52_sx;
 
 void board_init(void)
 {

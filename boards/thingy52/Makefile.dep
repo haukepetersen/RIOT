@@ -1,3 +1,6 @@
+# Always include the I/O expander
+USEMODULE += sx1509
+
 ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
   USEMODULE += nrfmin
 endif
