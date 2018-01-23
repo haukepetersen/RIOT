@@ -33,27 +33,36 @@ int main(void)
 {
     puts("Hello World!");
 
-    printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
-    printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 
-
+    puts("hello: init\n");
     sx150x_init(&sx, &sx150x_params[0]);
 
+    printf("\nhello: gpio init, pin %i\n", (int)PIN);
     sx150x_gpio_init(&sx, PIN, GPIO_OUT);
-    // sx150x_gpio_init(&sx, 15, GPIO_OUT);
+    puts("hello: set pin 15");
+    sx150x_gpio_set(&sx, PIN);
+
+    printf("\nhello: gpio_init, pin 13\n");
+    sx150x_gpio_init(&sx, 13, GPIO_OUT);
+    puts("hello: set pin 13");
+    sx150x_gpio_set(&sx, 13);
+    puts("hello: clear pin 15");
+    sx150x_gpio_clear(&sx, 15);
 
 
-    while (1) {
-        // sx150x_gpio_set(&sx, PIN);
-        // printf("pin %i on", (int)PIN);
-        xtimer_usleep(500 * 1000);
+    printf("\nhello: gpio_init, pin 7\n");
+    sx150x_gpio_init(&sx, 7, GPIO_OUT);
+    puts("hello: set pin 7");
+    sx150x_gpio_set(&sx, 7);
+    // puts("hello: clear pin 7");
+    // sx150x_gpio_clear(&sx, 7);
 
-        // sx150x_gpio_clear(&sx, PIN);
-        // printf("pin %i off", (int)PIN);
-        xtimer_usleep(500 * 1000);
 
-        // sx150x_gpio_toggle(&sx, 15);
-    }
+    // xtimer_usleep(500 * 1000);
 
+    // puts("hello: clear pin\n");
+    // sx150x_gpio_clear(&sx, PIN);
+
+    puts("hello: done here.\n");
     return 0;
 }
