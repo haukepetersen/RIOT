@@ -293,6 +293,11 @@ ifneq (,$(filter sx127%,$(USEMODULE)))
   USEMODULE += lora
 endif
 
+ifneq (,$(filter sx1507 sx1508 sx1509,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += sx150x
+endif
+
 ifneq (,$(filter tcs37727,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
 endif
