@@ -43,6 +43,14 @@ extern "C" {
 #error "[SX150x] No specific device defined"
 #endif
 
+#if defined(MODULE_SX1507)
+#define SX150X_PIN_NUMOF           (4U)
+#elif defined(MODULE_SX1508)
+#define SX150X_PIN_NUMOF           (8U)
+#elif defined(MODULE_SX1509)
+#define SX150X_PIN_NUMOF           (16U)
+#endif
+
 enum {
     SX150X_OK     =  0,
     SX150X_NOBUS  = -1,

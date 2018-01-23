@@ -28,6 +28,7 @@ extern "C" {
 #define REG_INPUT_DISABLE(pin)  (0x00 + OFFSET(pin))
 #define REG_DIR(pin)            (0x0e + OFFSET(pin))
 #define REG_DATA(pin)           (0x10 + OFFSET(pin))
+#define REG_OPEN_DRAIN(pin)     (0x0a + OFFSET(pin))
 
 #define REG_RESET               (0x7d)
 

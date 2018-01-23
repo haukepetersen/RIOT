@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Freie Universität Berlin
+ * Copyright (C) 2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -35,15 +35,10 @@
 #define CHECK(expr)         if (expr != SX150X_OK) { goto err; }
 
 /* define device module specific configuration */
-#if defined(MODULE_SX1507)
-#define PIN_NUMOF           (4U)
-#define MASK(pin)           (1 << pin)
-#elif defined(MODULE_SX1508)
-#define PIN_NUMOF           (8U)
-#define MASK(pin)           (1 << pin)
-#elif defined(MODULE_SX1509)
-#define PIN_NUMOF           (16U)
+#ifdef MODULE_SX1509
 #define MASK(pin)           (1 << (pin & 0x7))
+#else
+#define MASK(pin)           (1 << pin)
 #endif
 
 static int _reg_read(const sx150x_t *dev, uint8_t reg, uint8_t *val)
@@ -57,52 +52,53 @@ static int _reg_read(const sx150x_t *dev, uint8_t reg, uint8_t *val)
 static int _reg_write(const sx150x_t *dev, uint8_t reg, uint8_t val)
 {
     // DEBUG("write reg 0x%02x, val 0x%02x\n", (int)reg, (int)val);
-    DEBUG("a\n");
     if (i2c_write_reg(dev->bus, dev->addr, reg, val) != 1) {
         return SX150X_BUSERR;
     }
     return SX150X_OK;
 }
 
-static int _reg_write_u16(const sx150x_t *dev, uint8_t reg, uint16_t val)
-{
-    if (i2c_write_regs(dev->bus, dev->addr, reg, &val, 2) != 2) {
-        return SX150X_BUSERR;
-    }
-    return SX150X_OK;
-}
+// static int _reg_write_u16(const sx150x_t *dev, uint8_t reg, uint16_t val)
+// {
+//     if (i2c_write_regs(dev->bus, dev->addr, reg, &val, 2) != 2) {
+//         return SX150X_BUSERR;
+//     }
+//     return SX150X_OK;
+// }
 
-static int reg_set(const sx150x_t *dev, uint8_t reg, uint8_t mask)
+static int _reg_set(const sx150x_t *dev, uint8_t reg, uint8_t mask)
 {
     uint8_t tmp;
     if (_reg_read(dev, reg, &tmp) != SX150X_OK) {
         return SX150X_BUSERR;
     }
-    // DEBUG("SET, before 0x%02x\n", (int)tmp);
+    DEBUG("--SET [0x%02x], before 0x%02x\n", (int)reg, (int)tmp);
     tmp |= mask;
-    // DEBUG("SET, after  0x%02x\n", (int)tmp);
+    DEBUG("--SET [0x%02x], after  0x%02x\n", (int)reg, (int)tmp);
     return _reg_write(dev, reg, tmp);
 }
 
-static int reg_clr(const sx150x_t *dev, uint8_t reg, uint8_t mask)
+static int _reg_clr(const sx150x_t *dev, uint8_t reg, uint8_t mask)
 {
     uint8_t tmp;
     if (_reg_read(dev, reg, &tmp) != SX150X_OK) {
         return SX150X_BUSERR;
     }
+    DEBUG("--CLR [0x%02x], before 0x%02x\n", (int)reg, (int)tmp);
     tmp &= ~(mask);
+    DEBUG("--CLR [0x%02x], before 0x%02x\n", (int)reg, (int)tmp);
     return _reg_write(dev, reg, tmp);
 }
 
-static int reg_tgl(const sx150x_t *dev, uint8_t reg, uint8_t mask)
-{
-    uint8_t tmp;
-    if (_reg_read(dev, reg, &tmp) != SX150X_OK) {
-        return SX150X_BUSERR;
-    }
-    tmp ^= mask;
-    return _reg_write(dev, reg, tmp);
-}
+// static int reg_tgl(const sx150x_t *dev, uint8_t reg, uint8_t mask)
+// {
+//     uint8_t tmp;
+//     if (_reg_read(dev, reg, &tmp) != SX150X_OK) {
+//         return SX150X_BUSERR;
+//     }
+//     tmp ^= mask;
+//     return _reg_write(dev, reg, tmp);
+// }
 
 int sx150x_init(sx150x_t *dev, const sx150x_params_t *params)
 {
@@ -150,14 +146,7 @@ int sx150x_init(sx150x_t *dev, const sx150x_params_t *params)
         goto exit;
     }
 
-#if ENABLE_DEBUG
-    if (res == SX150X_OK) {
-        DEBUG("[sx150x] init: initialization successful\n");
-    }
-    else {
-        DEBUG("[sx150x] init: initialization failed (%i)\n", res);
-    }
-#endif
+    DEBUG("[sx150x] init: initialization successful\n");
 
 exit:
     i2c_release(dev->bus);
@@ -186,114 +175,27 @@ static void val(sx150x_t *dev, uint8_t reg, const char *out)
     DEBUG("%s (0x%02x) is 0x%02x\n", out, (int)reg, (int)tmp);
 }
 
+static void stat(sx150x_t *dev)
+{
+    val(dev, REG_OPEN_DRAIN(0), "OPEN_DRAIN");
+    val(dev, REG_OPEN_DRAIN(8), "OPEN_DRAIN");
+    val(dev, REG_DIR(0), "DIR");
+    val(dev, REG_DIR(8), "DIR");
+    val(dev, REG_DATA(0), "DATA");
+    val(dev, REG_DATA(8), "DATA");
+}
+
 int sx150x_gpio_init(sx150x_t *dev, unsigned pin, gpio_mode_t mode)
 {
-    assert(dev && (pin < PIN_NUMOF));
+    assert(dev && (pin < SX150X_PIN_NUMOF));
+    DEBUG("init pin %i\n", (int)pin);
 
     (void)mode;
     i2c_acquire(dev->bus);
-
-    DEBUG("init pin %i\n", (int)pin);
-
-    val(dev, REG_INPUT_DISABLE(pin), "INPUT_DISABLE");
-    val(dev, REG_DIR(pin), "DIR");
-
-    // _reg_write(dev, REG_INPUT_DISABLE(pin), 0x53);
-
-    // _reg_read(dev, REG_INPUT_DISABLE(pin), &tmp);
-    // DEBUG("reg 0x%02x is 0x%02x\n", (int)REG_INPUT_DISABLE(pin), (int)tmp);
-
-    // DEBUG("[sx] gpio init: pin is %i (mask 0x%02x)\n", (int)pin, (int)MASK(pin));
-    // DEBUG("[sx] gpio init: INPUT DISABLE reg is 0x%02x\n", (int)REG_INPUT_DISABLE(pin));
-
-    CHECK(reg_set(dev, REG_INPUT_DISABLE(pin), MASK(pin)));
-    CHECK(reg_clr(dev, REG_DIR(pin), MASK(pin)));
-
-    val(dev, REG_INPUT_DISABLE(pin), "INPUT_DISABLE");
-    val(dev, REG_DIR(pin), "DIR");
-
-    // DEBUG("play with data reg\n");
-    // val(dev, REG_DATA(pin), "DATA");
-    // reg_set(dev, REG_DATA(pin), MASK(pin));
-    // val(dev, REG_DATA(pin), "DATA");
-    // reg_clr(dev, REG_DATA(pin), MASK(pin));
-    // val(dev, REG_DATA(pin), "DATA");
-
-
-//     val(dev, IND, "IND");
-//     _reg_write(dev, DIR, 0x1f);
-//     val(dev, DIR, "DIR");
-//     _reg_write(dev, OD, 0xe0);
-//     val(dev, OD, "OD ");
-
-//     for (int s = 5; s <= 7; s++) {
-//         for (int i = 0; i < 3; i++) {
-//             _reg_write(dev, DAT, ~(1 << s) & 0xe0);
-//             val(dev, DAT, "DAT");
-//             sleep();
-//             reg_set(dev, DAT, 0xe0);
-//             val(dev, DAT, "DAT");
-//             sleep();
-//         }
-//     }
-
-// #define IND2     0x01
-// #define DIR2     0x0f
-// #define OD2      0x0b
-// #define DAT2     0x11
-
-//     val(dev, IND2, "IND2");
-//     _reg_write(dev, DIR2, 0x1f);
-//     val(dev, DIR2, "DIR2");
-//     _reg_write(dev, OD2, 0xe0);
-//     val(dev, OD2, "OD2 ");
-
-//     for (int s = 5; s <= 7; s++) {
-//         for (int i = 0; i < 3; i++) {
-//             reg_clr(dev, DAT2, (1 << s));
-//             val(dev, DAT2, "DAT2");
-//             sleep();
-//             reg_set(dev, DAT2, 0xe0);
-//             val(dev, DAT2, "DAT2");
-//             sleep();
-//         }
-//     }
-
-
-    // _reg_write(dev, 0x0f, 0x1f);
-    // _reg_write(dev, 0x0b, 0xe0);
-
-
-    // for (int i = 0; i < 4; i++) {
-    //     reg_set(dev, 0x11, 0x20);
-    //     sleep();
-    //     reg_clr(dev, 0x11, 0x20);
-    //     sleep();
-    // }
-    // DEBUG("ON 0x80\n");
-    // dump(dev);
-    // sleep();
-    // _reg_write(dev, 0x11, 0x40);
-    // DEBUG("ON 0x40\n");
-    // dump(dev);
-    // sleep();
-    // _reg_write(dev, 0x11, 0x20);
-    // DEBUG("ON 0x20\n");
-    // dump(dev);
-    // sleep();
-    // _reg_write(dev, 0x11, 0xe0);
-    // DEBUG("ON 0xe\n");
-    // dump(dev);
-    // sleep();
-    // _reg_write(dev, 0x11, 0x00);
-    // DEBUG("ON 0x00\n");
-    // dump(dev);
-    // sleep();
-    // _reg_write(dev, 0x11, 0x00);
-
-
-// exit:
-    DEBUG("[sx150x] gpio_init: done\n");
+    // CHECK(_reg_set(dev, REG_INPUT_DISABLE(pin), MASK(pin)));
+    CHECK(_reg_clr(dev, REG_DIR(pin), MASK(pin)));
+    // CHECK(_reg_set(dev, REG_OPEN_DRAIN(pin), MASK(pin)));
+    stat(dev);
     i2c_release(dev->bus);
     return SX150X_OK;
 
@@ -304,48 +206,49 @@ err:
 
 int sx150x_gpio_set(sx150x_t *dev, unsigned pin)
 {
-    assert(dev && (pin < PIN_NUMOF));
-
-    DEBUG("-> gpio set pin %i (mask 0x%02x)\n", (int)pin, (int)MASK(pin));
-    i2c_acquire(dev->bus);
-    dev->data |= (1 << pin);
-    _reg_write_u16(dev, REG_DATA(15), dev->data);
-    i2c_release(dev->bus);
-    // DEBUG("--- RELEASED ---\n");
-    return SX150X_OK;
-}
-
-int sx150x_gpio_clear(sx150x_t *dev, unsigned pin)
-{
-    assert(dev && (pin < PIN_NUMOF));
-
-    DEBUG("-> gpio clear pin %i (mask 0x%02x)\n", (int)pin, (int)MASK(pin));
-    i2c_acquire(dev->bus);
-    dev->data &= ~(1 << pin);
-    _reg_write_u16(dev, REG_DATA(15), dev->data);
-
-    // dump(dev);
-    // int ret = reg_clr(dev, REG_DATA(pin), MASK(pin));
-    // dump(dev);
-
-    i2c_release(dev->bus);
-    // DEBUG("--- RELEASED ---\n");
-    return SX150X_OK;
-}
-
-int sx150x_gpio_toggle(sx150x_t *dev, unsigned pin)
-{
-    assert(dev && (pin < PIN_NUMOF));
+    assert(dev && (pin < SX150X_PIN_NUMOF));
+    DEBUG("[sx150x] gpio_set: pin %i (mask 0x%02x)\n", (int)pin, (int)MASK(pin));
 
     i2c_acquire(dev->bus);
-    CHECK(reg_tgl(dev, REG_DATA(pin), MASK(pin)));
-
+    CHECK(_reg_set(dev, REG_DATA(pin), MASK(pin)));
+    stat(dev);
     i2c_release(dev->bus);
     return SX150X_OK;
+
 err:
     i2c_release(dev->bus);
     return SX150X_BUSERR;
 }
+
+int sx150x_gpio_clear(sx150x_t *dev, unsigned pin)
+{
+    assert(dev && (pin < SX150X_PIN_NUMOF));
+    DEBUG("[sx150x] gpio_clear: pin %i (mask 0x%02x)\n", (int)pin, (int)MASK(pin));
+
+    i2c_acquire(dev->bus);
+    CHECK(_reg_clr(dev, REG_DATA(pin), MASK(pin)));
+    stat(dev);
+    i2c_release(dev->bus);
+    return SX150X_OK;
+
+err:
+    i2c_release(dev->bus);
+    return SX150X_BUSERR;
+}
+
+// int sx150x_gpio_toggle(sx150x_t *dev, unsigned pin)
+// {
+//     assert(dev && (pin < SX150X_PIN_NUMOF));
+
+//     i2c_acquire(dev->bus);
+//     CHECK(reg_tgl(dev, REG_DATA(pin), MASK(pin)));
+
+//     i2c_release(dev->bus);
+//     return SX150X_OK;
+// err:
+//     i2c_release(dev->bus);
+//     return SX150X_BUSERR;
+// }
 
 
 // int sx150x_write(sx150x_t *dev, unsigned pin, int value)
