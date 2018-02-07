@@ -36,7 +36,7 @@ enum {
 
 int pktcnt_init(void);
 
-void pktcnt_signal(gnrc_pktsnip_t *pkt);
+void pktcnt_log_rx(gnrc_pktsnip_t *pkt);
 
 #ifdef __cplusplus
 }
