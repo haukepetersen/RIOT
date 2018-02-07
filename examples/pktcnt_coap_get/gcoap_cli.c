@@ -29,16 +29,22 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+
 static void _resp_handler(unsigned req_state, coap_pkt_t* pdu,
                           sock_udp_ep_t *remote);
 static ssize_t _stats_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len);
+static ssize_t _handle_i3_gasval(coap_pkt_t *pdu, uint8_t *buf, size_t len);
 static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len);
+
+static const char *i3_payload = "{\"id\":\"0x12a77af232\",\"val\":3000}";
 
 /* CoAP resources */
 static const coap_resource_t _resources[] = {
     { "/cli/stats", COAP_GET | COAP_PUT, _stats_handler },
+    { "/i3/gasval", COAP_GET, _handle_i3_gasval },
     { "/riot/board", COAP_GET, _riot_board_handler },
 };
+
 
 static gcoap_listener_t _listener = {
     (coap_resource_t *)&_resources[0],
@@ -127,6 +133,13 @@ static ssize_t _stats_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len)
     }
 
     return 0;
+}
+
+static ssize_t _handle_i3_gasval(coap_pkt_t *pdu, uint8_t *buf, size_t len)
+{
+    gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+    memcpy(pdu->payload, i3_payload, strlen(i3_payload));
+    return gcoap_finish(pdu, strlen(i3_payload), COAP_FORMAT_JSON);
 }
 
 static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len)
