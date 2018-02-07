@@ -1216,6 +1216,8 @@ static void _init_from_device(gnrc_netif_t *netif)
     _update_l2addr_from_dev(netif);
 }
 
+#include "pktcnt.h"
+
 static void *_gnrc_netif_thread(void *args)
 {
     gnrc_netapi_opt_t *opt;
@@ -1259,6 +1261,7 @@ static void *_gnrc_netif_thread(void *args)
                 break;
             case GNRC_NETAPI_MSG_TYPE_SND:
                 DEBUG("gnrc_netif: GNRC_NETDEV_MSG_TYPE_SND received\n");
+                pktcnt_log_tx(msg.content.ptr);
                 res = netif->ops->send(netif, msg.content.ptr);
                 if (res < 0) {
                     DEBUG("gnrc_netif: error sending packet %p (code: %u)\n",
