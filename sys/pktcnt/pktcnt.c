@@ -30,6 +30,11 @@ static pktcnt_ctx_t ctx;
 const char *keyword = "PKT";
 const char *typestr[] = { "STARTUP", "PKT_TX", "PKT_RX", };
 
+static void log_event(int type)
+{
+    printf("%s %s %s ", keyword, ctx.id, typestr[type]);
+}
+
 int pktcnt_init(void)
 {
     /* find link layer address of lowpan device: use first device for now */
@@ -39,7 +44,8 @@ int pktcnt_init(void)
     }
     gnrc_netif_addr_to_str(dev->l2addr, dev->l2addr_len, ctx.id);
 
-    printf("%s %s %s\n", keyword, ctx.id, typestr[TYPE_STARTUP]);
+    log_event(TYPE_STARTUP);
+    puts("");
 
     return PKTCNT_OK;
 }
@@ -48,7 +54,8 @@ static void log_l2_rx(gnrc_pktsnip_t *pkt)
 {
     char addr_str[23];
     gnrc_netif_hdr_t *netif_hdr = pkt->next->data;
-    printf("%s %s %s ", keyword, ctx.id, typestr[TYPE_PKT_RX]);
+
+    log_event(TYPE_PKT_RX);
     printf("%s ", gnrc_netif_addr_to_str(gnrc_netif_hdr_get_src_addr(netif_hdr),
                                          netif_hdr->src_l2addr_len, addr_str));
     printf("%s ", gnrc_netif_addr_to_str(gnrc_netif_hdr_get_dst_addr(netif_hdr),
@@ -56,6 +63,32 @@ static void log_l2_rx(gnrc_pktsnip_t *pkt)
     printf("%u ", (unsigned)pkt->size);
 }
 
+static void log_l2_tx(gnrc_pktsnip_t *pkt)
+{
+    char addr_str[23];
+    gnrc_netif_hdr_t *netif_hdr = pkt->data;
+
+    log_event(TYPE_PKT_TX);
+    printf("%s ", ctx.id);
+    if (netif_hdr->flags &
+        (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
+        printf("BROADCAST ");
+    }
+    else {
+        printf("%s ", gnrc_netif_addr_to_str(gnrc_netif_hdr_get_dst_addr(netif_hdr),
+                                             netif_hdr->dst_l2addr_len, addr_str));
+    }
+    printf("%u ", (unsigned)pkt->size);
+}
+
+#ifdef MODULE_CCN_LITE
+static void log_ndn(uint8_t *payload)
+{
+    printf("NDN %02x\n", payload[0]);
+}
+#endif
+
+#ifdef MODULE_GNRC_IPV6
 static unsigned _code_class(uint8_t code)
 {
     return code >> 5;
@@ -66,21 +99,15 @@ static unsigned _code_detail(uint8_t code)
     return code & 0x1f;
 }
 
-static void log_coap_rx(uint8_t *payload)
+static void log_coap(uint8_t *payload)
 {
     uint8_t code = payload[1];
     printf("CoAP %u.%02u\n", _code_class(code), _code_detail(code));
 }
 
-static void log_icmpv6_rx(icmpv6_hdr_t *hdr)
+static void log_icmpv6(icmpv6_hdr_t *hdr)
 {
     printf("ICMPv6 %u\n", hdr->type);
-}
-
-#ifdef MODULE_CCN_LITE
-static void log_ndn_rx(uint8_t *payload)
-{
-    printf("CoAP %02x\n", payload[0]);
 }
 #endif
 
@@ -175,26 +202,34 @@ static int get_sixlo_dst_len(uint8_t *data)
     return res;
 }
 
-static unsigned get_sixlo_nhc_udp_len(uint8_t *data, uint16_t *dst_port)
+static unsigned get_sixlo_nhc_udp_len(uint8_t *data, uint16_t *src_port,
+                                      uint16_t *dst_port)
 {
     int res = sizeof(uint8_t);  /* NHC_UDP dispatch */
 
     switch (data[0] & 0x3) {
         case 0x0:
-            res += sizeof(uint16_t);    /* source port is carried inline */
+            /* source port is carried inline at current offset */
+            *src_port = byteorder_ntohs(*((network_uint16_t *)&data[res]));
+            res += sizeof(uint16_t);
             /* destination port is carried inline at current offset */
             *dst_port = byteorder_ntohs(*((network_uint16_t *)&data[res]));
             res += sizeof(uint16_t);
             break;
         case 0x1:
-            res += sizeof(uint16_t);    /* source port is carried inline */
+            /* source port is carried inline at current offset */
+            *src_port = byteorder_ntohs(*((network_uint16_t *)&data[res]));
+            res += sizeof(uint16_t);
             /* 8 bits of destination port is carried inline at current offset
              * and its first 8 bits are 0xf0 */
             *dst_port = (0xf000 | data[res]);
             res += sizeof(uint8_t);
             break;
         case 0x2:
-            res += sizeof(uint8_t);     /* 8 bits of source port carried inline */
+            /* 8 bits of source port is carried inline at current offset
+             * and its first 8 bits are 0xf0 */
+            *src_port = (0xf000 | data[res]);
+            res += sizeof(uint8_t);
             /* destination port is carried inline at current offset */
             *dst_port = byteorder_ntohs(*((network_uint16_t *)&data[res]));
             res += sizeof(uint16_t);
@@ -202,6 +237,7 @@ static unsigned get_sixlo_nhc_udp_len(uint8_t *data, uint16_t *dst_port)
         case 0x3:
             /* 4 bits of source and destination address are carried inline. They
              * are the respective nibbles at the current offset*/
+            *src_port = (0xf0b0 | (data[res] & 0xf0));
             *dst_port = (0xf0b0 | (data[res] & 0x0f));
             res += sizeof(uint8_t);
             break;
@@ -214,9 +250,10 @@ static unsigned get_sixlo_nhc_udp_len(uint8_t *data, uint16_t *dst_port)
 }
 
 static int get_from_sixlo_dispatch(uint8_t *data, uint8_t *protnum,
-                                   bool *nhc, uint16_t *dst_port)
+                                   uint16_t *src_port, uint16_t *dst_port)
 {
     int res = SIXLOWPAN_IPHC_HDR_LEN;
+    bool nhc = false;
     if (sixlowpan_iphc_is(data)) {
         int tmp;
         switch (data[0] & SIXLOWPAN_IPHC1_TF) {
@@ -233,12 +270,11 @@ static int get_from_sixlo_dispatch(uint8_t *data, uint8_t *protnum,
                 break;
         }
         if (data[0] & SIXLOWPAN_IPHC1_NH) {
-            *nhc = true;
+            nhc = true;
         }
         else {
             /* protnum carried inline at current offset */
             *protnum = data[res++];
-            *nhc = false;
         }
         if (!(data[0] & SIXLOWPAN_IPHC1_HL)) {
             /* hop limit is uncompressed */
@@ -254,10 +290,10 @@ static int get_from_sixlo_dispatch(uint8_t *data, uint8_t *protnum,
             return -1;
         }
         res += tmp;
-        if (*nhc) {
+        if (nhc) {
             if ((data[res] & (0xf8)) == 0xf0) {
                 *protnum = PROTNUM_UDP;
-                res += get_sixlo_nhc_udp_len(&data[res], dst_port);
+                res += get_sixlo_nhc_udp_len(&data[res], src_port, dst_port);
             }
             else {
                 printf("WARNING: unexpected NHC dispatch 0x%02x\n", data[res]);
@@ -286,11 +322,10 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
     if (pkt->type == GNRC_NETTYPE_SIXLOWPAN) {
         uint8_t *payload = pkt->data;
         int offset;
-        bool nhc = false;
-        uint16_t dst_port = 0;
+        uint16_t src_port = 0, dst_port = 0;
         uint8_t protnum = 0;
 
-        offset = get_from_sixlo_dispatch(payload, &protnum, &nhc, &dst_port);
+        offset = get_from_sixlo_dispatch(payload, &protnum, &src_port, &dst_port);
         if (offset < 0) {
             return;
         }
@@ -300,21 +335,22 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
         }
         switch (protnum) {
             case PROTNUM_UDP:
-                if (!nhc) {
+                /* no next header compression */
+                if (dst_port == 0) {
                     dst_port = get_udp_dst_port((udp_hdr_t *)&payload[offset]);
                     offset += sizeof(udp_hdr_t);
                 }
                 if (dst_port == GCOAP_PORT) {
                     log_l2_rx(pkt);
-                    log_coap_rx(&payload[offset]);
+                    log_coap(&payload[offset]);
                 }
                 break;
             case PROTNUM_ICMPV6:
                 log_l2_rx(pkt);
-                log_icmpv6_rx((icmpv6_hdr_t *)&payload[offset]);
+                log_icmpv6((icmpv6_hdr_t *)&payload[offset]);
                 break;
             default:
-                puts("WARNING: unknown packet");
+                puts("WARNING: unknown RX packet");
                 break;
         }
     }
@@ -329,16 +365,16 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
                 uint16_t dst_port = get_udp_dst_port((udp_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
                 if (dst_port == GCOAP_PORT) {
                     log_l2_rx(pkt);
-                    log_coap_rx(&payload[sizeof(ipv6_hdr_t) + sizeof(udp_hdr_t)]);
+                    log_coap(&payload[sizeof(ipv6_hdr_t) + sizeof(udp_hdr_t)]);
                 }
                 break;
             }
             case PROTNUM_ICMPV6:
                 log_l2_rx(pkt);
-                log_icmpv6_rx((icmpv6_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
+                log_icmpv6((icmpv6_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
                 break;
             default:
-                puts("WARNING: unknown packet");
+                puts("WARNING: unknown RX packet");
                 break;
 
         }
@@ -349,7 +385,76 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
 
         if ((payload[0] == 0x5) || payload[0] == 0x6) {
             log_l2_rx(pkt);
-            log_ndn_rx(payload);
+            log_ndn(payload);
+        }
+    }
+#endif
+    (void)pkt;
+}
+
+void pktcnt_log_tx(gnrc_pktsnip_t *pkt)
+{
+#if defined(MODULE_GNRC_IPV6)
+#if defined(MODULE_GNRC_SIXLOWPAN)
+    gnrc_nettype_t exp_type = GNRC_NETTYPE_SIXLOWPAN;
+#else
+    gnrc_nettype_t exp_type = GNRC_NETTYPE_IPV6;
+#endif
+
+    if (pkt->next->type == exp_type) {
+        switch (pkt->next->next->type) {
+            case GNRC_NETTYPE_UDP: {
+                udp_hdr_t *udp_hdr = pkt->next->next->data;
+                uint16_t src_port = byteorder_ntohs(udp_hdr->src_port);
+                if (src_port == GCOAP_PORT) {
+                    log_l2_tx(pkt);
+                    log_coap(pkt->next->next->next->data);
+                }
+                break;
+            }
+            case GNRC_NETTYPE_ICMPV6:
+                log_l2_tx(pkt);
+                log_icmpv6(pkt->next->next->data);
+                break;
+            default: {
+#ifdef MODULE_GNRC_SIXLOWPAN
+                /* check for NHC */
+                int offset;
+                uint16_t src_port = 0, dst_port = 0;
+                uint8_t protnum = 0;
+
+                offset = get_from_sixlo_dispatch(pkt->next->data, &protnum,
+                                                 &src_port, &dst_port);
+                if (offset < 0) {
+                    return;
+                }
+                else if (((unsigned)offset) > pkt->next->size) {
+                    puts("6Lo offset larger than expected");
+                    return;
+                }
+                /* next header compression for UDP *is* activated  */
+                if ((protnum == PROTNUM_UDP) && (src_port != 0)) {
+                    if (src_port == GCOAP_PORT) {
+                        log_l2_tx(pkt);
+                        log_coap(pkt->next->next->data);
+                    }
+                    /* break early */
+                    break;
+                }
+#endif
+                puts("WARNING: unknown TX packet");
+                break;
+            }
+        }
+    }
+#elif defined(MODULE_CCN_LITE)
+    if ((pkt->next->type == GNRC_NETTYPE_CCN) ||
+        (pkt->next->type == GNRC_NETTYPE_CCN_CHUNK)) {
+        uint8_t *payload = pkt->next->data;
+
+        if ((payload[0] == 0x5) || payload[0] == 0x6) {
+            log_l2_tx(pkt);
+            log_ndn(payload);
         }
     }
 #endif
