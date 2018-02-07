@@ -177,12 +177,8 @@ static int get_sixlo_dst_len(uint8_t *data)
 
 static unsigned get_sixlo_nhc_udp_len(uint8_t *data, uint16_t *dst_port)
 {
-    int res = 0;
+    int res = sizeof(uint8_t);  /* NHC_UDP dispatch */
 
-    if (!(data[0] & 0x4)) {
-        /* checksum carried inline */
-        res += sizeof(uint16_t);
-    }
     switch (data[0] & 0x3) {
         case 0x0:
             res += sizeof(uint16_t);    /* source port is carried inline */
@@ -209,6 +205,10 @@ static unsigned get_sixlo_nhc_udp_len(uint8_t *data, uint16_t *dst_port)
             *dst_port = (0xf0b0 | (data[res] & 0x0f));
             res += sizeof(uint8_t);
             break;
+    }
+    if (!(data[0] & 0x4)) {
+        /* checksum carried inline */
+        res += sizeof(uint16_t);
     }
     return res;
 }
@@ -294,19 +294,24 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
         if (offset < 0) {
             return;
         }
+        else if (((unsigned)offset) > pkt->size) {
+            puts("6Lo offset larger than expected");
+            return;
+        }
         switch (protnum) {
             case PROTNUM_UDP:
                 if (!nhc) {
                     dst_port = get_udp_dst_port((udp_hdr_t *)&payload[offset]);
+                    offset += sizeof(udp_hdr_t);
                 }
                 if (dst_port == GCOAP_PORT) {
                     log_l2_rx(pkt);
-                    log_coap_rx(&payload[sizeof(ipv6_hdr_t) + sizeof(udp_hdr_t)]);
+                    log_coap_rx(&payload[offset]);
                 }
                 break;
             case PROTNUM_ICMPV6:
                 log_l2_rx(pkt);
-                log_icmpv6_rx((icmpv6_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
+                log_icmpv6_rx((icmpv6_hdr_t *)&payload[offset]);
                 break;
             default:
                 puts("WARNING: unknown packet");
