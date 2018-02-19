@@ -15,7 +15,11 @@ BOARD_INSUFFICIENT_MEMORY := calliope-mini chronos microbit msb-430 msb-430h \
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
-USEMODULE += gnrc_netdev_default
+ifeq (native,$(BOARD))
+  USEMODULE += socket_zep
+else
+  USEMODULE += gnrc_netdev_default
+endif
 USEMODULE += auto_init_gnrc_netif
 # Specify the mandatory networking modules for IPv6 and UDP
 USEMODULE += gnrc_ipv6_router_default
@@ -34,6 +38,8 @@ USEMODULE += ps
 USEMODULE += netstats_l2
 USEMODULE += netstats_ipv6
 USEMODULE += netstats_rpl
+
+USEMODULE += pktcnt
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

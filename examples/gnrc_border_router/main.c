@@ -22,12 +22,19 @@
 
 #include "shell.h"
 #include "msg.h"
+#include "pktcnt.h"
 
 #define MAIN_QUEUE_SIZE     (8)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 int main(void)
 {
+    /* init pktcnt */
+    if (pktcnt_init() != PKTCNT_OK) {
+        puts("error: unable to initialize pktcnt");
+        return 1;
+    }
+
     /* we need a message queue for the thread running the shell in order to
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
