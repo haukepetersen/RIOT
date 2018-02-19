@@ -12,6 +12,18 @@
 #include "net/udp.h"
 #include "net/protnum.h"
 #include "net/sixlowpan.h"
+#include "thread.h"
+
+#ifdef MODULE_SIXLOWPAN
+#define NETREG_TYPE     (GNRC_NETTYPE_SIXLOWPAN)
+#elif MODULE_CCN_LITE
+#define NETREG_TYPE     (GNRC_NETTYPE_CCN)
+#else
+#define NETREG_TYPE     (GNRC_NETTYPE_IPV6)
+#endif
+
+#define PKTCNT_MSG_QUEUE_SIZE   (4)
+#define PKTCNT_PRIO             (THREAD_PRIORITY_MAIN - 1)
 
 #define NDN_INTEREST_TYPE   (0x05U)
 #define NDN_DATA_TYPE       (0x06U)
@@ -26,6 +38,8 @@ typedef struct {
     char id[23];
 } pktcnt_ctx_t;
 
+static char pktcnt_stack[THREAD_STACKSIZE_DEFAULT];
+static msg_t pktcnt_msg_queue[PKTCNT_MSG_QUEUE_SIZE];
 static pktcnt_ctx_t ctx;
 
 const char *keyword = "PKT";
@@ -34,6 +48,30 @@ const char *typestr[] = { "STARTUP", "PKT_TX", "PKT_RX", };
 static void log_event(int type)
 {
     printf("%s %s %s ", keyword, ctx.id, typestr[type]);
+}
+
+static void *pktcnt_thread(void *args)
+{
+    (void)args;
+    gnrc_netreg_entry_t entry = GNRC_NETREG_ENTRY_INIT_PID(
+                                        GNRC_NETREG_DEMUX_CTX_ALL,
+                                        thread_getpid()
+                                    );
+    msg_init_queue(pktcnt_msg_queue, PKTCNT_MSG_QUEUE_SIZE);
+    gnrc_netreg_register(NETREG_TYPE, &entry);
+
+    while (1) {
+        msg_t msg;
+        msg_receive(&msg);
+        if (msg.type == GNRC_NETAPI_MSG_TYPE_RCV) {
+            pktcnt_log_rx(msg.content.ptr);
+            gnrc_pktbuf_release(msg.content.ptr);
+        }
+        else if (msg.type == GNRC_NETAPI_MSG_TYPE_SND) {
+            gnrc_pktbuf_release(msg.content.ptr);
+        }
+    }
+    return NULL;
 }
 
 int pktcnt_init(void)
@@ -47,6 +85,12 @@ int pktcnt_init(void)
 
     log_event(TYPE_STARTUP);
     puts("");
+
+    if (thread_create(pktcnt_stack, sizeof(pktcnt_stack), PKTCNT_PRIO,
+                      THREAD_CREATE_STACKTEST, pktcnt_thread, NULL,
+                      "pktcnt") < 0) {
+        return PKTCNT_ERR_INIT;
+    }
 
     return PKTCNT_OK;
 }
