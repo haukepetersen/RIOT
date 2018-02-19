@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "pktcnt.h"
+#include "net/emcute.h"
 #include "net/gnrc/pkt.h"
 #include "net/gnrc/netif.h"
 #include "net/ipv6/hdr.h"
@@ -111,31 +112,19 @@ static void log_mqtt(uint8_t *payload)
     printf("MQTT %02x\n", type);
 }
 
-static void log_udp(uint8_t *payload, uint16_t port, int type)
+static void log_udp(uint8_t *payload, uint16_t port)
 {
     switch (port) {
         case GCOAP_PORT:
-            log_l2(pkt, type);
             log_coap(payload);
             break;
         case EMCUTE_DEFAULT_PORT:
-            log_l2(pkt, type);
             log_mqtt(payload);
         default:
-            printf("Unknown %s UDP event\n", type);
+            printf("Unknown UDP port %u\n", port);
             break;
 
     }
-}
-
-static void log_udp_rx(uint8_t *payload, uint16_t port)
-{
-    log_udp(payload, port, TYPE_PKT_RX);
-}
-
-static void log_udp_tx(uint8_t *payload, uint16_t port)
-{
-    log_udp(payload, port, TYPE_PKT_TX);
 }
 
 static void log_icmpv6(icmpv6_hdr_t *hdr)
@@ -368,12 +357,13 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
         }
         switch (protnum) {
             case PROTNUM_UDP:
+                log_l2_rx(pkt);
                 /* no next header compression */
                 if (dst_port == 0) {
                     dst_port = get_udp_dst_port((udp_hdr_t *)&payload[offset]);
                     offset += sizeof(udp_hdr_t);
                 }
-                log_udp_rx(&payload[offset], dst_port);
+                log_udp(&payload[offset], dst_port);
                 break;
             case PROTNUM_ICMPV6:
                 log_l2_rx(pkt);
@@ -394,8 +384,9 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
             case PROTNUM_UDP: {
                 uint16_t dst_port = get_udp_dst_port((udp_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
 
-                log_udp_rx(&payload[sizeof(ipv6_hdr_t) + sizeof(udp_hdr_t)],
-                           dst_port);
+                log_l2_rx(pkt);
+                log_udp(&payload[sizeof(ipv6_hdr_t) + sizeof(udp_hdr_t)],
+                        dst_port);
                 break;
             }
             case PROTNUM_ICMPV6:
@@ -435,7 +426,8 @@ void pktcnt_log_tx(gnrc_pktsnip_t *pkt)
             case GNRC_NETTYPE_UDP: {
                 udp_hdr_t *udp_hdr = pkt->next->next->data;
                 uint16_t src_port = byteorder_ntohs(udp_hdr->src_port);
-                log_udp_tx(pkt->next->next->next->data, src_port);
+                log_l2_tx(pkt);
+                log_udp(pkt->next->next->next->data, src_port);
                 break;
             }
             case GNRC_NETTYPE_ICMPV6:
@@ -460,7 +452,8 @@ void pktcnt_log_tx(gnrc_pktsnip_t *pkt)
                 }
                 /* next header compression for UDP *is* activated  */
                 if ((protnum == PROTNUM_UDP) && (src_port != 0)) {
-                    log_udp_tx(pkt->next->next->data, src_port);
+                    log_l2_tx(pkt);
+                    log_udp(pkt->next->next->data, src_port);
                     /* break early */
                     break;
                 }
