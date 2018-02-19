@@ -3,12 +3,9 @@
 #include <stdio.h>
 
 #include "pktcnt.h"
-#include "net/emcute.h"
-#include "net/gnrc/pkt.h"
-#include "net/gnrc/netif.h"
+#include "net/gnrc.h"
 #include "net/ipv6/hdr.h"
 #include "net/icmpv6.h"
-#include "net/gcoap.h"
 #include "net/udp.h"
 #include "net/protnum.h"
 #include "net/sixlowpan.h"
@@ -24,6 +21,11 @@
 
 #define PKTCNT_MSG_QUEUE_SIZE   (4)
 #define PKTCNT_PRIO             (THREAD_PRIORITY_MAIN - 1)
+
+/* net/emcute.h and net/gcoap.h require sock_udp so we can't include them with
+ * e.g. gnrc_networking, so just define ports here */
+#define COAP_PORT           (5683U)
+#define MQTT_PORT           (1883U)
 
 #define NDN_INTEREST_TYPE   (0x05U)
 #define NDN_DATA_TYPE       (0x06U)
@@ -159,10 +161,10 @@ static void log_mqtt(uint8_t *payload)
 static void log_udp(uint8_t *payload, uint16_t port)
 {
     switch (port) {
-        case GCOAP_PORT:
+        case COAP_PORT:
             log_coap(payload);
             break;
-        case EMCUTE_DEFAULT_PORT:
+        case MQTT_PORT:
             log_mqtt(payload);
         default:
             printf("Unknown UDP port %u\n", port);
