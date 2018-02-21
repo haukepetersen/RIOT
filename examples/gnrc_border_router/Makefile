@@ -69,6 +69,9 @@ USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
 USEMODULE += pktcnt
+# Add a routing protocol
+USEMODULE += gnrc_rpl
+USEMODULE += auto_init_gnrc_rpl
 
 # include UHCP client
 USEMODULE += gnrc_uhcpc
