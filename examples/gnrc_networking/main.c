@@ -36,11 +36,13 @@ static const shell_command_t shell_commands[] = {
 
 int main(void)
 {
+#ifdef MODULE_PKTCNT
     /* init pktcnt */
     if (pktcnt_init() != PKTCNT_OK) {
         puts("error: unable to initialize pktcnt");
         return 1;
     }
+#endif
 
     /* we need a message queue for the thread running the shell in order to
      * receive potentially fast incoming networking packets */
