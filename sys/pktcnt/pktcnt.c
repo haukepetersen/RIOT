@@ -158,24 +158,33 @@ static void log_mqtt(uint8_t *payload)
     printf("MQTT %02x\n", type);
 }
 
-static void log_udp(uint8_t *payload, uint16_t port)
+static bool demux_udp_port(uint8_t *payload, uint16_t port)
 {
+
     switch (port) {
         case COAP_PORT:
             log_coap(payload);
             break;
         case MQTT_PORT:
             log_mqtt(payload);
-        default:
-            printf("Unknown UDP port %u\n", port);
             break;
+        default:
+            return false;
+    }
+    return true;
+}
 
+static void log_udp(uint8_t *payload, uint16_t src_port, uint16_t dst_port)
+{
+    if (!demux_udp_port(payload, dst_port) &&
+        !demux_udp_port(payload, src_port)) {
+        printf("UDP %u:%u\n", src_port, dst_port);
     }
 }
 
 static void log_icmpv6(icmpv6_hdr_t *hdr)
 {
-    printf("ICMPv6 %u\n", hdr->type);
+    printf("ICMPv6 %u(%u)\n", hdr->type, hdr->code);
 }
 #endif
 
@@ -325,13 +334,13 @@ static int get_from_sixlo_dispatch(uint8_t *data, uint8_t *protnum,
     if (sixlowpan_iphc_is(data)) {
         int tmp;
         switch (data[0] & SIXLOWPAN_IPHC1_TF) {
-            case 0x0:
+            case 0x00:
                 res += 4;
                 break;
-            case 0x1:
+            case 0x08:
                 res += 3;
                 break;
-            case 0x2:
+            case 0x10:
                 res += 1;
                 break;
             default:
@@ -354,7 +363,9 @@ static int get_from_sixlo_dispatch(uint8_t *data, uint8_t *protnum,
         }
         res += get_sixlo_src_len(data);
         if ((tmp = get_sixlo_dst_len(data)) < 0) {
-            printf("WARNING: unexpected 6Lo dispatch 0x%02x\n", data[0]);
+            printf("WARNING: reseved 6Lo dst comp flags 0x%02x\n",
+                   data[1] & (SIXLOWPAN_IPHC2_M | SIXLOWPAN_IPHC2_DAC |
+                              SIXLOWPAN_IPHC2_DAM));
             return -1;
         }
         res += tmp;
@@ -364,23 +375,17 @@ static int get_from_sixlo_dispatch(uint8_t *data, uint8_t *protnum,
                 res += get_sixlo_nhc_udp_len(&data[res], src_port, dst_port);
             }
             else {
-                printf("WARNING: unexpected NHC dispatch 0x%02x\n", data[res]);
+                printf("WARNING: unexpected NHC dispatch 0x%02x (offset = %i)\n",
+                       data[res], res);
                 return -1;
             }
         }
     }
     else {
-        /* reserved flag combination */
+        printf("WARNING: unexpected 6Lo dispatch 0x%02x\n", data[0]);
         return -1;
     }
     return res;
-}
-#endif
-
-#ifdef MODULE_GNRC_IPV6
-static uint16_t get_udp_dst_port(udp_hdr_t *udp_hdr)
-{
-    return byteorder_ntohs(udp_hdr->dst_port);
 }
 #endif
 
@@ -398,25 +403,28 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
             return;
         }
         else if (((unsigned)offset) > pkt->size) {
-            puts("6Lo offset larger than expected");
+            puts("WARNING: 6Lo offset larger than expected");
             return;
         }
         switch (protnum) {
             case PROTNUM_UDP:
                 log_l2_rx(pkt);
                 /* no next header compression */
-                if (dst_port == 0) {
-                    dst_port = get_udp_dst_port((udp_hdr_t *)&payload[offset]);
+                if (src_port == 0) {
+                    udp_hdr_t *udp_hdr = (udp_hdr_t *)&payload[offset];
+                    dst_port = byteorder_ntohs(udp_hdr->dst_port);
+                    src_port = byteorder_ntohs(udp_hdr->dst_port);
                     offset += sizeof(udp_hdr_t);
                 }
-                log_udp(&payload[offset], dst_port);
+                log_udp(&payload[offset], src_port, dst_port);
                 break;
             case PROTNUM_ICMPV6:
                 log_l2_rx(pkt);
                 log_icmpv6((icmpv6_hdr_t *)&payload[offset]);
                 break;
             default:
-                puts("WARNING: unknown RX packet");
+                log_l2_rx(pkt);
+                puts("UNKNOWN");
                 break;
         }
     }
@@ -428,11 +436,13 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
         /* ipv6_hdr_print(ipv6_hdr); */
         switch (ipv6_hdr->nh) {
             case PROTNUM_UDP: {
-                uint16_t dst_port = get_udp_dst_port((udp_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
+                udp_hdr_t *udp_hdr = (udp_hdr_t *)&payload[offset];
+                uint16_t dst_port = byteorder_ntohs(udp_hdr->dst_port);
+                uint16_t src_port = byteorder_ntohs(udp_hdr->dst_port);
 
                 log_l2_rx(pkt);
                 log_udp(&payload[sizeof(ipv6_hdr_t) + sizeof(udp_hdr_t)],
-                        dst_port);
+                        src_port, dst_port);
                 break;
             }
             case PROTNUM_ICMPV6:
@@ -440,7 +450,8 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
                 log_icmpv6((icmpv6_hdr_t *)&payload[sizeof(ipv6_hdr_t)]);
                 break;
             default:
-                puts("WARNING: unknown RX packet");
+                log_l2_rx(pkt);
+                puts("UNKNOWN");
                 break;
 
         }
@@ -452,6 +463,10 @@ void pktcnt_log_rx(gnrc_pktsnip_t *pkt)
         if ((payload[0] == 0x5) || payload[0] == 0x6) {
             log_l2_rx(pkt);
             log_ndn(payload);
+        }
+        else {
+            log_l2_rx(pkt);
+            puts("UNKNOWN");
         }
     }
 #endif
@@ -468,47 +483,86 @@ void pktcnt_log_tx(gnrc_pktsnip_t *pkt)
 #endif
 
     if (pkt->next->type == exp_type) {
-        switch (pkt->next->next->type) {
-            case GNRC_NETTYPE_UDP: {
-                udp_hdr_t *udp_hdr = pkt->next->next->data;
-                uint16_t src_port = byteorder_ntohs(udp_hdr->src_port);
-                log_l2_tx(pkt);
-                log_udp(pkt->next->next->next->data, src_port);
-                break;
-            }
-            case GNRC_NETTYPE_ICMPV6:
-                log_l2_tx(pkt);
-                log_icmpv6(pkt->next->next->data);
-                break;
-            default: {
-#ifdef MODULE_GNRC_SIXLOWPAN
-                /* check for NHC */
-                int offset;
-                uint16_t src_port = 0, dst_port = 0;
-                uint8_t protnum = 0;
-
-                offset = get_from_sixlo_dispatch(pkt->next->data, &protnum,
-                                                 &src_port, &dst_port);
-                if (offset < 0) {
-                    return;
-                }
-                else if (((unsigned)offset) > pkt->next->size) {
-                    puts("6Lo offset larger than expected");
-                    return;
-                }
-                /* next header compression for UDP *is* activated  */
-                if ((protnum == PROTNUM_UDP) && (src_port != 0)) {
+        if (pkt->next->next != NULL) {
+            /* don't look at follow-up fragments */
+            switch (pkt->next->next->type) {
+                case GNRC_NETTYPE_UDP: {
+                    udp_hdr_t *udp_hdr = pkt->next->next->data;
+                    uint16_t src_port = byteorder_ntohs(udp_hdr->src_port);
+                    uint16_t dst_port = byteorder_ntohs(udp_hdr->dst_port);
                     log_l2_tx(pkt);
-                    log_udp(pkt->next->next->data, src_port);
-                    /* break early */
+                    log_udp(pkt->next->next->next->data, src_port, dst_port);
                     break;
                 }
+                case GNRC_NETTYPE_ICMPV6:
+                    log_l2_tx(pkt);
+                    log_icmpv6(pkt->next->next->data);
+                    break;
+                default: {
+#ifdef MODULE_GNRC_SIXLOWPAN
+                    /* check for NHC */
+                    int offset;
+                    uint16_t src_port = 0, dst_port = 0;
+                    uint8_t protnum = 0;
+
+                    offset = get_from_sixlo_dispatch(pkt->next->data, &protnum,
+                                                     &src_port, &dst_port);
+                    if (offset < 0) {
+                        return;
+                    }
+                    else if (((unsigned)offset) > pkt->next->size) {
+                        printf("WARNING: 6Lo offset (%i) larger "
+                               "than expected (%u)\n", offset,
+                               (unsigned)pkt->next->size);
+                        return;
+                    }
+                    /* next header compression for UDP *is* activated  */
+                    if ((protnum == PROTNUM_UDP) && (src_port != 0)) {
+                        log_l2_tx(pkt);
+                        log_udp(pkt->next->next->data, src_port, dst_port);
+                        /* return early */
+                        return;
+                    }
+                    /* IP header compressed, but no next header compression?*/
+                    switch (protnum) {
+                        case PROTNUM_UDP: {
+                            udp_hdr_t *udp_hdr = pkt->next->next->data;
+                            uint16_t src_port = byteorder_ntohs(udp_hdr->src_port);
+                            uint16_t dst_port = byteorder_ntohs(udp_hdr->dst_port);
+                            log_l2_tx(pkt);
+                            log_udp(pkt->next->next->data, src_port, dst_port);
+                            /* return early */
+                            return;
+                        }
+                        case PROTNUM_ICMPV6:
+                            log_l2_tx(pkt);
+                            log_icmpv6(pkt->next->next->data);
+                            /* return early */
+                            return;
+                        default:
+                            break;
+
+                    }
 #endif
-                puts("WARNING: unknown TX packet");
-                break;
+                    log_l2_tx(pkt);
+                    puts("UNKNOWN");
+                    break;
+                }
             }
         }
+#ifdef MODULE_GNRC_SIXLOWPAN
+        else {
+            log_l2_tx(pkt);
+            puts("6Lo n-frag");
+        }
+#endif
     }
+#if (GNRC_NETIF_NUMOF > 1) && defined(MODULE_GNRC_SIXLOWPAN)
+    /* border router case */
+    else if (pkt->next->type == GNRC_NETTYPE_IPV6) {
+        puts("INFO: IPv6 packet to upstream interface sent");
+    }
+#endif
 #elif defined(MODULE_CCN_LITE)
     if ((pkt->next->type == GNRC_NETTYPE_CCN) ||
         (pkt->next->type == GNRC_NETTYPE_CCN_CHUNK)) {
@@ -517,6 +571,10 @@ void pktcnt_log_tx(gnrc_pktsnip_t *pkt)
         if ((payload[0] == 0x5) || payload[0] == 0x6) {
             log_l2_tx(pkt);
             log_ndn(payload);
+        }
+        else {
+            log_l2_tx(pkt);
+            puts("UNKNOWN");
         }
     }
 #endif
