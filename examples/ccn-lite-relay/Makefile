@@ -29,7 +29,14 @@ USEMODULE += shell
 USEMODULE += shell_commands
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
-USEMODULE += gnrc_netdev_default
+ifeq (native,$(BOARD))
+  USEMODULE += socket_zep
+  USEMODULE += gnrc
+else
+  USEMODULE += gnrc_netdev_default
+  # socket_zep has problems with tlsf
+  USEPKG += tlsf
+endif
 USEMODULE += auto_init_gnrc_netif
 # This application dumps received packets to STDIO using the pktdump module
 USEMODULE += gnrc_pktdump
@@ -37,8 +44,7 @@ USEMODULE += timex
 USEMODULE += xtimer
 USEMODULE += random
 USEMODULE += prng_minstd
-
-USEPKG += tlsf
+USEMODULE += pktcnt
 
 USEPKG += ccn-lite
 
