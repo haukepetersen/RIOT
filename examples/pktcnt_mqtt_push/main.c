@@ -97,6 +97,12 @@ int main(void)
     }
     printf("successfully connected to broker at [%s]:%u\n", I3_BROKER, gw.port);
 
+    /* now register out topic */
+    if (emcute_reg(&t) != EMCUTE_OK) {
+        printf("error: unable to register topic\n");
+        return 1;
+    }
+
     while (1) {
         xtimer_usleep(I3_INTERVAL);
 
