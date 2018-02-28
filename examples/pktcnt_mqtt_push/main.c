@@ -25,7 +25,9 @@
 #include "thread.h"
 #include "xtimer.h"
 #include "net/emcute.h"
+#include "net/gnrc/netif.h"
 #include "net/ipv6/addr.h"
+#include "pktcnt.h"
 
 #define EMCUTE_PRIO         (THREAD_PRIORITY_MAIN - 1)
 
@@ -45,13 +47,41 @@ static void *emcute_thread(void *arg)
     emcute_run(I3_PORT, I3_ID);
     return NULL;    /* should never be reached */
 }
+
 int main(void)
 {
+    /* init pktcnt */
+    if (pktcnt_init() != PKTCNT_OK) {
+        puts("error: unable to initialize pktcnt");
+        return 1;
+    }
+
     sock_udp_ep_t gw = { .family = AF_INET6, .port = I3_PORT };
     emcute_topic_t t = { I3_TOPIC, 0 };
+    bool unbootstrapped = true;
 
     puts("pktcnt: MQTT-SN push setup\n");
 
+    /* wait for network to be set-up */
+    while (unbootstrapped) {
+        ipv6_addr_t addrs[GNRC_NETIF_IPV6_ADDRS_NUMOF];
+        gnrc_netif_t *netif = gnrc_netif_iter(NULL);
+        int res;
+
+        xtimer_sleep(1);
+        if ((res = gnrc_netif_ipv6_addrs_get(netif, addrs, sizeof(addrs))) > 0) {
+            for (unsigned i = 0; i < (res / sizeof(ipv6_addr_t)); i++) {
+                if (!ipv6_addr_is_link_local(&addrs[i])) {
+                    char addr_str[IPV6_ADDR_MAX_STR_LEN];
+                    printf("Global address %s configured\n",
+                           ipv6_addr_to_str(addr_str, &addrs[i],
+                                            sizeof(addr_str)));
+                    unbootstrapped = false;
+                    break;
+                }
+            }
+        }
+    }
     /* start the emcute thread */
     thread_create(stack, sizeof(stack), EMCUTE_PRIO, 0,
                   emcute_thread, NULL, "emcute");
