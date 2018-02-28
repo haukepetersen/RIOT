@@ -1,4 +1,4 @@
-APPLICATION = ccn-lite-relay
+APPLICATION = pktcnt_ndn_get
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
