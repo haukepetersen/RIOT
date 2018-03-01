@@ -125,7 +125,7 @@ static void log_l2_tx(gnrc_pktsnip_t *pkt)
         printf("%s ", gnrc_netif_addr_to_str(gnrc_netif_hdr_get_dst_addr(netif_hdr),
                                              netif_hdr->dst_l2addr_len, addr_str));
     }
-    printf("%u ", (unsigned)pkt->size);
+    printf("%u ", (unsigned)gnrc_pkt_len(pkt->next));
 }
 
 #ifdef MODULE_CCN_LITE
