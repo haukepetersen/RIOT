@@ -1,7 +1,7 @@
-From 6340307d62b02631def949dccf03799b8f97fc99 Mon Sep 17 00:00:00 2001
+From a9f81aebdeac4159cc846022bb7d4a47a4ab393b Mon Sep 17 00:00:00 2001
 From: Martine Lenders <m.lenders@fu-berlin.de>
 Date: Fri, 23 Feb 2018 17:54:05 +0100
-Subject: [PATCH] ccn-lite-riot: MTU target too big
+Subject: [PATCH 1/4] ccn-lite-riot: MTU target too big
 
 The type of `NETOPT_MAX_PACKET_SIZE` is [defined as uint16_t](
 http://bit.ly/2CfYPbi), but i->mtu is an `int` (which is 32-bit on many
@@ -12,10 +12,10 @@ can't initialize.
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/src/ccnl-riot/src/ccn-lite-riot.c b/src/ccnl-riot/src/ccn-lite-riot.c
-index 0dc46c8..d14751d 100644
+index 4b7862f..d26b8e6 100644
 --- a/src/ccnl-riot/src/ccn-lite-riot.c
 +++ b/src/ccnl-riot/src/ccn-lite-riot.c
-@@ -203,11 +203,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
+@@ -212,11 +212,13 @@ ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type)
      i->addr.sa.sa_family = AF_PACKET;
  
      int res;

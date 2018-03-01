@@ -1,0 +1,31 @@
+From 5d7e911f6b4e3fcd817072cbe0fbc9b1a11c740b Mon Sep 17 00:00:00 2001
+From: Martine Lenders <m.lenders@fu-berlin.de>
+Date: Tue, 27 Feb 2018 13:13:57 +0100
+Subject: [PATCH 3/4] ccnl-defs: Make CCNL_MAX_INTERFACES depend on
+ GNRC_NETIF_NUMOF
+
+---
+ src/ccnl-core/include/ccnl-defs.h | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/ccnl-core/include/ccnl-defs.h b/src/ccnl-core/include/ccnl-defs.h
+index 2b42ca6..c066e94 100644
+--- a/src/ccnl-core/include/ccnl-defs.h
++++ b/src/ccnl-core/include/ccnl-defs.h
+@@ -37,7 +37,12 @@
+ #define CCNL_BROADCAST_OCTET            0xFF
+ 
+ #if defined(CCNL_ARDUINO) || defined(CCNL_RIOT)
+-# define CCNL_MAX_INTERFACES             1
++# if defined(CCNL_RIOT)
++#  include "net/gnrc/netif.h"
++#  define CCNL_MAX_INTERFACES            GNRC_NETIF_NUMOF
++# else
++#  define CCNL_MAX_INTERFACES            1
++# endif
+ # define CCNL_MAX_IF_QLEN                14
+ # ifndef CCNL_MAX_PACKET_SIZE
+ # define CCNL_MAX_PACKET_SIZE            120
+-- 
+2.7.4
+

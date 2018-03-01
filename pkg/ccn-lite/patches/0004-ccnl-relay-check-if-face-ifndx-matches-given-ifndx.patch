@@ -1,0 +1,26 @@
+From 7707da7ab2708e1ccf0e042fb0a0f075468c7c81 Mon Sep 17 00:00:00 2001
+From: Martine Lenders <m.lenders@fu-berlin.de>
+Date: Thu, 1 Mar 2018 15:27:11 +0100
+Subject: [PATCH 4/4] ccnl-relay: check if face ifndx matches given ifndx
+
+---
+ src/ccnl-core/src/ccnl-relay.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/ccnl-core/src/ccnl-relay.c b/src/ccnl-core/src/ccnl-relay.c
+index ed8cd48..8756ef3 100644
+--- a/src/ccnl-core/src/ccnl-relay.c
++++ b/src/ccnl-core/src/ccnl-relay.c
+@@ -60,7 +60,8 @@ ccnl_get_face_or_create(struct ccnl_relay_s *ccnl, int ifndx,
+                 return f;
+             continue;
+         }
+-        if (ifndx != -1 && !ccnl_addr_cmp(&f->peer, (sockunion*)sa)) {
++        if (ifndx != -1 && (f->ifndx == ifndx) &&
++            !ccnl_addr_cmp(&f->peer, (sockunion*)sa)) {
+             f->last_used = CCNL_NOW();
+             return f;
+         }
+-- 
+2.7.4
+
