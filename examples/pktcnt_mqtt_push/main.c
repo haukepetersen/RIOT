@@ -107,7 +107,7 @@ int main(void)
         xtimer_usleep(I3_INTERVAL);
 
         /* publish sensor data */
-        if (emcute_pub(&t, payload, sizeof(payload), 0) != EMCUTE_OK) {
+        if (emcute_pub(&t, payload, strlen(payload), 0) != EMCUTE_OK) {
             puts("error: failed to publish data");
         }
         else {
