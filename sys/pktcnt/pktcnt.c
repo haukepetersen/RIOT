@@ -149,13 +149,40 @@ static unsigned _code_detail(uint8_t code)
 static void log_coap(uint8_t *payload)
 {
     uint8_t code = payload[1];
-    printf("CoAP %u.%02u\n", _code_class(code), _code_detail(code));
+    printf("CoAP %u.%02u %u\n", _code_class(code), _code_detail(code),
+           (((uint16_t)payload[2]) << 8) | (payload[3]));
 }
 
 static void log_mqtt(uint8_t *payload)
 {
-    uint8_t type = (payload[0] != 0x01) ? payload[1] : payload[3];
-    printf("MQTT %02x\n", type);
+    uint8_t type_offset = (payload[0] != 0x01) ? 1 : 3;
+    uint8_t type = payload[type_offset];
+    uint16_t msgid;
+
+    switch (type) {
+        case 0x0a:  /* REGISTER */
+            msgid = (((uint16_t)payload[type_offset + 3]) << 8) | payload[type_offset + 4];
+            break;
+        case 0x0b:  /* REGACK */
+            msgid = (((uint16_t)payload[type_offset + 3]) << 8) | payload[type_offset + 4];
+            break;
+        case 0x0c:  /* PUBLISH */
+            msgid = (((uint16_t)payload[type_offset + 5]) << 8) | payload[type_offset + 6];
+            break;
+        case 0x0d:  /* PUBACK */
+            msgid = (((uint16_t)payload[type_offset + 4]) << 8) | payload[type_offset + 5];
+            break;
+        case 0x12:  /* SUBSCRIBE */
+            msgid = (((uint16_t)payload[type_offset + 3]) << 8) | payload[type_offset + 4];
+            break;
+        case 0x13:  /* SUBACK */
+            msgid = (((uint16_t)payload[type_offset + 5]) << 8) | payload[type_offset + 6];
+            break;
+        default:
+            printf("MQTT %02x\n", type);
+            return;
+    }
+    printf("MQTT %02x %u\n", type, msgid);
 }
 
 static bool demux_udp_port(uint8_t *payload, uint16_t port)
