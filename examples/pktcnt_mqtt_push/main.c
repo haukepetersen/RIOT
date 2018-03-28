@@ -33,7 +33,9 @@
 
 #define I3_ID               "i3-gas-sensor"
 #define I3_TOPIC            "/i3/gasval"
+#ifndef I3_BROKER
 #define I3_BROKER           "affe::1"
+#endif
 #define I3_INTERVAL         (1 * US_PER_SEC)
 #define I3_PORT             EMCUTE_DEFAULT_PORT
 
@@ -59,6 +61,13 @@ int main(void)
     sock_udp_ep_t gw = { .family = AF_INET6, .port = I3_PORT };
     emcute_topic_t t = { I3_TOPIC, 0 };
     bool unbootstrapped = true;
+    unsigned flags = 0;
+
+#ifdef I3_CONFIRMABLE
+    flags = EMCUTE_QOS_1;
+#else
+    flags = EMCUTE_QOS_0;
+#endif
 
     puts("pktcnt: MQTT-SN push setup\n");
 
@@ -91,7 +100,7 @@ int main(void)
         return 1;
     }
 
-    if (emcute_con(&gw, true, NULL, NULL, 0, 0) != EMCUTE_OK) {
+    if (emcute_con(&gw, true, NULL, NULL, 0, flags) != EMCUTE_OK) {
         printf("error: unable to connect to [%s]:%i\n", I3_BROKER, (int)gw.port);
         return 1;
     }
@@ -107,7 +116,7 @@ int main(void)
         xtimer_usleep(I3_INTERVAL);
 
         /* publish sensor data */
-        if (emcute_pub(&t, payload, strlen(payload), 0) != EMCUTE_OK) {
+        if (emcute_pub(&t, payload, strlen(payload), flags) != EMCUTE_OK) {
             puts("error: failed to publish data");
         }
         else {

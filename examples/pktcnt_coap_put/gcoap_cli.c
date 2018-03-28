@@ -30,7 +30,9 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#ifndef I3_SERVER
 #define I3_SERVER   "affe::1"
+#endif
 #define I3_PORT     "5683"
 #define I3_PATH     "/i3/gasval"
 #define I3_DATA     "{\"id\":\"0x12a77af232\",\"val\":3000}"
