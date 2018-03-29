@@ -167,16 +167,16 @@ static void log_mqtt(uint8_t *payload)
             msgid = (((uint16_t)payload[type_offset + 3]) << 8) | payload[type_offset + 4];
             break;
         case 0x0c:  /* PUBLISH */
-            msgid = (((uint16_t)payload[type_offset + 5]) << 8) | payload[type_offset + 6];
-            break;
-        case 0x0d:  /* PUBACK */
             msgid = (((uint16_t)payload[type_offset + 4]) << 8) | payload[type_offset + 5];
             break;
-        case 0x12:  /* SUBSCRIBE */
+        case 0x0d:  /* PUBACK */
             msgid = (((uint16_t)payload[type_offset + 3]) << 8) | payload[type_offset + 4];
             break;
+        case 0x12:  /* SUBSCRIBE */
+            msgid = (((uint16_t)payload[type_offset + 2]) << 8) | payload[type_offset + 3];
+            break;
         case 0x13:  /* SUBACK */
-            msgid = (((uint16_t)payload[type_offset + 5]) << 8) | payload[type_offset + 6];
+            msgid = (((uint16_t)payload[type_offset + 4]) << 8) | payload[type_offset + 5];
             break;
         default:
             printf("MQTT %02x\n", type);
