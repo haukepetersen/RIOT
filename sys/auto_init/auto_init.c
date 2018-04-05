@@ -164,6 +164,16 @@ void auto_init(void)
         extern void nimble_riot_init(void);
         nimble_riot_init();
     }
+    if (IS_USED(MODULE_GORM)) {
+        LOG_DEBUG("Auto init Gorm.\n");
+        extern void auto_init_gorm(void);
+        auto_init_gorm();
+    }
+    if (IS_USED(GGS)) {
+        LOG_DEBUG("Auto init Gorm GATT Services\n");
+        extern void ggs_init(void);
+        ggs_init();
+    }
     if (IS_USED(MODULE_AUTO_INIT_LORAMAC)) {
         LOG_DEBUG("Auto init loramac.\n");
         extern void auto_init_loramac(void);

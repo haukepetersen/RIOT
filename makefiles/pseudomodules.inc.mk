@@ -205,6 +205,15 @@ PSEUDOMODULES += cc1100
 PSEUDOMODULES += cc1100e
 PSEUDOMODULES += cc1101
 
+# Gorm provides a number of pseudomodules for fine grained stack configuration
+PSEUDOMODULES += gorm_standalone
+PSEUDOMODULES += gorm_broadcaster
+PSEUDOMODULES += gorm_peripheral
+PSEUDOMODULES += gorm_scanner
+PSEUDOMODULES += gorm_central
+# Provide a framework for Gorm GATT services (GGS)
+PSEUDOMODULES += ggs_%
+
 # interrupt variant of the HMC5883L driver
 PSEUDOMODULES += hmc5883l_int
 

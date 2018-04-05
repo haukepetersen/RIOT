@@ -188,6 +188,12 @@ endif
 ifneq (,$(filter ztimer_xtimer_compat,$(USEMODULE)))
   FILTER += xtimer
 endif
+ifneq (,$(filter gorm,$(USEMODULE)))
+  DIRS += net/gorm
+endif
+ifneq (,$(filter gorm_ibeacon,$(USEMODULE)))
+  DIRS += net/gorm/ibeacon
+endif
 
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, $(filter-out $(FILTER), $(USEMODULE)))))
 

@@ -1,0 +1,3 @@
+BOARD = nrf52dk
+
+USEMODULE += gorm_gatt
