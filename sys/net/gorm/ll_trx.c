@@ -17,8 +17,6 @@
  * @}
  */
 
-/* TODO: remove board.h again */
-#include "board.h"
 #include "assert.h"
 
 #include "net/gorm/ll/trx.h"
@@ -85,9 +83,7 @@ void gorm_ll_trx_recv_next(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 
 void gorm_ll_trx_stop(void)
 {
-    LED6_OFF;
     netdev_ble_stop(radio);
-    LED6_ON;
 }
 
 int gorm_ll_trx_init(netdev_t *dev)

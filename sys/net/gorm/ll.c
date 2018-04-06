@@ -46,10 +46,6 @@ void gorm_ll_run(netdev_t *dev)
     // LED1_ON;
     // LED2_ON;
     // LED3_ON;
-    LED4_ON;
-    LED5_ON;
-    LED6_ON;
-    LED7_ON;
 
     /* prepare the event queue, do this first in case events are spawned during
      * the next steps of initialization */

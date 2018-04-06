@@ -17,6 +17,7 @@
  * @}
  */
 
+#include "board.h"
 #include "net/ggs/riot.h"
 #include "net/gorm/gatt/desc.h"
 
@@ -52,13 +53,27 @@ static inline void _write(unsigned led, uint8_t state)
         _led_state |= (1 << led);
         switch (led) {
             case 0: LED0_ON;    break;
+#ifdef LED1_ON
             case 1: LED1_ON;    break;
+#endif
+#ifdef LED2_ON
             case 2: LED2_ON;    break;
+#endif
+#ifdef LED3_ON
             case 3: LED3_ON;    break;
+#endif
+#ifdef LED4_ON
             case 4: LED4_ON;    break;
+#endif
+#ifdef LED5_ON
             case 5: LED5_ON;    break;
+#endif
+#ifdef LED6_ON
             case 6: LED6_ON;    break;
+#endif
+#ifdef LED7_ON
             case 7: LED7_ON;    break;
+#endif
             default:            break;  /* do nothing */
         }
     }
@@ -66,13 +81,27 @@ static inline void _write(unsigned led, uint8_t state)
         _led_state &= ~(1 << led);
         switch (led) {
             case 0: LED0_OFF;   break;
+#ifdef LED1_ON
             case 1: LED1_OFF;   break;
+#endif
+#ifdef LED2_ON
             case 2: LED2_OFF;   break;
+#endif
+#ifdef LED3_ON
             case 3: LED3_OFF;   break;
+#endif
+#ifdef LED4_ON
             case 4: LED4_OFF;   break;
+#endif
+#ifdef LED5_ON
             case 5: LED5_OFF;   break;
+#endif
+#ifdef LED6_ON
             case 6: LED6_OFF;   break;
+#endif
+#ifdef LED7_ON
             case 7: LED7_OFF;   break;
+#endif
             default:            break;  /* do nothing */
         }
     }
@@ -105,7 +134,6 @@ static const gorm_gatt_desc_t _led_desc[] = {
 };
 
 static const gorm_gatt_char_t _led_chars[] = {
-#ifdef LED0_ON
     {
         .cb       = _led_cb,
         .arg      = (void *)0,
@@ -114,7 +142,6 @@ static const gorm_gatt_char_t _led_chars[] = {
         .desc_cnt = 1,
         .desc     = _led_desc,
     },
-#endif
 #ifdef LED1_ON
     {
         .cb       = _led_cb,
