@@ -21,6 +21,12 @@
  *              received packets
  * @todo        check for consistent naming of static functions (_x vs x)
  *
+ * # Implementation Status
+ *
+ * ## Link-layer
+ * Next feature to add
+ * - support for channel selection algorithm #2
+ *
  * @{
  * @file
  * @brief       High level interface for telling Gorm how to behave
@@ -33,9 +39,7 @@
 
 #include <stdint.h>
 
-#include "clist.h"
-
-#include "net/netdev/ble.h"
+#include "net/gorm/ll.h"
 #include "net/gorm/config.h"
 
 #ifdef __cplusplus
@@ -43,24 +47,28 @@ extern "C" {
 #endif
 
 /**
- * @brief   Maximum link layer PDU length (excluding 2 byte header) [0:255] bytes
+ * @brief   Generic error codes used by Gorm
  */
-#define GORM_PDU_MAXLEN         (255U)
-
-typedef struct gorm_pdu {
-    struct gorm_pdu *next;
-    netdev_ble_pkt_t pkt;
-} gorm_buf_t;
-
-/**
- * @brief    Gorm's error codes
- */
-/* TODO: Move to dedicated header?! */
 enum {
     GORM_OK     = 0,
     GORM_ERR_TIMINGS = -1,
+    GORM_ERR_CTX_BUSY = -2,     /**< the given context is not free to use */
+    GORM_ERR_NOBUF    = -3,     /**< no buffer space available */
 };
 
+typedef struct {
+    /* GATT specific values */
+    /* TODO: split these into separate struct(s) and join structs on higher layer */
+    // uint16_t gatt_max_mtu;
+} gorm_gatt_ctx_t;
+
+typedef struct {
+    gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
+    /* TODO: add other contexts (L2CAP, ...) */
+    // gorm_gap_ctx_t gap;
+    // gorm_gatt_ctx_t gatt;
+    // gorm_l2cap_ctx_t l2cap;
+} gorm_ctx_t;
 
 /**
  * @brief   Run Gorm's link layer
@@ -76,6 +84,10 @@ void gorm_host_init(void);
  * @brief   Run Gorm's host layers
  */
 void gorm_host_run(void);
+
+
+/* TODO: REMOVE */
+gorm_ctx_t *gorm_ll_periph_getcon(void);
 
 #ifdef __cplusplus
 }

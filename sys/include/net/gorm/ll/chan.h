@@ -16,6 +16,9 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
+#ifndef NET_GORM_LL_CHAN_H
+#define NET_GORM_LL_CHAN_H
+
 #include <stdint.h>
 
 #include "net/gorm/ll.h"
@@ -34,7 +37,7 @@ uint8_t gorm_ll_chan_count(const uint8_t *map);
  *
  * @param[in,out] con   connection context
  */
-void gorm_ll_chan_algo1(gorm_ll_connection_t *con);
+void gorm_ll_chan_algo1(gorm_ll_ctx_t *con);
 
 /**
  * @brief   Compute the next used channel using channel selection algorithm #2
@@ -43,3 +46,6 @@ void gorm_ll_chan_algo1(gorm_ll_connection_t *con);
  */
 /* TODO: implement */
 //void gorm_ll_chan_algo2(gorm_ll_connection_t *con);
+
+#endif /* NET_GORM_CHAN_H */
+/** @} */

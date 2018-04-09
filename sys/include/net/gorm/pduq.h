@@ -19,7 +19,9 @@
 #ifndef GORM_PDUQ_H
 #define GORM_PDUQ_H
 
-#include "net/gorm.h"
+#include <stdint.h>
+
+#include "net/gorm/buf.h"
 
 #ifdef __cplusplus
 extern "C" {

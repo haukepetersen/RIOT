@@ -27,7 +27,6 @@
 #include "event/callback.h"
 
 #include "net/netdev/ble.h"
-#include "net/gorm.h"
 #include "net/gorm/pduq.h"
 #include "net/gorm/arch/timer.h"
 
@@ -89,6 +88,13 @@ extern "C" {
 #define GORM_LL_FLOW_MASK       (0x1c)  /**< mask SN, NESN, and MD */
 /** @} */
 
+/* TODO: revmove, right? */
+typedef struct {
+    gorm_arch_timer_t timer;
+    uint32_t interval;
+    netdev_ble_pkt_t *pkt;
+} gorm_ll_adv_nonconn_t;
+
 
 /* TODO: re-order fields to optimize memory usage... */
 typedef struct  gorm_ll_connection_struct {
@@ -139,18 +145,11 @@ typedef struct  gorm_ll_connection_struct {
     gorm_buf_t *in_tx;
     gorm_buf_t *in_rx;
 
-    /* TODO: additional information needed for triggering events on higher layer? */
+    /* allocate memory for sending events to the host thread */
+    // gorm_arch_event_t event;
+    // uint8_t evt_flags;
+} gorm_ll_ctx_t;
 
-    /* GATT specific values */
-    /* TODO: split these into separate struct(s) and join structs on higher layer */
-    // uint16_t gatt_max_mtu;
-} gorm_ll_connection_t;
-
-typedef struct {
-    gorm_arch_timer_t timer;
-    uint32_t interval;
-    netdev_ble_pkt_t *pkt;
-} gorm_ll_adv_nonconn_t;
 
 extern event_queue_t gorm_ll_runqueue;
 extern event_queue_t gorm_ll_waitqueue;
@@ -162,14 +161,6 @@ extern event_callback_t gorm_ll_rx_action;
 void gorm_ll_run(netdev_t *dev);
 
 uint8_t *gorm_ll_addr_rand(void);
-
-
-/* TODO: only include in peripheral, scanner, and central roles */
-static inline int gorm_ll_busy(void)
-{
-    return (gorm_ll_rx_action.callback != NULL);
-}
-
 
 static inline int gorm_ll_get_type(netdev_ble_pkt_t *pkt)
 {
@@ -214,14 +205,16 @@ void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
  *
  * @param[in,out] con   connection to close
  */
-void gorm_ll_periph_terminate(gorm_ll_connection_t *con);
-
-/* TODO: find a better way to pass connections form LL to l2cap, probably turn
- *       the buffer handling around, so that the upper layer passes connection
- *       structs to the LL?! */
-gorm_ll_connection_t *gorm_ll_periph_getcon(void);
+void gorm_ll_periph_terminate(gorm_ll_ctx_t *con);
 #endif
 
+/**
+ * @brief   Start advertising the given context
+ *
+ * @param con [description]
+ * @return [description]
+ */
+int gorm_ll_adv_start(gorm_ll_ctx_t *con);
 
 #ifdef __cplusplus
 }

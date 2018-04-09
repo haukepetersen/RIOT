@@ -19,7 +19,7 @@
 #ifndef GORM_PDUPOOL_H
 #define GORM_PDUPOOL_H
 
-#include "net/gorm.h"
+#include "net/gorm/pduq.h"
 
 #ifdef __cplusplus
 extern "C" {

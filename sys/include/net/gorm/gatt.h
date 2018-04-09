@@ -107,7 +107,7 @@ typedef struct gorm_gatt_entry {
 
 void gorm_gatt_server_init(void);
 
-void gorm_gatt_on_data(gorm_ll_connection_t *con, gorm_buf_t *buf,
+void gorm_gatt_on_data(gorm_ll_ctx_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len);
 
 

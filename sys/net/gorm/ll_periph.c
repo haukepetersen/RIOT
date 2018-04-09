@@ -21,7 +21,7 @@
 #include <limits.h>
 
 #include "net/ble.h"
-#include "net/gorm/ll.h"
+#include "net/gorm.h"
 #include "net/gorm/ll/chan.h"
 #include "net/gorm/ll/trx.h"
 #include "net/gorm/ll/host.h"
@@ -99,7 +99,7 @@ static netdev_ble_ctx_t adv_ctx = {
     .chan = 0
 };
 
-/* TODO: move back into connection data? Or just move up-stack?! */
+/* TODO: add to gorm_ctx_t (as pointer?) and move to GAP module */
 struct {
     /* TODO: cater for different addresses (public, randon, private) */
     /* TODO: how to save TxAdd flag? for marking public addresses? */
@@ -111,26 +111,6 @@ struct {
     /* TODO: move this and a pointer to this this struct into con_t */
     uint8_t adv_chan;
 } adv_data;
-
-/* TODO: move allocation and handling of connections up the stack */
-static gorm_ll_connection_t connections[GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT];
-
-static uint8_t _get_state(gorm_ll_connection_t *con)
-{
-    return (con->state & STATE_MASK);
-}
-
-/* TODO: remove this function once we move the connection memory handling up the
- *       stack */
-static gorm_ll_connection_t *_get_by_state(uint8_t state)
-{
-    for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
-        if (_get_state(&connections[i]) == state) {
-            return &connections[i];
-        }
-    }
-    return NULL;
-}
 
 static void _build_ad_pkt(netdev_ble_pkt_t *pkt,
                           uint8_t type, uint8_t *ad_data, size_t ad_data_len)
@@ -146,7 +126,7 @@ static void _build_ad_pkt(netdev_ble_pkt_t *pkt,
     }
 }
 
-static uint32_t _update_timings(gorm_ll_connection_t *con, uint32_t win_delay,
+static uint32_t _update_timings(gorm_ll_ctx_t *con, uint32_t win_delay,
                                 con_timings_raw_t *raw)
 {
     /* parse and compute the needed values */
@@ -165,7 +145,7 @@ static uint32_t _update_timings(gorm_ll_connection_t *con, uint32_t win_delay,
     /* mark given raw timings as used */
     raw->win_size = 0;
 
-    /* Verification of values */
+    /* verify the new values */
     uint32_t win_size_max = ((con->interval - T_MUL) < WIN_SIZE_MAX) ?
                                 (con->interval - T_MUL) : WIN_SIZE_MAX;
     if ((con->timeout_spv < SUPER_TO_MIN) ||
@@ -184,7 +164,7 @@ static uint32_t _update_timings(gorm_ll_connection_t *con, uint32_t win_delay,
 
 static void _on_supervision_timeout(void *arg)
 {
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     gorm_ll_trx_stop();
     gorm_arch_timer_cancel(&con->timer_con);
@@ -205,7 +185,7 @@ static void _on_supervision_timeout(void *arg)
 static int _on_data_sent(gorm_buf_t *buf, void *arg)
 {
     (void)buf;
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     /* try to allocate a new receive buffer if needed */
     if (!con->in_rx) {
@@ -228,9 +208,7 @@ static int _on_data_sent(gorm_buf_t *buf, void *arg)
 
 static int _on_data_received(gorm_buf_t *buf, void *arg)
 {
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
-
-    // LED4_OFF;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     /* cancel receive timeout */
     gorm_arch_timer_cancel(&con->timer_con);
@@ -309,7 +287,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
 
 static void _on_connection_event_start(void *arg)
 {
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
     int noskip = 1;
 
     // LED5_OFF;
@@ -350,7 +328,7 @@ static void _on_connection_event_start(void *arg)
 
 static void _on_connection_event_close(void *arg)
 {
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
 
     /* cancel receive operation */
@@ -386,11 +364,10 @@ static void _on_connection_event_close(void *arg)
     // LED5_ON;
 }
 
-static void _connect(gorm_ll_connection_t *con, gorm_buf_t *buf)
+static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
 {
     /* first thing: remember this point in time and anchor the connection timer
      * to it */
-    // LED4_OFF;
     gorm_arch_timer_cancel(&con->timer_con);
     gorm_arch_timer_cancel(&con->timer_spv);
     gorm_arch_timer_anchor(&con->timer_con, 0);
@@ -459,8 +436,7 @@ err:
 
 static int _on_adv_reply(gorm_buf_t *buf, void *arg)
 {
-    /* NOTE: this is run in interrupt context! */
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     /* drop packet if the CRC is not ok */
     if (!(adv_ctx.crc & NETDEV_BLE_CRC_OK)) {
@@ -493,14 +469,14 @@ static int _on_adv_reply(gorm_buf_t *buf, void *arg)
 static int _on_adv_sent(gorm_buf_t *buf, void *arg)
 {
     (void)buf;
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
     gorm_ll_trx_recv_next(con->in_rx, _on_adv_reply);
     return 0;
 }
 
 static void _on_adv_chan(void *arg)
 {
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     /* stop listening for connection requests and the like */
     /* TODO: make sure we only stop our own operation here... */
@@ -528,7 +504,7 @@ static void _on_adv_chan(void *arg)
 
 static void _on_adv_event(void *arg)
 {
-    gorm_ll_connection_t *con = (gorm_ll_connection_t *)arg;
+    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     /* schedule next advertising event. Add a [0,10ms] `advDelay` to the
      * `advInterval`
@@ -540,25 +516,48 @@ static void _on_adv_event(void *arg)
     _on_adv_chan(con);
 }
 
-void gorm_ll_periph_init(void)
-{
-    /* address(es) */
-    /* TODO: refine and fix... */
-    memcpy(adv_data.addr, gorm_ll_addr_rand(), BLE_ADDR_LEN);
+/* TODO: move allocation and handling of connections up the stack */
+static gorm_ctx_t connections[GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT];
 
-    /* initialize connection memory */
-    /* TODO: move up the stack to host?! */
-    for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
-        memset(&connections[i], 0, sizeof(gorm_ll_connection_t));
-        connections[i].state = STATE_STANDBY;
-    }
-}
-
-gorm_ll_connection_t *gorm_ll_periph_getcon(void)
+/* TODO: redo event passing to Host, so this will not be needed anymore */
+gorm_ctx_t *gorm_ll_periph_getcon(void)
 {
     return connections;
 }
 
+static uint8_t _get_state(gorm_ctx_t *con)
+{
+    return (con->ll.state & STATE_MASK);
+}
+
+/* TODO: remove this function once we move the connection memory handling up the
+ *       stack */
+static gorm_ctx_t *_get_by_state(uint8_t state)
+{
+    for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
+        if (_get_state(&connections[i]) == state) {
+            return &connections[i];
+        }
+    }
+    return NULL;
+}
+
+/* TODO: move to host */
+void gorm_ll_periph_init(void)
+{
+    /* address(es) */
+    /* TODO: refine and fix: move to GAP and integrate with ll_host */
+    memcpy(adv_data.addr, gorm_ll_addr_rand(), BLE_ADDR_LEN);
+
+    /* initialize connection memory */
+    /* TODO: move up the stack to host -> YES */
+    for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
+        memset(&connections[i], 0, sizeof(gorm_ctx_t));
+        connections[i].ll.state = STATE_STANDBY;
+    }
+}
+
+/* TODO: move to host */
 void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
                               void *ad_scan, size_t scan_len)
 {
@@ -568,6 +567,7 @@ void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
     adv_data.ad_scan_len = scan_len;
 }
 
+/* TODO: move to host */
 void gorm_ll_periph_adv_start(void)
 {
     DEBUG("[gorm_ll_periph] adv_start: trying to trigger advertising now\n");
@@ -581,10 +581,21 @@ void gorm_ll_periph_adv_start(void)
 
     /* get any non-connected slot */
     /* TODO: use conn_interval for this, get rid of state field */
-    gorm_ll_connection_t *con = _get_by_state(STATE_STANDBY);
+    gorm_ctx_t *con = _get_by_state(STATE_STANDBY);
     if (con == NULL) {
         DEBUG("[gorm_ll_periph] adv_start: not possible: all slots taken\n");
         return;
+    }
+
+    gorm_ll_adv_start(&con->ll);
+}
+
+int gorm_ll_adv_start(gorm_ll_ctx_t *con)
+{
+    assert(con);
+
+    if (con->state != STATE_STANDBY) {
+        return GORM_ERR_CTX_BUSY;
     }
 
     /* allocate two empty PDUs as rx and tx buffers. We do this here, as this
@@ -594,7 +605,7 @@ void gorm_ll_periph_adv_start(void)
     con->in_rx = gorm_pdupool_get(2);
     if (!con->in_rx) {
         DEBUG("[gorm_ll_periph] adv_start: unable to allocate rx/tx buffers\n");
-        return;
+        return GORM_ERR_NOBUF;
     }
     con->in_tx = con->in_rx->next;
 
@@ -610,9 +621,11 @@ void gorm_ll_periph_adv_start(void)
 
     /* cleanup */
     DEBUG("[gorm_ll_periph] adv: starting to advertise now\n");
+
+    return GORM_OK;
 }
 
-void gorm_ll_periph_terminate(gorm_ll_connection_t *con)
+void gorm_ll_periph_terminate(gorm_ctx_t *con)
 {
     unsigned is = irq_disable();
     gorm_ll_trx_stop();
@@ -620,4 +633,8 @@ void gorm_ll_periph_terminate(gorm_ll_connection_t *con)
     gorm_arch_timer_cancel(&con->timer_spv);
     con->state = STATE_STANDBY;
     irq_restore(is);
+
+    /* TODO:
+     * - release buffers
+     * - behave differently depending on the current state (ADV vs CONNECTED) */
 }

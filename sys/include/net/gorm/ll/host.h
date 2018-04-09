@@ -28,7 +28,7 @@ extern "C" {
 
 void gorm_ll_host_run(void);
 
-void gorm_ll_host_notify(gorm_ll_connection_t *con);
+void gorm_ll_host_notify(gorm_ll_ctx_t *con);
 
 #ifdef __cplusplus
 }
