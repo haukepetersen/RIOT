@@ -314,6 +314,54 @@ static void _on_find_info_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
     gorm_l2cap_reply(con, buf, pos);
 }
 
+void _on_find_by_type_val(gorm_ll_connection_t *con, gorm_buf_t *buf,
+                          uint8_t *data, size_t len)
+{
+    if ((len != 9) && (len != 23)) {
+        _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
+        DEBUG("[gorm_gatt] _on_find_by_type_val: invalid PDU\n");
+        return;
+    }
+
+    /* parse PDU */
+    gorm_gatt_tab_iter_t iter;
+    uint16_t handle = gorm_util_letohs(&data[1]);
+    iter.handle = handle;
+    uint16_t end_handle = gorm_util_letohs(&data[3]);
+    uint16_t type = gorm_util_letohs(&data[5]);
+    gorm_uuid_t uuid;
+    gorm_uuid_from_buf(&uuid, &data[7], (len - 7));
+
+    DEBUG("[gorm_gatt] _on_find_by_type_val: start 0x%02x, end 0x%02x\n",
+          (int)handle, (int)end_handle);
+
+    /* only allow this type of request to find primary services */
+    if (type != BLE_DECL_PRI_SERVICE) {
+        DEBUG("[gorm_gatt] _on_find_by_type_val: type not PRIMARY_SERVICE\n");
+        goto error;
+    }
+
+    /* find first handle */
+    /* TODO: make sure we are not above end_handle */
+    gorm_gatt_tab_get_service_by_uuid(&iter, &uuid);
+
+    if (iter.e == NULL) {
+        DEBUG("[gorm_gatt] _on_find_by_type_val: no service with UUID found\n");
+        goto error;
+    }
+
+    /* prepare results */
+    data[0] = BLE_ATT_FIND_BY_VAL_RESP;
+    gorm_util_htoles(&data[1], iter.e->handle);
+    gorm_util_htoles(&data[3], gorm_gatt_tab_get_end_handle(iter.e));
+    gorm_l2cap_reply(con, buf, 5);
+    DEBUG("[grom_gatt] _on_find_by_type_val: found service 0x%02x\n", (int)iter.handle);
+    return;
+
+error:
+    _error(con, buf, data, handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
+}
+
 void gorm_gatt_server_init(void)
 {
     gorm_gatt_tab_init();
@@ -323,7 +371,6 @@ void gorm_gatt_server_init(void)
 void gorm_gatt_on_data(gorm_ll_connection_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len)
 {
-    DEBUG("[gatt_server] on_data(): size %i\n", (int)len);
     uint32_t now = xtimer_now_usec();
 
     switch (data[0]) {
@@ -353,6 +400,9 @@ void gorm_gatt_on_data(gorm_ll_connection_t *con, gorm_buf_t *buf,
             _on_write_req(con, buf, data, len);
             break;
         case BLE_ATT_FIND_BY_VAL_REQ:
+            DEBUG("[gatt_server] _on_find_by_type_val()\n");
+            _on_find_by_type_val(con, buf, data, len);
+            break;
         case BLE_ATT_READ_BLOB_REQ:
         case BLE_ATT_READ_MUL_REQ:
 
@@ -363,7 +413,7 @@ void gorm_gatt_on_data(gorm_ll_connection_t *con, gorm_buf_t *buf,
         case BLE_ATT_VAL_INDICATION:
         case BLE_ATT_VAL_CONFIRMATION:
         case BLE_ATT_SIGNED_WRITE_CMD:
-            DEBUG("[gorm_gatt] on_data: unknown opcode\n");
+            DEBUG("[gorm_gatt] on_data: unknown opcode %i\n", (int)data[0]);
             _error(con, buf, data, 0, BLE_ATT_REQUEST_NOT_SUP);
             gorm_pdupool_return(buf);
             break;

@@ -53,14 +53,14 @@ static size_t _on_gap_name(const gorm_gatt_char_t *characteristic,
                            uint8_t method, uint8_t *buf, size_t buf_len);
 static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
                                  uint8_t method, uint8_t *buf, size_t buf_len);
-static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
-                                uint8_t method, uint8_t *buf, size_t buf_len);
+// static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
+//                                 uint8_t method, uint8_t *buf, size_t buf_len);
 
 
 /* declare mandatory services */
 static const gorm_gatt_service_t gap_service = {
     .uuid  = GORM_UUID(GORM_UUID_GAP, NULL),
-    .char_cnt = 3,
+    .char_cnt = 2,
     .chars = (gorm_gatt_char_t[]){
         {
             .cb   = _on_gap_name,
@@ -72,11 +72,11 @@ static const gorm_gatt_service_t gap_service = {
             .type = GORM_UUID(GORM_UUID_APPEARANCE, NULL),
             .perm = BLE_ATT_READ,
         },
-        {
-            .cb   = _on_gap_con_param,
-            .type = GORM_UUID(GORM_UUID_PREF_CON_PARAM, NULL),
-            .perm = BLE_ATT_READ,
-        },
+        // {
+        //     .cb   = _on_gap_con_param,
+        //     .type = GORM_UUID(GORM_UUID_PREF_CON_PARAM, NULL),
+        //     .perm = BLE_ATT_READ,
+        // },
     },
 };
 
@@ -113,6 +113,7 @@ static gorm_gatt_entry_t *_get_last(gorm_gatt_entry_t *start)
     return start;
 }
 
+/* good */
 static uint16_t _next_service_handle(uint16_t last)
 {
     return (((last >> 8) + 1) << 8);
@@ -218,28 +219,26 @@ static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
     (void)buf;
     (void)buf_len;
 
-    DEBUG("READ READ READ: _on_gap_appearance()!\n");
-
-    return 0;
-}
-
-static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
-                                uint8_t method, uint8_t *buf, size_t buf_len)
-{
-    (void)characteristic;
-    /* TODO: check this... */
-    (void)method;
-
-    DEBUG("READ READ READ: _on_gap_con_param()!\n");
-
     if (buf_len >= 2) {
+        DEBUG("READ READ READ _on_gap_appearance()\n");
         gorm_gap_copy_appearance(buf);
         return 2;
     }
-    else {
-        return 0;
-    }
+    return 0;
 }
+
+// static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
+//                                 uint8_t method, uint8_t *buf, size_t buf_len)
+// {
+//     (void)characteristic;
+//     /* TODO: check this... */
+//     (void)method;
+
+//     DEBUG("READ READ READ: _on_gap_con_param()!\n");
+
+//     /* TODO */
+//     return 0;
+// }
 
 void gorm_gatt_tab_init(void)
 {
@@ -323,6 +322,26 @@ void gorm_gatt_tab_get_next(gorm_gatt_tab_iter_t *iter)
     mutex_unlock(&lock);
 }
 
+void gorm_gatt_tab_get_service_by_uuid(gorm_gatt_tab_iter_t *iter,
+                                       gorm_uuid_t *type)
+{
+    assert(iter && type);
+
+    uint16_t handle = iter->handle;
+
+    if (handle & (CHAR_MASK | DESC_MASK)) {
+        handle = _next_service_handle(iter->handle);
+    }
+    iter->e = _get_entry(handle);
+    while (iter->e) {
+        if (gorm_uuid_cmp(&iter->e->service->uuid, type)) {
+            iter->handle = iter->e->handle;
+            return;
+        }
+        iter->e = iter->e->next;
+    }
+}
+
 gorm_gatt_entry_t *gorm_gatt_tab_find_service(uint16_t start_from)
 {
     mutex_lock(&lock);
@@ -355,7 +374,7 @@ int gorm_gatt_tab_find_char(gorm_gatt_entry_t *entry, uint16_t start_handle)
     return -1;
 }
 
-uint16_t gorm_gatt_tab_get_end_handle(gorm_gatt_entry_t *entry)
+uint16_t gorm_gatt_tab_get_end_handle(const gorm_gatt_entry_t *entry)
 {
     if (entry->next) {
         return (entry->next->handle - 1);

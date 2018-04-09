@@ -56,7 +56,7 @@ void gorm_l2cap_on_data(gorm_ll_connection_t *con, uint8_t llid, gorm_buf_t *buf
         case GORM_L2CAP_CID_LE_SIGNAL:
         case GORM_L2CAP_CID_SM:
         default:
-            DEBUG("[gorm_l2cap] on_data: CID not supported, yet\n");
+            DEBUG("[gorm_l2cap] on_data: CID (%i) not supported\n", (int)cid);
             /* TODO: implement */
             gorm_pdupool_return(buf);
             break;

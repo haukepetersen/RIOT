@@ -135,7 +135,7 @@ int gorm_gatt_tab_find_char(gorm_gatt_entry_t *entry, uint16_t start_handle);
 
 gorm_gatt_desc_t *gorm_gatt_tab_get_desc(uint16_t handle);
 
-uint16_t gorm_gatt_tab_get_end_handle(gorm_gatt_entry_t *entry);
+uint16_t gorm_gatt_tab_get_end_handle(const gorm_gatt_entry_t *entry);
 uint16_t gorm_gatt_tab_get_char_handle(gorm_gatt_entry_t *entry, uint16_t num);
 uint16_t gorm_gatt_tab_get_val_handle(gorm_gatt_entry_t *entry, uint16_t num);
 

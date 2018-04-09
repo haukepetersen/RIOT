@@ -58,6 +58,10 @@ void gorm_gatt_tab_get_by_handle(gorm_gatt_tab_iter_t *iter);
 /* good */
 void gorm_gatt_tab_get_next(gorm_gatt_tab_iter_t *iter);
 
+/* good */
+void gorm_gatt_tab_get_service_by_uuid(gorm_gatt_tab_iter_t *iter,
+                                       gorm_uuid_t *type);
+
 
 static inline int gorm_gatt_tab_is_service(const gorm_gatt_tab_iter_t *iter)
 {
