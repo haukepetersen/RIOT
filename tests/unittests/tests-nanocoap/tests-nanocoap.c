@@ -30,11 +30,15 @@ static void test_nanocoap__hdr(void)
     uint8_t buf[128];
     uint16_t msgid = 0xABCD;
     char path[] = "/test/abcd/efgh";
+    char loc_path[] = "/foo/bar";
     unsigned char path_tmp[64] = {0};
 
     uint8_t *pktpos = &buf[0];
-    pktpos += coap_build_hdr((coap_hdr_t *)pktpos, COAP_REQ, NULL, 0, COAP_METHOD_GET, msgid);
-    pktpos += coap_put_option_uri(pktpos, 0, path, COAP_OPT_URI_PATH);
+    pktpos += coap_build_hdr((coap_hdr_t *)pktpos, COAP_REQ, NULL, 0,
+                             COAP_METHOD_GET, msgid);
+    pktpos += coap_put_option_location_path(pktpos, 0, loc_path);
+    pktpos += coap_put_option_uri(pktpos, COAP_OPT_LOCATION_PATH, path,
+                                  COAP_OPT_URI_PATH);
 
     coap_pkt_t pkt;
     coap_parse(&pkt, &buf[0], pktpos - &buf[0]);
@@ -44,6 +48,10 @@ static void test_nanocoap__hdr(void)
     int res = coap_get_uri(&pkt, path_tmp);
     TEST_ASSERT_EQUAL_INT(sizeof(path), res);
     TEST_ASSERT_EQUAL_STRING((char *)path, (char *)path_tmp);
+
+    res = coap_get_location_path(&pkt, path_tmp, 64);
+    TEST_ASSERT_EQUAL_INT(sizeof(loc_path), res);
+    TEST_ASSERT_EQUAL_STRING((char *)loc_path, (char *)path_tmp);
 }
 
 /*
