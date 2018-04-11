@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016-17 Kaspar Schleiser <kaspar@schleiser.de>
+ *               2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -18,6 +19,7 @@
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  * @author      Ken Bannister <kb2ma@runbox.com>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
 #ifndef NET_NANOCOAP_H
@@ -63,6 +65,7 @@ extern "C" {
  */
 #define COAP_OPT_URI_HOST       (3)
 #define COAP_OPT_OBSERVE        (6)
+#define COAP_OPT_LOCATION_PATH  (8)
 #define COAP_OPT_URI_PATH       (11)
 #define COAP_OPT_CONTENT_FORMAT (12)
 #define COAP_OPT_URI_QUERY      (15)
@@ -450,6 +453,21 @@ size_t coap_put_option(uint8_t *buf, uint16_t lastonum, uint16_t onum, uint8_t *
 size_t coap_put_option_ct(uint8_t *buf, uint16_t lastonum, uint16_t content_type);
 
 /**
+ * @brief   Encode the given string as multi-part option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   optnum      option number to use
+ * @param[in]   string      string to encode as option
+ * @param[in]   separator   character used in @p string to separate parts
+ *
+ * @return      number of bytes written to @p buf
+ */
+size_t coap_put_option_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                              const char *string, char separator);
+
+/**
  * @brief   Insert URI encoded option into buffer
  *
  * @param[out]  buf         buffer to write to
@@ -460,7 +478,12 @@ size_t coap_put_option_ct(uint8_t *buf, uint16_t lastonum, uint16_t content_type
  *
  * @returns     amount of bytes written to @p buf
  */
-size_t coap_put_option_uri(uint8_t *buf, uint16_t lastonum, const char *uri, uint16_t optnum);
+static inline size_t coap_put_option_uri(uint8_t *buf, uint16_t lastonum,
+                                         const char *uri, uint16_t optnum)
+{
+    char separator = (optnum == COAP_OPT_URI_PATH) ? '/' : '&';
+    return coap_put_option_string(buf, lastonum, optnum, uri, separator);
+}
 
 /**
  * @brief    Generic block option getter
@@ -575,6 +598,24 @@ ssize_t coap_opt_add_uint(coap_pkt_t *pkt, uint16_t optnum, uint32_t value);
 ssize_t coap_opt_finish(coap_pkt_t *pkt, uint16_t flags);
 
 /**
+ * @brief   Insert LOCATION_PATH option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         location path
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_put_option_location_path(uint8_t *buf,
+                                                   uint16_t lastonum,
+                                                   const char *loc_path)
+{
+    return coap_put_option_string(buf, lastonum, COAP_OPT_LOCATION_PATH,
+                                  loc_path, '/');
+}
+
+/**
  * @brief   Get content type from packet
  *
  * @param[in]   pkt     packet to work on
@@ -585,7 +626,27 @@ ssize_t coap_opt_finish(coap_pkt_t *pkt, uint16_t flags);
 unsigned coap_get_content_type(coap_pkt_t *pkt);
 
 /**
- * @brief   Get the packet's request URI
+ * @brief   Read a full option as null terminated string into the target buffer
+ *
+ * This function is for reading and concatenating string based, multi-part CoAP
+ * options like COAP_OPT_URI_PATH or COAP_OPT_LOCATION_PATH. It will write all
+ * parts of the given option into the target buffer, separating the parts using
+ * the given @p separator. The resulting string is `\0` terminated.
+ *
+ * @param[in]   pkt         packet to read from
+ * @param[in]   option      absolute option number
+ * @param[out]  target      target buffer
+ * @param[in]   max_len     size of @p target
+ * @param[in]   separator   character used for separating the option parts
+ *
+ * @return      -ENOSPC if the complete option does not fit into @p target
+ * @return      nr of bytes written to @p target (including '\0')
+ */
+ssize_t coap_get_option_string(const coap_pkt_t *pkt, uint16_t optnum,
+                               uint8_t *target, size_t max_len, char separator);
+
+/**
+ * @brief    Get the packet's request URI
  *
  * This function decodes the pkt's URI option into a "/"-seperated and
  * NULL-terminated string.
@@ -598,7 +659,33 @@ unsigned coap_get_content_type(coap_pkt_t *pkt);
  * @returns     -ENOSPC     if URI option is larger than NANOCOAP_URI_MAX
  * @returns     nr of bytes written to @p target (including '\0')
  */
-int coap_get_uri(coap_pkt_t *pkt, uint8_t *target);
+static inline ssize_t coap_get_uri(const coap_pkt_t *pkt, uint8_t *target)
+{
+    return coap_get_option_string(pkt, COAP_OPT_URI_PATH,
+                                  target, NANOCOAP_URI_MAX, '/');
+}
+
+/**
+ * @brief    Get the content of a packet's LOCATION_PATH option
+ *
+ * This function decodes the pkt's LOCATION_PATH option into a '/'-seperated and
+ * '\0'-terminated string.
+ *
+ * Caller must ensure @p target can hold at least 2 bytes!
+ *
+ * @param[in]   pkt     pkt to work on
+ * @param[out]  target  buffer for location path
+ * @param[in]   max_len size of @p target in bytes
+ *
+ * @returns     -ENOSPC     if URI option is larger than @p max_len
+ * @returns     nr of bytes written to @p target (including '\0')
+ */
+static inline ssize_t coap_get_location_path(const coap_pkt_t *pkt,
+                                         uint8_t *target, size_t max_len)
+{
+    return coap_get_option_string(pkt, COAP_OPT_LOCATION_PATH,
+                                  target, max_len, '/');
+}
 
 /**
  * @brief    Helper to decode SZX value to size in bytes
