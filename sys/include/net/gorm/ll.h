@@ -27,7 +27,7 @@
 #include "event/callback.h"
 
 #include "net/netdev/ble.h"
-#include "net/gorm/pduq.h"
+#include "net/gorm/buf.h"
 #include "net/gorm/arch/timer.h"
 
 #ifdef __cplusplus
@@ -140,8 +140,8 @@ typedef struct  gorm_ll_connection_struct {
     /* TODO */
 
     /* pkt queues for passing data to and receiving data from l2cap layer */
-    gorm_pduq_t rxq;
-    gorm_pduq_t txq;
+    gorm_bufq_t rxq;
+    gorm_bufq_t txq;
     gorm_buf_t *in_tx;
     gorm_buf_t *in_rx;
 

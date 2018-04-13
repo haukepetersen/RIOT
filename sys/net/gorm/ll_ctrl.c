@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "net/gorm/util.h"
-#include "net/gorm/pdupool.h"
 #include "net/gorm/ll/chan.h"
 #include "net/gorm/ll/ctrl.h"
 
@@ -73,12 +72,12 @@ void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
     switch (buf->pkt.pdu[0]) {
         case BLE_LL_CONN_UPDATE_IND:
             _connection_update(&con->ll, buf);
-            gorm_pdupool_return(buf);
+            gorm_buf_return(buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed UPDATE_IND\n");
             break;
         case BLE_LL_CHANNEL_MAP_IND:
             _channel_update(&con->ll, buf);
-            gorm_pdupool_return(buf);
+            gorm_buf_return(buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed CHANNEL_MAP_IND\n");
             break;
         case BLE_LL_TERMINATE_IND:
@@ -87,12 +86,12 @@ void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             break;
         case BLE_LL_FEATURE_REQ:
             _feature_resp(buf);
-            gorm_pduq_enq(&con->ll.txq, buf);
+            gorm_buf_enq(&con->ll.txq, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to FEATURE_REQ\n");
             break;
         case BLE_LL_VERSION_IND:
             _ctrl_version(buf);
-            gorm_pduq_enq(&con->ll.txq, buf);
+            gorm_buf_enq(&con->ll.txq, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to VERSION_IND\n");
             break;
         case BLE_LL_ENC_REQ:
@@ -117,7 +116,7 @@ void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
         case BLE_LL_PHY_UPDATE_IND:
         case BLE_LL_MIN_USED_CHAN_IND:
             DEBUG("[gorm_ll_ctrl] on_data: unknown opcode\n");
-            gorm_pdupool_return(buf);
+            gorm_buf_return(buf);
             break;
     }
 }

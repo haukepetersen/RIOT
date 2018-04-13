@@ -1,9 +1,9 @@
 MODULE = gorm
 
-SRC = ll.c ll_trx.c util.c gorm.c
+SRC = ll.c ll_trx.c util.c gorm.c buf.c
 
 ifneq (,$(filter gorm_peripheral,$(USEMODULE)))
-  SRC += ll_periph.c ll_chan.c ll_ctrl.c ll_host.c l2cap.c pdupool.c pduq.c
+  SRC += ll_periph.c ll_chan.c ll_ctrl.c ll_host.c l2cap.c
 endif
 
 ifneq (,$(filter gorm_gatt,$(USEMODULE)))

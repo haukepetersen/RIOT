@@ -27,7 +27,6 @@
 #include "net/gorm/ll/host.h"
 #include "net/gorm/gap.h"
 #include "net/gorm/util.h"
-#include "net/gorm/pdupool.h"
 #include "net/gorm/arch/rand.h"
 #include "net/gorm/arch/timer.h"
 
@@ -189,7 +188,7 @@ static int _on_data_sent(gorm_buf_t *buf, void *arg)
 
     /* try to allocate a new receive buffer if needed */
     if (!con->in_rx) {
-        con->in_rx = gorm_pdupool_get(1);
+        con->in_rx = gorm_buf_get();
     }
 
     /* if more data is expected, go on with this connection event */
@@ -234,7 +233,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
     if (SN(flags) == NESN(con->state) && (con->ctx.crc & NETDEV_BLE_CRC_OK)) {
         /* if the packet contains actual payload we pass it to the host */
         if (con->in_rx->pkt.len > 0) {
-            gorm_pduq_enq(&con->rxq, con->in_rx);
+            gorm_buf_enq(&con->rxq, con->in_rx);
             gorm_ll_host_notify((gorm_ctx_t *)con);
             con->in_rx = NULL;
         }
@@ -250,9 +249,9 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
         /* increment sequence number */
         con->state ^= GORM_LL_SN;
         /* if more data is waiting to be send we get the next buffer */
-        if (gorm_pduq_peek(&con->txq)) {
-            gorm_pdupool_return(con->in_tx);
-            con->in_tx = gorm_pduq_deq(&con->txq);
+        if (gorm_buf_peek(&con->txq)) {
+            gorm_buf_return(con->in_tx);
+            con->in_tx = gorm_buf_deq(&con->txq);
         }
         /* else we stick with the current buffer */
         else {
@@ -264,7 +263,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
     /* finish setting the reply packet's flags */
     con->in_tx->pkt.flags &= ~(GORM_LL_FLOW_MASK);
     con->in_tx->pkt.flags |= (con->state & GORM_LL_SEQ_MASK);
-    if (gorm_pduq_peek(&con->txq)) {
+    if (gorm_buf_peek(&con->txq)) {
         con->in_tx->pkt.flags |= GORM_LL_MD;
     }
 
@@ -299,7 +298,7 @@ static void _on_connection_event_start(void *arg)
     /* TODO: add skipping of connection events up to (slave_latency - CFG),
      *       but only if there is no new data to be send */
     /* TODO: reverse if condition, use || and test for 'good' case... */
-    // if ((!gorm_pduq_peek(&con->txq)) && (!con->in_tx) &&
+    // if ((!gorm_buf_peek(&con->txq)) && (!con->in_tx) &&
     //     (TODO con->skipped + CFG_SKIPP_GUARD < con->slave_latency) &&
     //     (!con->state & FLAG_ANCHORED)) {
     //     ++con->skipped;
@@ -309,7 +308,7 @@ static void _on_connection_event_start(void *arg)
 
     /* make sure we have a buffer allocated for receiving the next packet */
     if (!con->in_rx) {
-        con->in_rx = gorm_pdupool_get(1);
+        con->in_rx = gorm_buf_get();
     }
     /* put radio into RX mode (but only if a RX buffer is available) */
     if (noskip && con->in_rx) {
@@ -588,6 +587,7 @@ void gorm_ll_periph_adv_start(void)
     gorm_ll_adv_start(&con->ll);
 }
 
+/* TODO: move to host */
 int gorm_ll_adv_start(gorm_ll_ctx_t *con)
 {
     assert(con);
@@ -600,12 +600,17 @@ int gorm_ll_adv_start(gorm_ll_ctx_t *con)
      * this makes sure we can enter a connection state, and do not have to drop
      * the connection right away during _connect() in case no PDU is available
      * from the pool. */
-    con->in_rx = gorm_pdupool_get(2);
+    con->in_rx = gorm_buf_get();
     if (!con->in_rx) {
-        DEBUG("[gorm_ll_periph] adv_start: unable to allocate rx/tx buffers\n");
+        DEBUG("[gorm_ll_periph] adv_start: unable to allocate rx buffer\n");
         return GORM_ERR_NOBUF;
     }
-    con->in_tx = con->in_rx->next;
+    con->in_tx = gorm_buf_get();
+    if (!con->in_tx) {
+        gorm_buf_return(con->in_rx);
+        DEBUG("[gorm_ll_periph] adv_start: unable to allocate tx buffer\n");
+        return GORM_ERR_NOBUF;
+    }
 
     /* setup the the timers to use for advertising interval and rx timeout */
     con->state = STATE_ADV;

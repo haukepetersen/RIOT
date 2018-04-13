@@ -24,7 +24,6 @@
 #include "net/gorm/l2cap.h"
 #include "net/gorm/gatt.h"
 #include "net/gorm/gatt/tab.h"
-#include "net/gorm/pdupool.h"
 
 /* REOMVE! */
 #include "xtimer.h"
@@ -414,7 +413,7 @@ void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
         case BLE_ATT_SIGNED_WRITE_CMD:
             DEBUG("[gorm_gatt] on_data: unknown opcode %i\n", (int)data[0]);
             _error(con, buf, data, 0, BLE_ATT_REQUEST_NOT_SUP);
-            gorm_pdupool_return(buf);
+            gorm_buf_return(buf);
             break;
 
         case BLE_ATT_ERROR_RESP:
@@ -432,7 +431,7 @@ void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
         default:
             /* we silently drop any response we get (as we are the server...) */
             DEBUG("[gorm_gatt] on_data: got undefined response, ignoring it\n");
-            gorm_pdupool_return(buf);
+            gorm_buf_return(buf);
             break;
     }
 

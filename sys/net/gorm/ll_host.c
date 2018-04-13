@@ -5,7 +5,6 @@
 #include "net/gorm/ll.h"
 #include "net/gorm/ll/ctrl.h"
 #include "net/gorm/l2cap.h"
-#include "net/gorm/pdupool.h"
 
 #define ENABLE_DEBUG                (1)
 #include "debug.h"
@@ -29,9 +28,11 @@ static void on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             break;
         default:
             DEBUG("[gorm_ll_host] on_data: invalid LLID value\n");
-            gorm_pdupool_return(buf);
+            gorm_buf_return(buf);
             break;
     }
+
+    DEBUG("~~~~ pkt done, pool size is %u\n", gorm_buf_count(&gorm_buf_pool));
 }
 
 void gorm_ll_host_run(void)
@@ -49,7 +50,7 @@ void gorm_ll_host_run(void)
         for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
             gorm_ctx_t *con = &list[i];
             gorm_buf_t *buf;
-            while ((buf = gorm_pduq_deq(&con->ll.rxq))) {
+            while ((buf = gorm_buf_deq(&con->ll.rxq))) {
                 on_data(con, buf);
             }
         }

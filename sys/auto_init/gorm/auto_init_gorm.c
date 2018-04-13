@@ -22,7 +22,6 @@
 #include "thread.h"
 
 #include "net/gorm.h"
-#include "net/gorm/pdupool.h"
 
 /* we do some ugly device specific multiplexing here for now */
 #if defined(MODULE_NRFBLE)
@@ -93,9 +92,8 @@ void auto_init_gorm(void)
         return;
     }
 
-    /* allocate the PDU pool */
-    /* TODO: move somewhere better suited */
-    gorm_pdupool_addmem(pool, sizeof(pool));
+    /* allocate the initial pool of PDU buffers */
+    gorm_buf_addmem(pool, sizeof(pool));
 
     /* initialize the host */
     gorm_host_init();
