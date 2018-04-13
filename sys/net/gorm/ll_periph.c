@@ -378,7 +378,8 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
     /* parse the CONNECT_IND payload */
     connect_ind_mtu_t *lldata = (connect_ind_mtu_t *)buf->pkt.pdu;
 
-    /* TODO: save initiator address? byte 0-5... not sure we need this...*/
+    /* remember the address of the connected peer */
+    memcpy(con->peer_addr, lldata->inita, BLE_ADDR_LEN);
 
     /* prepare the basic radio context. The values in the PDU are not
      * necessarily word aligned, so use memcpy to copy them */

@@ -26,6 +26,7 @@
 #include "event/timeout.h"
 #include "event/callback.h"
 
+#include "net/ble.h"
 #include "net/netdev/ble.h"
 #include "net/gorm/buf.h"
 #include "net/gorm/arch/timer.h"
@@ -105,12 +106,15 @@ typedef struct  gorm_ll_connection_struct {
     uint16_t event_counter;
     netdev_ble_ctx_t ctx;
 
+    /* remember address of connected peer */
+    uint8_t peer_addr[BLE_ADDR_LEN];
+
     /* channel configuration */
     uint8_t chan_hop;               /**< hop increment value */
     uint8_t chan_map[5];            /**< active channel map */
     uint8_t chan_cnt;               /**< number of active channels */
     uint8_t chan_unmapped;          /**< next unmapped channel */
-    /* TODO: add channel selection algorithm as function pointer? */            /**< remapped next channel */
+    /* TODO: add channel selection algorithm as function pointer */
 
     /* used timers */
     gorm_arch_timer_t timer_spv;
