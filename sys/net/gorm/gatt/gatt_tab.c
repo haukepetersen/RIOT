@@ -53,9 +53,8 @@ static size_t _on_gap_name(const gorm_gatt_char_t *characteristic,
                            uint8_t method, uint8_t *buf, size_t buf_len);
 static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
                                  uint8_t method, uint8_t *buf, size_t buf_len);
-// static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
-//                                 uint8_t method, uint8_t *buf, size_t buf_len);
-
+static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
+                                uint8_t method, uint8_t *buf, size_t buf_len);
 
 /* declare mandatory services */
 static const gorm_gatt_service_t gap_service = {
@@ -72,11 +71,11 @@ static const gorm_gatt_service_t gap_service = {
             .type = GORM_UUID(GORM_UUID_APPEARANCE, NULL),
             .perm = BLE_ATT_READ,
         },
-        // {
-        //     .cb   = _on_gap_con_param,
-        //     .type = GORM_UUID(GORM_UUID_PREF_CON_PARAM, NULL),
-        //     .perm = BLE_ATT_READ,
-        // },
+        {
+            .cb   = _on_gap_con_param,
+            .type = GORM_UUID(GORM_UUID_PREF_CON_PARAM, NULL),
+            .perm = BLE_ATT_READ,
+        },
     },
 };
 
@@ -227,18 +226,18 @@ static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
     return 0;
 }
 
-// static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
-//                                 uint8_t method, uint8_t *buf, size_t buf_len)
-// {
-//     (void)characteristic;
-//     /* TODO: check this... */
-//     (void)method;
+static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
+                                uint8_t method, uint8_t *buf, size_t buf_len)
+{
+    (void)characteristic;
+    /* TODO: check this... */
+    (void)method;
 
-//     DEBUG("READ READ READ: _on_gap_con_param()!\n");
+    DEBUG("READ READ READ: _on_gap_con_param()!\n");
 
-//     /* TODO */
-//     return 0;
-// }
+    /* TODO */
+    return 0;
+}
 
 void gorm_gatt_tab_init(void)
 {

@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-// #inlcude "net/gorm/arch/byteorder.h"
+#include "assert.h"
 #include "byteorder.h"
 
 #include "net/netdev/ble.h"
@@ -30,7 +30,6 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-
 typedef struct __attribute__((packed)) {
     uint8_t txadd[6];
     uint8_t prefix[9];
@@ -38,31 +37,31 @@ typedef struct __attribute__((packed)) {
     be_uint16_t major;
     be_uint16_t minor;
     uint8_t txpower;
-} gorm_ibeacon_t;
+} ibeacon_t;
 
-static const uint8_t ibeacon_prefix[9] = { 0x02, 0x01, 0x06, 0x1a, 0xff,
-                                           0x4c, 0x00, 0x02, 0x15 };
+static const uint8_t _prefix[9] = { 0x02, 0x01, 0x06, 0x1a, 0xff,
+                                    0x4c, 0x00, 0x02, 0x15 };
 
-static netdev_ble_pkt_t pkt;
-static gorm_ll_adv_nonconn_t adv;
-
-void gorm_ibeacon_setup(gorm_uuid_t *uuid, uint16_t major, uint16_t minor,
-                        uint8_t txpower, uint32_t adv_interval)
+void gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ibeacon,
+                            uint8_t *addr, const gorm_uuid_t *uuid,
+                            uint16_t major, uint16_t minor,
+                            uint8_t txpower, uint32_t adv_interval)
 {
-    /* configure the iBeacon PDU */
-    gorm_ibeacon_t *pdu = (gorm_ibeacon_t *)&pkt.pdu;
-    pkt.hdr.len = (uint8_t)sizeof(gorm_ibeacon_t);
+    assert(ibeacon && addr && uuid);
 
-    memcpy(pdu->txadd, gorm_ll_addr_rand(), GORM_LL_ADDR_LEN);
-    memcpy(pdu->prefix, ibeacon_prefix, sizeof(ibeacon_prefix));
-    memcpy(&pdu->uuid, uuid, sizeof(gorm_uuid_t));
+    /* configure the iBeacon PDU */
+    ibeacon_t *pdu = (ibeacon_t *)ibeacon->pdu;
+    memcpy(pdu->txadd, addr, GORM_LL_ADDR_LEN);
+    memcpy(pdu->prefix, _prefix, sizeof(_prefix));
+    gorm_uuid_to_buf(&pdu->uuid, uuid);
     pdu->major = byteorder_htons(major);
     pdu->minor = byteorder_htons(minor);
     pdu->txpower = txpower;
 
-    /* embed PDU in BLE packet */
-    gorm_ll_adv_nonconn_setup(&adv, &pkt, adv_interval);
+    /* setup advertising context */
+    ibeacon->ctx.adv_data = ibeacon->pdu;
+    ibeacon->ctx.adv_len  = sizeof(ibeacon_t);
 
-    /* and setup the advertiser */
-    gorm_ll_adv_nonconn_start(&adv);
+    /* start advertising */
+    gorm_ll_adv_start(&ctx.state, adv_interval, GORM_LL_STATE_ADV_ONLY);
 }

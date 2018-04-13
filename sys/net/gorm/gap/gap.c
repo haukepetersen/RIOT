@@ -27,6 +27,25 @@
 static const char *device_name;
 static uint16_t device_appearance;
 
+struct {
+    uint16_t min_interval;
+    uint16_t max_interval;
+    uint16_t latency;
+    uint16_t timeout;
+} con_params;
+
+struct {
+    /* TODO: cater for different addresses (public, randon, private) */
+    /* TODO: how to save TxAdd flag? for marking public addresses? */
+    uint8_t addr[BLE_ADDR_LEN];
+    uint8_t *ad_adv;
+    size_t ad_adv_len;
+    uint8_t *ad_scan;
+    size_t ad_scan_len;
+    /* TODO: move this and a pointer to this this struct into con_t */
+    uint8_t adv_chan;
+} adv_data;
+
 void gorm_gap_init(const char *name, uint16_t appearance)
 {
     device_name = name;

@@ -23,8 +23,8 @@
 extern "C" {
 #endif
 
-#ifndef GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT
-#define GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT        (1U)
+#ifndef GORM_CFG_CONNECTIONS_NUMOF
+#define GORM_CFG_CONNECTIONS_NUMOF                  (4U)
 #endif
 
 #ifndef GORM_CFG_LL_PERIPH_ADV_INTERVAL
@@ -37,7 +37,6 @@ extern "C" {
 
 #ifndef GORM_CFG_LL_PERIPH_ADV_CHANNELS
 #define GORM_CFG_LL_PERIPH_ADV_CHANNELS             { 37, 38, 39 }
-// #define GORM_CFG_LL_PERIPH_ADV_CHANNELS             { 39 }
 #endif
 
 /* ADVANCED */

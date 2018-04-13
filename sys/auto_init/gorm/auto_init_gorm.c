@@ -26,10 +26,6 @@
 /* we do some ugly device specific multiplexing here for now */
 #if defined(MODULE_NRFBLE)
 #include "nrfble.h"
-#elif defined(MODULE_SOME_BLE_RADIO_DRIVER)
-#include "somedrv.h"
-#include "somedrv_params.h"
-static somedrv_t somedrv_dev;
 #else
 #error "[auto_init_gorm] error: now compatible radio driver found"
 #endif
@@ -42,39 +38,10 @@ static somedrv_t somedrv_dev;
 #endif
 
 /* allocate stack(s) */
-static char stack_ctrl[GORM_CFG_THREAD_STACKSIZE_CONTROLLER];
 #ifdef MODULE_GORM_STANDALONE
-static char stack_host[GORM_CFG_THREAD_STACKSIZE_HOST]
-#endif
+static char _host_stack[GORM_CFG_THREAD_STACKSIZE_HOST]
 
-/* TODO: move together with the pool mem allocation below */
-static char pool[GORM_CFG_POOLSIZE * sizeof(gorm_buf_t)];
-
-static netdev_t *radio_setup(void)
-{
-    netdev_t *dev = NULL;
-
-#if defined(MODULE_NRFBLE)
-    LOG_DEBUG("[auto_init_gorm] initializing nrfble #0\n");
-    dev = nrfble_setup();
-#elif defined(MODULE_SOME_BLE_RADIO_DRIVER)
-    LOG_DEBUG("[auto_init_gorm] initializing somedrv #0\n");
-    somedrv_setup(&somedrv_dev, &somedrv_params[0]);
-    dev = (netdev_t *)(&somedrv_dev);
-#endif
-
-    return dev;
-}
-
-static void *ctrl_thread(void *arg)
-{
-    netdev_t *dev = (netdev_t *)arg;
-    gorm_run_controller(dev);
-    return NULL;
-}
-
-#ifdef MODULE_GORM_STANDALONE
-static void *host_thread(void *arg)
+static void *_host_thread(void *arg)
 {
     (void)arg;
     gorm_host_run();
@@ -84,7 +51,12 @@ static void *host_thread(void *arg)
 
 void auto_init_gorm(void)
 {
-    netdev_t *dev = radio_setup();
+    netdev_t *dev = NULL;
+
+#if defined(MODULE_NRFBLE)
+    LOG_DEBUG("[auto_init_gorm] initializing nrfble #0\n");
+    dev = nrfble_setup();
+#endif
 
     /* make sure we got a device handle */
     if (!dev) {
@@ -92,30 +64,27 @@ void auto_init_gorm(void)
         return;
     }
 
-    /* allocate the initial pool of PDU buffers */
-    gorm_buf_addmem(pool, sizeof(pool));
-
-    /* initialize the host */
-    gorm_host_init();
+    /* initialize Gorm */
+    gorm_init(dev);
 
     /* run Gorm's link layer */
-    LOG_DEBUG("[auto_init_gorm] setting up Gorm's link layer thread now\n");
-    thread_create(stack_ctrl,
-                  sizeof(stack_ctrl),
-                  GORM_CFG_THREAD_PRIO_CONTROLLER,
-                  TFLAGS,
-                  ctrl_thread,
-                  dev,
-                  GORM_CFG_THREAD_NAME_CONTROLLER);
+    // LOG_DEBUG("[auto_init_gorm] setting up Gorm's link layer thread now\n");
+    // thread_create(stack_ctrl,
+    //               sizeof(stack_ctrl),
+    //               GORM_CFG_THREAD_PRIO_CONTROLLER,
+    //               TFLAGS,
+    //               ctrl_thread,
+    //               dev,
+    //               GORM_CFG_THREAD_NAME_CONTROLLER);
 
     /* if standalone mode is activated, we also spawn Gorm's host thread now */
 #ifdef MODULE_GORM_STANDALONE
     LOG_DEBUG("[auto_init_gorm] setting up Gorm's host thread now\n");
-    thread_create(stack_host,
-                  sizeof(stack_host),
+    thread_create(_host_stack,
+                  sizeof(_host_stack),
                   GORM_CFG_THREAD_PRIO_HOST,
                   TFLAGS,
-                  host_thread,
+                  _host_thread,
                   NULL,
                   GORM_CFG_THREAD_NAME_HOST);
 #endif

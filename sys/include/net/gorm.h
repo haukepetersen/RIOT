@@ -54,6 +54,7 @@ enum {
     GORM_ERR_TIMINGS = -1,
     GORM_ERR_CTX_BUSY = -2,     /**< the given context is not free to use */
     GORM_ERR_NOBUF    = -3,     /**< no buffer space available */
+    GORM_ERR_DEV      = -4,     /**< BLE radio device error */
 };
 
 typedef struct {
@@ -71,19 +72,14 @@ typedef struct {
 } gorm_ctx_t;
 
 /**
- * @brief   Run Gorm's link layer
- */
-void gorm_run_controller(netdev_t *radio);
-
-/**
  * @brief   Initialize Gorm's host implementation
  */
-void gorm_host_init(void);
+void gorm_init(netdev_t *radio);
 
 /**
  * @brief   Run Gorm's host layers
  */
-void gorm_host_run(void);
+void gorm_run_host(void);
 
 
 /* TODO: REMOVE */

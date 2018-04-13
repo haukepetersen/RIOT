@@ -23,6 +23,7 @@
 
 #include "net/gorm/ll.h"
 #include "net/gorm/gap.h"
+#include "net/gorm/host.h"
 #include "net/gorm/gatt.h"
 #include "net/gorm/gatt/tab.h"
 #include "net/gorm/gatt/desc.h"
@@ -32,6 +33,8 @@
 #define UUID_INFO_TEXT  (0x0816)
 
 static uint8_t gap_ad[GORM_GAP_AD_MAXLEN];
+
+static gorm_ctx_t _con;
 
 static const char *device_name = "RIOT";
 static const char *info_str = "Hackschnitzel";
@@ -44,10 +47,6 @@ static gorm_gatt_entry_t info_entry;
 static const gorm_gatt_desc_t info_desc[] = {
     GORM_GATT_DESC_FMT(BLE_UNIT_BLE_FMT_UTF8, 0, BLE_UNIT_NONE),
     GORM_GATT_DESC_EXT_PROP(0, 0),
-            //     // GORM_GATT_DESC_USER_DESC((const uint32_t)info_str),
-            //     // GORM_GATT_DESC_EXT_PROP(0, 0),
-            //     // GORM_GATT_DESC_EXT_PROP(0, 0),
-            //     // GORM_GATT_DESC_EXT_PROP(0, 0),
 };
 
 static const gorm_gatt_char_t info_char[] = {
@@ -59,14 +58,6 @@ static const gorm_gatt_char_t info_char[] = {
         .desc_cnt = 1,
         .desc     = info_desc,
     },
-    // {
-    //     .type     = GORM_UUID(UUID_INFO_TEXT, &ggs_uuid_riot_base),
-    //     .arg      = (void *)23,
-    //     .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
-    //     .cb       = _info_cb,
-    //     .desc_cnt = 1,
-    //     .desc     = info_desc,
-    // },
 };
 
 static const gorm_gatt_service_t info_service = {
@@ -112,11 +103,11 @@ int main(void)
     /* TODO: make this run per default but enable custom way to do it */
     size_t pos = gorm_gap_ad_add_flags(gap_ad, 0, GORM_GAP_FLAGS_DEFAULT);
     pos = gorm_gap_ad_add(gap_ad, pos, GORM_GAP_NAME, device_name, 4);
-
+    /* TODO: remove and make implicit by connection host and GAP modules */
     gorm_ll_periph_adv_setup(gap_ad, pos, NULL, 0);
 
-    /* run Gorm */
-    gorm_host_run();
+    /* start advertising this node */
+    gorm_gap_adv_start();
 
     return 0;
 }

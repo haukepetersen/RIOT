@@ -30,16 +30,15 @@
 #define TXPOWER         (0U)
 #define INTERVAL        (1 * US_PER_SEC)
 
+static gorm_ibeacon_ctx_t _ctx;
+
 int main(void)
 {
     puts("Gorm's iBeacon example");
 
-    /* configure the iBeacon payload */
+    /* configure the iBeacon and start advertising it */
     gorm_uuid_t uuid = {UUID};
-    gorm_ibeacon_setup(&uuid, MAJOR, MINOR, TXPOWER, INTERVAL);
-
-    /* run Gorm */
-    gorm_run();
+    gorm_ibeacon_advertise(&_ctx, &uuid, MAJOR, MINOR, TXPOWER, INTERVAL);
 
     return 0;
 }

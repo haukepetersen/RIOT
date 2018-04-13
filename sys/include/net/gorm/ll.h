@@ -89,6 +89,18 @@ extern "C" {
 #define GORM_LL_FLOW_MASK       (0x1c)  /**< mask SN, NESN, and MD */
 /** @} */
 
+/**
+ * @name    Possible link layer states
+ * @{
+ */
+#define GORM_LL_STATE_ADV       (0x01)
+#define GORM_LL_STATE_INIT      (0x02)
+#define GORM_LL_STATE_CONN      (0x03)
+#define GORM_LL_STATE_STANDBY   (0x04)
+#define GORM_LL_STATE_SCAN      (0x05)
+#define GORM_LL_STATE_ADV_ONLY  (0x06)
+/** @} */
+
 /* TODO: revmove, right? */
 typedef struct {
     gorm_arch_timer_t timer;
@@ -101,6 +113,7 @@ typedef struct {
 typedef struct  gorm_ll_connection_struct {
     /* connection state: holds ll state, flow control, and anchor state */
     uint8_t state;
+    uint8_t flags;
 
     /* context data when in connection state */
     uint16_t event_counter;
@@ -140,9 +153,6 @@ typedef struct  gorm_ll_connection_struct {
         uint8_t cnt;
     } chan_update;
 
-    /* shadow fields for updating channel config and timings */
-    /* TODO */
-
     /* pkt queues for passing data to and receiving data from l2cap layer */
     gorm_bufq_t rxq;
     gorm_bufq_t txq;
@@ -161,15 +171,13 @@ extern event_queue_t gorm_ll_waitqueue;
 /* TODO: only include in peripheral, scanner, and central roles */
 extern event_callback_t gorm_ll_rx_action;
 
+void gorm_ll_host_init(void);
 
-void gorm_ll_run(netdev_t *dev);
+int gorm_ll_controller_init(netdev_t *dev);
+// void gorm_ll_run(netdev_t *dev);
+
 
 uint8_t *gorm_ll_addr_rand(void);
-
-static inline int gorm_ll_get_type(netdev_ble_pkt_t *pkt)
-{
-    return (int)(pkt->flags & GORM_LL_PDU_MASK);
-}
 
 
 /* TODO: merge broadcaster code with `ll_perihp`, use gorm_ll_connection_t for

@@ -20,11 +20,36 @@ static const uint64_t features = (0UL
     /* TODO: add all 17 possible flags */
     );
 
+
+static void _connection_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
+{
+    con->timings_update.instant =
+        (gorm_util_letohs(&buf->pkt.pdu[1 + CON_UPDATE_LEN]));
+    memcpy(con->timings_update.raw, &buf->pkt.pdu[1], CON_UPDATE_LEN);
+    gorm_buf_return(buf);
+}
+
+static void _channel_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
+{
+    con->chan_update.instant =
+        (gorm_util_letohs(&buf->pkt.pdu[1 + BLE_CHANMAP_LEN]));
+    memcpy(con->chan_update.map, &buf->pkt.pdu[1], BLE_CHANMAP_LEN);
+    con->chan_update.cnt = gorm_ll_chan_count(con->chan_update.map);
+    gorm_buf_return(buf);
+}
+
+static void _terminate(gorm_ll_ctx_t *con, gorm_buf_t *buf)
+{
+    gorm_buf_return(buf);
+    gorm_ll_terminate(con);
+}
+
 static void _feature_resp(gorm_buf_t *buf)
 {
     buf->pkt.len = sizeof(uint64_t) + 1;
     buf->pkt.pdu[0] = BLE_LL_FEATURE_RSP;
     memcpy(&buf->pkt.pdu[1], &features, sizeof(uint64_t));
+    gorm_buf_enq(&con->ll.txq, buf);
 }
 
 static void _ctrl_version(gorm_buf_t *buf)
@@ -34,50 +59,18 @@ static void _ctrl_version(gorm_buf_t *buf)
     buf->pkt.pdu[1] = GORM_CFG_VERSION;
     gorm_util_htoles(&buf->pkt.pdu[2], GORM_CFG_VENDOR_ID);
     gorm_util_htoles(&buf->pkt.pdu[4], GORM_CFG_SUB_VERS_NR);
+    gorm_buf_enq(&con->ll.txq, buf);
 }
-
-static void _connection_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
-{
-    con->timings_update.instant =
-        (gorm_util_letohs(&buf->pkt.pdu[1 + CON_UPDATE_LEN]));
-    memcpy(con->timings_update.raw, &buf->pkt.pdu[1], CON_UPDATE_LEN);
-}
-
-static void _channel_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
-{
-    con->chan_update.instant =
-        (gorm_util_letohs(&buf->pkt.pdu[1 + BLE_CHANMAP_LEN]));
-    memcpy(con->chan_update.map, &buf->pkt.pdu[1], BLE_CHANMAP_LEN);
-    con->chan_update.cnt = gorm_ll_chan_count(con->chan_update.map);
-}
-
-static void _terminate(gorm_ll_ctx_t *con, gorm_buf_t *buf)
-{
-    /* TODO: code (buf[1]) needed for anything*/
-    (void)buf;
-
-    gorm_ll_periph_terminate(con);
-}
-
-// static void _ctrl_1b(gorm_buf_t *pdu, uint8_t opcode, uint8_t data)
-// {
-//     pdu->len = 2;
-//     pdu->pdu[0] = opcode;
-//     pdu->pdu[1] = data;
-// }
-
 
 void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
 {
     switch (buf->pkt.pdu[0]) {
         case BLE_LL_CONN_UPDATE_IND:
             _connection_update(&con->ll, buf);
-            gorm_buf_return(buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed UPDATE_IND\n");
             break;
         case BLE_LL_CHANNEL_MAP_IND:
             _channel_update(&con->ll, buf);
-            gorm_buf_return(buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed CHANNEL_MAP_IND\n");
             break;
         case BLE_LL_TERMINATE_IND:
@@ -86,12 +79,10 @@ void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             break;
         case BLE_LL_FEATURE_REQ:
             _feature_resp(buf);
-            gorm_buf_enq(&con->ll.txq, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to FEATURE_REQ\n");
             break;
         case BLE_LL_VERSION_IND:
             _ctrl_version(buf);
-            gorm_buf_enq(&con->ll.txq, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to VERSION_IND\n");
             break;
         case BLE_LL_ENC_REQ:

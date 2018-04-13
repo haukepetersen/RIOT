@@ -54,12 +54,6 @@
 #define FLAG_MOREDATA               (0x02)
 #define FLAG_NESN                   (GORM_LL_NESN)      /* 0x04 */
 #define FLAG_SN                     (GORM_LL_SN)        /* 0x08 */
-#define STATE_MASK                  (0xf0)
-#define STATE_ADV                   (0x10)
-#define STATE_INIT                  (0x20)
-#define STATE_CONN                  (0x30)
-#define STATE_STANDBY               (0x40)
-#define STATE_SCAN                  (0x50)
 
 #define TIMINGS_INVALID             (UINT32_MAX)
 
@@ -97,19 +91,6 @@ static netdev_ble_ctx_t adv_ctx = {
     .crc = GORM_LL_ADV_CRC,
     .chan = 0
 };
-
-/* TODO: add to gorm_ctx_t (as pointer?) and move to GAP module */
-struct {
-    /* TODO: cater for different addresses (public, randon, private) */
-    /* TODO: how to save TxAdd flag? for marking public addresses? */
-    uint8_t addr[BLE_ADDR_LEN];
-    uint8_t *ad_adv;
-    size_t ad_adv_len;
-    uint8_t *ad_scan;
-    size_t ad_scan_len;
-    /* TODO: move this and a pointer to this this struct into con_t */
-    uint8_t adv_chan;
-} adv_data;
 
 static void _build_ad_pkt(netdev_ble_pkt_t *pkt,
                           uint8_t type, uint8_t *ad_data, size_t ad_data_len)
@@ -169,7 +150,8 @@ static void _on_supervision_timeout(void *arg)
     gorm_arch_timer_cancel(&con->timer_con);
     con->state = STATE_STANDBY;
 
-    /* TODO: notify host about lost connection */
+    /* notify the host about the connection timeout */
+    gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_CON_TIMEOUT);
 
     DEBUG("[gorm_ll_periph] on_supervision_timeout: CONNECTION CLOSED\n");
     DEBUG("stats:   rx counter:     %u\n", stats.rx_cnt);
@@ -192,8 +174,8 @@ static int _on_data_sent(gorm_buf_t *buf, void *arg)
     }
 
     /* if more data is expected, go on with this connection event */
-    if (con->in_rx && (con->state & FLAG_MOREDATA)) {
-        con->state &= ~(FLAG_MOREDATA);
+    if (con->in_rx && (con->flags & FLAG_MOREDATA)) {
+        con->flags &= ~(FLAG_MOREDATA);
         gorm_ll_trx_recv_next(con->in_rx, _on_data_received);
         gorm_arch_timer_set_from_now(&con->timer_con, con->timeout_rx,
                                      _on_connection_event_close, con);
@@ -214,9 +196,9 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
 
     /* check if this is the first packet of of the connection and anchor the
      * connection's timings if so */
-    if (!(con->state & FLAG_ANCHORED)) {
+    if (!(con->flags & FLAG_ANCHORED)) {
         gorm_arch_timer_anchor(&con->timer_con, GORM_CFG_LL_ANCHOR_OFFSET);
-        con->state |= FLAG_ANCHORED;
+        con->flags |= FLAG_ANCHORED;
         con->timeout_rx = GORM_CFG_LL_RX_TIMEOUT;
     }
 
@@ -230,7 +212,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
     /* only handle incoming data, if the SN of the received packets is the same
      * as the sequence number that we expect. If SN does not fit, we silently
      * drop the incoming payload... */
-    if (SN(flags) == NESN(con->state) && (con->ctx.crc & NETDEV_BLE_CRC_OK)) {
+    if (SN(flags) == NESN(con->flags) && (con->ctx.crc & NETDEV_BLE_CRC_OK)) {
         /* if the packet contains actual payload we pass it to the host */
         if (con->in_rx->pkt.len > 0) {
             gorm_buf_enq(&con->rxq, con->in_rx);
@@ -238,16 +220,16 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
             con->in_rx = NULL;
         }
         /* and we ACK the incoming packet */
-        con->state ^= GORM_LL_NESN;
+        con->flags ^= GORM_LL_NESN;
     }
 
     /* now building the response:
      * - if last packet was not ACKed, we resend it
      * - else we either reset the current packet, or get the next packet from
      *   the transmit queue */
-    if (SN(con->state) != NESN(flags)) {    /* last packet was sent ok */
+    if (SN(con->flags) != NESN(flags)) {    /* last packet was sent ok */
         /* increment sequence number */
-        con->state ^= GORM_LL_SN;
+        con->flags ^= GORM_LL_SN;
         /* if more data is waiting to be send we get the next buffer */
         if (gorm_buf_peek(&con->txq)) {
             gorm_buf_return(con->in_tx);
@@ -262,14 +244,14 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
 
     /* finish setting the reply packet's flags */
     con->in_tx->pkt.flags &= ~(GORM_LL_FLOW_MASK);
-    con->in_tx->pkt.flags |= (con->state & GORM_LL_SEQ_MASK);
+    con->in_tx->pkt.flags |= (con->flags & GORM_LL_SEQ_MASK);
     if (gorm_buf_peek(&con->txq)) {
         con->in_tx->pkt.flags |= GORM_LL_MD;
     }
 
     /* remember if there will be potentially more packets in this event */
     if ((con->in_tx->pkt.flags & GORM_LL_MD) || (flags & GORM_LL_MD)) {
-        con->state |= FLAG_MOREDATA;
+        con->flags |= FLAG_MOREDATA;
     }
 
     /* send data */
@@ -300,7 +282,7 @@ static void _on_connection_event_start(void *arg)
     /* TODO: reverse if condition, use || and test for 'good' case... */
     // if ((!gorm_buf_peek(&con->txq)) && (!con->in_tx) &&
     //     (TODO con->skipped + CFG_SKIPP_GUARD < con->slave_latency) &&
-    //     (!con->state & FLAG_ANCHORED)) {
+    //     (!con->flags & FLAG_ANCHORED)) {
     //     ++con->skipped;
     //     gorm_arch_timer_set_from_last(&con->connection_timer,
     //                                   (con->win_size + con->win_spacing));
@@ -313,7 +295,7 @@ static void _on_connection_event_start(void *arg)
     /* put radio into RX mode (but only if a RX buffer is available) */
     if (noskip && con->in_rx) {
         /* de-anchor event slot */
-        con->state &= ~(FLAG_ANCHORED);
+        con->flags &= ~(FLAG_ANCHORED);
         /* listen for incoming packets now */
         gorm_ll_trx_recv(con->in_rx, &con->ctx, _on_data_received, con);
         // /* and set timeout to close the transmit window again */
@@ -351,7 +333,7 @@ static void _on_connection_event_close(void *arg)
     /* check if we have a pending connection update waiting */
     if ((con->timings_update.raw[0] != 0) &&
         (con->timings_update.instant == con->event_counter + 1)) {
-        con->state &= ~FLAG_ANCHORED;
+        con->flags &= ~FLAG_ANCHORED;
         offset += _update_timings(con, 0,
                                   (con_timings_raw_t *)con->timings_update.raw);
     }
@@ -372,7 +354,8 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
     /* we are now officially in CONNECTED state with a fresh sequence number
      * and start at event 0 (will be incremented at the start of each connection
      * event) */
-    con->state = (STATE_CONN | GORM_LL_SN);
+    con->state = STATE_CONN;
+    con->flags = GORM_LL_SN;
     con->event_counter = UINT16_MAX;
 
     /* parse the CONNECT_IND payload */
@@ -418,11 +401,9 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
                                  _on_supervision_timeout, con);
     gorm_arch_timer_set_from_last(&con->timer_con, offset,
                                   _on_connection_event_start, con);
-    /* TODO: notify host about new connection */
-    /* TODO: continue advertising on the next free connection struct
-     *       (if available) -> trigger this from host! */
+    /* and notify the host about the new connection */
+    gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_CONNECTED);
     /* now we are in connected state */
-    // LED4_ON;
     return;
 
 err:
@@ -430,6 +411,7 @@ err:
     /* TODO: notify host. Is there actually anything to tell the host?
      *       No state change if the connection fails to be established...
      *       BUT we should continue to advertise. */
+    gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_CONABORT);
 }
 
 static int _on_adv_reply(gorm_buf_t *buf, void *arg)
@@ -447,7 +429,7 @@ static int _on_adv_reply(gorm_buf_t *buf, void *arg)
      *       - more? */
 
     /* and do something about it, if we know how */
-    switch (gorm_ll_get_type(&buf->pkt)) {
+    switch (buf->pkt.flags & GORM_LL_PDU_MASK) {
         case GORM_LL_SCAN_REQ: {
             _build_ad_pkt(&con->in_tx->pkt, GORM_LL_SCAN_RESP,
                           adv_data.ad_scan, adv_data.ad_scan_len);
@@ -514,82 +496,7 @@ static void _on_adv_event(void *arg)
     _on_adv_chan(con);
 }
 
-/* TODO: move allocation and handling of connections up the stack */
-static gorm_ctx_t connections[GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT];
-
-/* TODO: redo event passing to Host, so this will not be needed anymore */
-gorm_ctx_t *gorm_ll_periph_getcon(void)
-{
-    return connections;
-}
-
-static uint8_t _get_state(gorm_ctx_t *con)
-{
-    return (con->ll.state & STATE_MASK);
-}
-
-/* TODO: remove this function once we move the connection memory handling up the
- *       stack */
-static gorm_ctx_t *_get_by_state(uint8_t state)
-{
-    for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
-        if (_get_state(&connections[i]) == state) {
-            return &connections[i];
-        }
-    }
-    return NULL;
-}
-
-/* TODO: move to host */
-void gorm_ll_periph_init(void)
-{
-    /* address(es) */
-    /* TODO: refine and fix: move to GAP and integrate with ll_host */
-    memcpy(adv_data.addr, gorm_ll_addr_rand(), BLE_ADDR_LEN);
-
-    /* initialize connection memory */
-    /* TODO: move up the stack to host -> YES */
-    for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
-        memset(&connections[i], 0, sizeof(gorm_ctx_t));
-        connections[i].ll.state = STATE_STANDBY;
-    }
-}
-
-/* TODO: move to host */
-void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
-                              void *ad_scan, size_t scan_len)
-{
-    adv_data.ad_adv = ad_adv;
-    adv_data.ad_adv_len = adv_len;
-    adv_data.ad_scan = ad_scan;
-    adv_data.ad_scan_len = scan_len;
-}
-
-/* TODO: move to host */
-void gorm_ll_periph_adv_start(void)
-{
-    DEBUG("[gorm_ll_periph] adv_start: trying to trigger advertising now\n");
-
-    /* make sure we are not advertising at the moment */
-    /* TODO: solve this using some global state variable/pointer? */
-    if (_get_by_state(STATE_ADV) != NULL) {
-        DEBUG("[gorm_ll_periph] adv_start: advertisement in progress...\n");
-        return;
-    }
-
-    /* get any non-connected slot */
-    /* TODO: use conn_interval for this, get rid of state field */
-    gorm_ctx_t *con = _get_by_state(STATE_STANDBY);
-    if (con == NULL) {
-        DEBUG("[gorm_ll_periph] adv_start: not possible: all slots taken\n");
-        return;
-    }
-
-    gorm_ll_adv_start(&con->ll);
-}
-
-/* TODO: move to host */
-int gorm_ll_adv_start(gorm_ll_ctx_t *con)
+int gorm_ll_advertise(gorm_ll_ctx_t *con)
 {
     assert(con);
 
@@ -627,18 +534,4 @@ int gorm_ll_adv_start(gorm_ll_ctx_t *con)
     DEBUG("[gorm_ll_periph] adv: starting to advertise now\n");
 
     return GORM_OK;
-}
-
-void gorm_ll_periph_terminate(gorm_ll_ctx_t *con)
-{
-    unsigned is = irq_disable();
-    gorm_ll_trx_stop();
-    gorm_arch_timer_cancel(&con->timer_con);
-    gorm_arch_timer_cancel(&con->timer_spv);
-    con->state = STATE_STANDBY;
-    irq_restore(is);
-
-    /* TODO:
-     * - release buffers
-     * - behave differently depending on the current state (ADV vs CONNECTED) */
 }

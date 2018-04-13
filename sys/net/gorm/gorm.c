@@ -17,44 +17,39 @@
  * @}
  */
 
+#include "log.h"
 
 #include "net/gorm.h"
 #include "net/gorm/ll.h"
 #include "net/gorm/ll/host.h"
 
-#ifdef MODULE_GORM_PERIPHERAL
+#ifdef MODULE_GORM_GATT
 #include "net/gorm/gatt.h"
 #endif
 
 #define ENABLE_DEBUG    (1)
 #include "debug.h"
 
-void gorm_host_init(void)
-{
-    DEBUG("[gorm] initializing the host\n");
+/* allocate initial buffer memory */
+static char _buf_pool[GORM_CFG_POOLSIZE * sizeof(gorm_buf_t)];
 
-#ifdef MODULE_GORM_PERIPHERAL
+void gorm_init(netdev_t *dev)
+{
+    /* initialize buffer pool */
+    gorm_buf_addmem(_buf_pool, sizeof(_buf_pool));
+    DEBUG("[gorm] initialized buffer pool\n");
+
+    /* initializing the controller */
+    if (gorm_ll_controller_init(dev) != GORM_OK) {
+        LOG_ERROR("[gorm] error: unable to initialize the controller\n");
+        return;
+    }
+    DEBUG("[gorm] controller initialized\n");
+
+    /* initializing of host modules */
+#ifdef MODULE_GORM_GATT
     gorm_gatt_server_init();
 #endif
-}
 
-void gorm_host_run(void)
-{
-    DEBUG("[gorm] running the host\n");
-
-#ifdef MODULE_GORM_PERIPHERAL
-    DEBUG("[gorm] starting to advertise\n");
-    /* start advertising GAP data */
-    /* TODO: move this */
-    gorm_ll_periph_adv_start();
-#endif
-
-    /* TODO: merge functions ... */
-    DEBUG("[gorm] running the host part of the link layer now\n");
-    gorm_ll_host_run();
-}
-
-void gorm_run_controller(netdev_t *radio)
-{
-    gorm_ll_run(radio);
+    gorm_ll_host_init();
 }

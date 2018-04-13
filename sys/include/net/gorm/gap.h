@@ -116,6 +116,8 @@ size_t gorm_gap_copy_name(uint8_t *buf, size_t max_len);
 
 void gorm_gap_copy_appearance(uint8_t *buf);
 
+void gorm_gap_set_pref_con_params(uint16_t min_interval, uint16_t max_interval,
+                                  uint16_t latency, uint16_t timeout);
 
 /**
  * @brief   Add advertising data field to the given buffer
