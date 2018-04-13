@@ -22,9 +22,9 @@
 
 #include "net/ble.h"
 #include "net/gorm.h"
+#include "net/gorm/host.h"
 #include "net/gorm/ll/chan.h"
 #include "net/gorm/ll/trx.h"
-#include "net/gorm/ll/host.h"
 #include "net/gorm/gap.h"
 #include "net/gorm/util.h"
 #include "net/gorm/arch/rand.h"
@@ -79,18 +79,13 @@ static int _on_data_sent(gorm_buf_t *buf, void *arg);
 static int _on_data_received(gorm_buf_t *buf, void *arg);
 static void _on_connection_event_close(void *arg);
 
-
+/* TODO: factor out to gorm_stats module */
 static struct {
     unsigned rx_cnt;
 } stats;
 
+/* TODO: move to GAP module?! */
 static const uint8_t adv_chan_list[] = GORM_CFG_LL_PERIPH_ADV_CHANNELS;
-
-static netdev_ble_ctx_t adv_ctx = {
-    .aa.u32 = GORM_LL_ADV_AA,
-    .crc = GORM_LL_ADV_CRC,
-    .chan = 0
-};
 
 static void _build_ad_pkt(netdev_ble_pkt_t *pkt,
                           uint8_t type, uint8_t *ad_data, size_t ad_data_len)
@@ -419,7 +414,7 @@ static int _on_adv_reply(gorm_buf_t *buf, void *arg)
     gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
     /* drop packet if the CRC is not ok */
-    if (!(adv_ctx.crc & NETDEV_BLE_CRC_OK)) {
+    if (!(con->ctx.crc & NETDEV_BLE_CRC_OK)) {
         return 1;
     }
 
@@ -463,22 +458,24 @@ static void _on_adv_chan(void *arg)
     /* TODO: we skip the adv event if someone else is using the radio right now */
     gorm_ll_trx_stop();
 
-    if (adv_data.adv_chan < sizeof(adv_chan_list)) {
+    if (con->event_counter < sizeof(adv_chan_list)) {
         /* build packet */
         _build_ad_pkt(&con->in_tx->pkt, GORM_LL_ADV_IND,
                       adv_data.ad_adv, adv_data.ad_adv_len);
-        adv_ctx.chan = adv_chan_list[adv_data.adv_chan];
+        con->ctx.aa.u32 = GORM_LL_ADV_AA;
+        con->ctx.crc = GORM_LL_ADV_CRC;
+        con->ctx.chan = adv_chan_list[ctx->event_counter];
         /* send out advertisement packet */
-        gorm_ll_trx_send(con->in_tx, &adv_ctx, _on_adv_sent, con);
+        gorm_ll_trx_send(con->in_tx, &con->ctx, _on_adv_sent, con);
         /* set timeout / start of next advertising channel */
         /* TODO: still set this in case we skip the event */
         gorm_arch_timer_set_from_now(&con->timer_con,
                                      GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION,
                                      _on_adv_chan, con);
-        adv_data.adv_chan++;
+        con->event_counter++;
     }
     else {
-        adv_data.adv_chan = 0;
+        con->event_counter = 0;
     }
 }
 

@@ -119,6 +119,12 @@ typedef struct  gorm_ll_connection_struct {
     uint16_t event_counter;
     netdev_ble_ctx_t ctx;
 
+    /* pointer to advertising data */
+    uint8_t *adv_data;
+    uint8_t adv_data_len;
+    uint8_t *scan_data;
+    uint8_t scan_data_len;
+
     /* remember address of connected peer */
     uint8_t peer_addr[BLE_ADDR_LEN];
 

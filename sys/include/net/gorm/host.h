@@ -20,7 +20,7 @@
 #ifndef NET_GORM_HOST_H
 #define NET_GORM_HOST_H
 
-#include "net/gorm/ll.h"
+#include "net/gorm.h"
 
 #ifdef __cplusplus
 extern "C" {

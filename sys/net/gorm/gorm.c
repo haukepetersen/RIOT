@@ -21,7 +21,7 @@
 
 #include "net/gorm.h"
 #include "net/gorm/ll.h"
-#include "net/gorm/ll/host.h"
+#include "net/gorm/host.h"
 
 #ifdef MODULE_GORM_GATT
 #include "net/gorm/gatt.h"

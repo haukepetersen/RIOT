@@ -60,7 +60,7 @@ void gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ibeacon,
 
     /* setup advertising context */
     ibeacon->ctx.adv_data = ibeacon->pdu;
-    ibeacon->ctx.adv_len  = sizeof(ibeacon_t);
+    ibeacon->ctx.adv_data_len = (uint8_t)sizeof(ibeacon_t);
 
     /* start advertising */
     gorm_ll_adv_start(&ctx.state, adv_interval, GORM_LL_STATE_ADV_ONLY);

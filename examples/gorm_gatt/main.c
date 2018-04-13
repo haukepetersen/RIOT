@@ -34,7 +34,7 @@
 
 static uint8_t gap_ad[GORM_GAP_AD_MAXLEN];
 
-static gorm_ctx_t _con;
+// static gorm_ctx_t _con;
 
 static const char *device_name = "RIOT";
 static const char *info_str = "Hackschnitzel";
@@ -107,7 +107,7 @@ int main(void)
     gorm_ll_periph_adv_setup(gap_ad, pos, NULL, 0);
 
     /* start advertising this node */
-    gorm_gap_adv_start();
+    // gorm_gap_adv_start();
 
     return 0;
 }
