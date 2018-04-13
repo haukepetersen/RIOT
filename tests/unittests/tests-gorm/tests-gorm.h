@@ -11,13 +11,13 @@
  * @{
  *
  * @file
- * @brief       Unit tests for Gorm's GATT server table
+ * @brief       Unit tests for Gorm
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef TESTS_GORM_GATT_TAB_H
-#define TESTS_GORM_GATT_TAB_H
+#ifndef TESTS_GORM_H
+#define TESTS_GORM_H
 
 #include "embUnit.h"
 
@@ -28,11 +28,11 @@ extern "C" {
 /**
  * @brief   The entry point of this test suite
  */
-void tests_gorm_gatt_server(void);
+void tests_gorm(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* TESTS_GORM_GATT_TAB_H */
+#endif /* TESTS_GORM_H */
 /** @} */
