@@ -15,9 +15,10 @@
 static thread_t *host_thread;
 
 
-static void on_data(gorm_ll_connection_t *con, gorm_buf_t *buf)
+static void on_data(gorm_ctx_t *con, gorm_buf_t *buf)
 {
-    uint8_t llid = buf->pkt.flags & GORM_LL_LLID_MASK;
+    uint8_t llid = (buf->pkt.flags & GORM_LL_LLID_MASK);
+
     switch (llid) {
         case GORM_LL_LLID_CTRL:
             gorm_ll_ctrl_on_data(con, buf);
@@ -44,19 +45,18 @@ void gorm_ll_host_run(void)
          *       the pending data! */
         /* idea: could we limit the max number of connections to 16 and use
          *       dedicated thread flags for each connection? -> dont like the limit*/
-        gorm_ll_connection_t *list = gorm_ll_periph_getcon();
+        gorm_ctx_t *list = gorm_ll_periph_getcon();
         for (unsigned i = 0; i < GORM_CFG_LL_PERIPH_CONNECTIONS_LIMIT; i++) {
-            gorm_ll_connection_t *con = &list[i];
+            gorm_ctx_t *con = &list[i];
             gorm_buf_t *buf;
-            while ((buf = gorm_pduq_deq(&con->rxq))) {
-
+            while ((buf = gorm_pduq_deq(&con->ll.rxq))) {
                 on_data(con, buf);
             }
         }
     }
 }
 
-void gorm_ll_host_notify(gorm_ll_connection_t *con)
+void gorm_ll_host_notify(gorm_ctx_t *con)
 {
     (void)con;
     thread_flags_set(host_thread, NOTIFY_FLAG);

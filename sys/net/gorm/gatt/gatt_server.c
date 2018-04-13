@@ -50,7 +50,7 @@ static size_t _write_char_attr_data(uint8_t *buf, gorm_gatt_entry_t *entry,
     return gorm_uuid_to_buf(&buf[5], &c->type) + 5;
 }
 
-static void _error(gorm_ll_connection_t *con, gorm_buf_t *buf, uint8_t *data,
+static void _error(gorm_ctx_t *con, gorm_buf_t *buf, uint8_t *data,
                    uint16_t handle, uint8_t code)
 {
     data[1] = data[0];      /* copy request opcode */
@@ -62,7 +62,7 @@ static void _error(gorm_ll_connection_t *con, gorm_buf_t *buf, uint8_t *data,
 
 /* TODO: support changing the MTU, therefore the currently used MTU size must
          be part of the connection_t struct or similar... */
-static void _on_mtu_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
+static void _on_mtu_req(gorm_ctx_t *con, gorm_buf_t *buf,
                         uint8_t *data, size_t len)
 {
     if (len != 3) {
@@ -81,7 +81,7 @@ static void _on_mtu_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
 }
 
 /* discover all primary services on the server */
-static void _on_read_by_group_type_req(gorm_ll_connection_t *con,
+static void _on_read_by_group_type_req(gorm_ctx_t *con,
                                        gorm_buf_t *buf,
                                        uint8_t *data, size_t len)
 {
@@ -141,8 +141,7 @@ error:
     _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
 }
 
-static void _on_read_by_type_req(gorm_ll_connection_t *con,
-                                 gorm_buf_t *buf,
+static void _on_read_by_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
                                  uint8_t *data, size_t len)
 {
     /* this message type is used in GATT to
@@ -199,7 +198,7 @@ error:
     _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
 }
 
-static void _on_read_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
+static void _on_read_req(gorm_ctx_t *con, gorm_buf_t *buf,
                          uint8_t *data, size_t len)
 {
     /* this message type is used in GATT for:
@@ -247,7 +246,7 @@ static void _on_read_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
     }
 }
 
-static void _on_write_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
+static void _on_write_req(gorm_ctx_t *con, gorm_buf_t *buf,
                           uint8_t *data, size_t len)
 {
     if (len < 3) {
@@ -277,7 +276,7 @@ static void _on_write_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
     }
 }
 
-static void _on_find_info_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
+static void _on_find_info_req(gorm_ctx_t *con, gorm_buf_t *buf,
                               uint8_t *data, size_t len)
 {
     gorm_gatt_tab_iter_t iter;
@@ -314,7 +313,7 @@ static void _on_find_info_req(gorm_ll_connection_t *con, gorm_buf_t *buf,
     gorm_l2cap_reply(con, buf, pos);
 }
 
-void _on_find_by_type_val(gorm_ll_connection_t *con, gorm_buf_t *buf,
+void _on_find_by_type_val(gorm_ctx_t *con, gorm_buf_t *buf,
                           uint8_t *data, size_t len)
 {
     if ((len != 9) && (len != 23)) {
@@ -368,7 +367,7 @@ void gorm_gatt_server_init(void)
     DEBUG("[gorm_gatt] initialization successful\n");
 }
 
-void gorm_gatt_on_data(gorm_ll_connection_t *con, gorm_buf_t *buf,
+void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len)
 {
     uint32_t now = xtimer_now_usec();

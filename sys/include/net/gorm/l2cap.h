@@ -19,9 +19,8 @@
 #ifndef GORM_L2CAP_H
 #define GORM_L2CAP_H
 
-#include "net/gorm/ll.h"
-#include "net/gorm/pduq.h"
-#include "net/gorm/util.h"
+#include "net/gorm.h"
+#include "net/gorm/buf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,15 +40,13 @@ extern "C" {
 #define GORM_L2CAP_HDR_LEN          (4U)
 
 /* higher layer interface functions */
-int gorm_l2cap_send(gorm_ll_connection_t *con, void *data, size_t len);
+int gorm_l2cap_send(gorm_ctx_t *con, void *data, size_t len);
 
 
 
-void gorm_l2cap_reply(gorm_ll_connection_t *con,
-                      gorm_buf_t *buf, uint16_t data_len);
+void gorm_l2cap_reply(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t data_len);
 
-void gorm_l2cap_on_data(gorm_ll_connection_t *con, uint8_t llid,
-                        gorm_buf_t *data);
+void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *data);
 
 #ifdef __cplusplus
 }

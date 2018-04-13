@@ -235,7 +235,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
         /* if the packet contains actual payload we pass it to the host */
         if (con->in_rx->pkt.len > 0) {
             gorm_pduq_enq(&con->rxq, con->in_rx);
-            gorm_ll_host_notify(con);
+            gorm_ll_host_notify((gorm_ctx_t *)con);
             con->in_rx = NULL;
         }
         /* and we ACK the incoming packet */
@@ -360,8 +360,6 @@ static void _on_connection_event_close(void *arg)
     /* setup the next connection event */
     gorm_arch_timer_set_from_last(&con->timer_con, offset,
                                   _on_connection_event_start, con);
-
-    // LED5_ON;
 }
 
 static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
@@ -625,7 +623,7 @@ int gorm_ll_adv_start(gorm_ll_ctx_t *con)
     return GORM_OK;
 }
 
-void gorm_ll_periph_terminate(gorm_ctx_t *con)
+void gorm_ll_periph_terminate(gorm_ll_ctx_t *con)
 {
     unsigned is = irq_disable();
     gorm_ll_trx_stop();

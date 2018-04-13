@@ -39,6 +39,7 @@
 
 #include <stdint.h>
 
+#include "net/ble.h"
 #include "net/gorm/ll.h"
 #include "net/gorm/config.h"
 

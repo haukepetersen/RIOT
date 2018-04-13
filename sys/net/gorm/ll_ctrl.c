@@ -1,13 +1,10 @@
 
 #include <string.h>
 
-#include "net/ble.h"
-#include "net/gorm/ll.h"
-#include "net/gorm/ll/chan.h"
 #include "net/gorm/util.h"
-#include "net/gorm/pduq.h"
 #include "net/gorm/pdupool.h"
-#include "net/gorm/config.h"
+#include "net/gorm/ll/chan.h"
+#include "net/gorm/ll/ctrl.h"
 
 #define ENABLE_DEBUG                (1)
 #include "debug.h"
@@ -31,24 +28,23 @@ static void _feature_resp(gorm_buf_t *buf)
     memcpy(&buf->pkt.pdu[1], &features, sizeof(uint64_t));
 }
 
-/* TODO: deduct BLE version from actually enabled features? */
 static void _ctrl_version(gorm_buf_t *buf)
 {
     buf->pkt.len = 6;
     buf->pkt.pdu[0] = BLE_LL_VERSION_IND;
-    buf->pkt.pdu[1] = BLE_VERSION_50;
+    buf->pkt.pdu[1] = GORM_CFG_VERSION;
     gorm_util_htoles(&buf->pkt.pdu[2], GORM_CFG_VENDOR_ID);
     gorm_util_htoles(&buf->pkt.pdu[4], GORM_CFG_SUB_VERS_NR);
 }
 
-static void _connection_update(gorm_ll_connection_t *con, gorm_buf_t *buf)
+static void _connection_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
 {
     con->timings_update.instant =
         (gorm_util_letohs(&buf->pkt.pdu[1 + CON_UPDATE_LEN]));
     memcpy(con->timings_update.raw, &buf->pkt.pdu[1], CON_UPDATE_LEN);
 }
 
-static void _channel_update(gorm_ll_connection_t *con, gorm_buf_t *buf)
+static void _channel_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
 {
     con->chan_update.instant =
         (gorm_util_letohs(&buf->pkt.pdu[1 + BLE_CHANMAP_LEN]));
@@ -56,7 +52,7 @@ static void _channel_update(gorm_ll_connection_t *con, gorm_buf_t *buf)
     con->chan_update.cnt = gorm_ll_chan_count(con->chan_update.map);
 }
 
-static void _terminate(gorm_ll_connection_t *con, gorm_buf_t *buf)
+static void _terminate(gorm_ll_ctx_t *con, gorm_buf_t *buf)
 {
     /* TODO: code (buf[1]) needed for anything*/
     (void)buf;
@@ -72,30 +68,31 @@ static void _terminate(gorm_ll_connection_t *con, gorm_buf_t *buf)
 // }
 
 
-void gorm_ll_ctrl_on_data(gorm_ll_connection_t *con, gorm_buf_t *buf)
+void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
 {
     switch (buf->pkt.pdu[0]) {
         case BLE_LL_CONN_UPDATE_IND:
-            _connection_update(con, buf);
+            _connection_update(&con->ll, buf);
+            gorm_pdupool_return(buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed UPDATE_IND\n");
             break;
         case BLE_LL_CHANNEL_MAP_IND:
-            _channel_update(con, buf);
+            _channel_update(&con->ll, buf);
             gorm_pdupool_return(buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed CHANNEL_MAP_IND\n");
             break;
         case BLE_LL_TERMINATE_IND:
-            _terminate(con, buf);
+            _terminate(&con->ll, buf);
             DEBUG("[gorm_ll_ctrl] on_data: processed TERMINATE_IND\n");
             break;
         case BLE_LL_FEATURE_REQ:
             _feature_resp(buf);
-            gorm_pduq_enq(&con->txq, buf);
+            gorm_pduq_enq(&con->ll.txq, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to FEATURE_REQ\n");
             break;
         case BLE_LL_VERSION_IND:
             _ctrl_version(buf);
-            gorm_pduq_enq(&con->txq, buf);
+            gorm_pduq_enq(&con->ll.txq, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to VERSION_IND\n");
             break;
         case BLE_LL_ENC_REQ:

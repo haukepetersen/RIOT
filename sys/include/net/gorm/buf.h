@@ -8,29 +8,26 @@
 
 /**
  * @ingroup     net_gorm
- * @brief
  * @{
  *
  * @file
- * @brief       Gorm's interface for handling link layer control messages
+ * @brief       Gorm's buffer management
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_LL_CTRL_H
-#define GORM_LL_CTRL_H
+#ifndef NET_GORM_BUF_H
+#define NET_GORM_BUF_H
 
-#include "net/gorm.h"
+#include "net/netdev/ble.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/**
+ * @brief   Generic packet buffer structure used throughout Gorm
+ */
+typedef struct gorm_pdu {
+    struct gorm_pdu *next;
+    netdev_ble_pkt_t pkt;
+} gorm_buf_t;
 
-void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* GORM_LL_CTRL_H */
+#endif /* NET_GORM_BUF_H */
 /** @} */

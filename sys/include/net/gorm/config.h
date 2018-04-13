@@ -75,6 +75,10 @@ extern "C" {
 #endif
 
 
+#ifndef GORM_CFG_VERSION
+#define GORM_CFG_VERSION                            BLE_VERSION_50
+#endif
+
 #ifndef GORM_CFG_VENDOR_ID
 #define GORM_CFG_VENDOR_ID                          (0xffff)
 #endif

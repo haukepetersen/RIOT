@@ -36,21 +36,21 @@ uint8_t gorm_ll_chan_count(const uint8_t *map)
     return cnt;
 }
 
-void gorm_ll_chan_algo1(gorm_ctx_t *con)
+void gorm_ll_chan_algo1(gorm_ll_ctx_t *con)
 {
-    con->ll.chan_unmapped = (con->ll.chan_unmapped + con->ll.chan_hop) %
+    con->chan_unmapped = (con->chan_unmapped + con->chan_hop) %
                          BLE_CHAN_DAT_NUMOF;
-    if (_chan_used(con->ll.chan_map, con->ll.chan_unmapped)) {
-        con->ll.ctx.chan = con->ll.chan_unmapped;
+    if (_chan_used(con->chan_map, con->chan_unmapped)) {
+        con->ctx.chan = con->chan_unmapped;
     }
     else {
-        unsigned remap_index = (con->ll.chan_unmapped % con->ll.chan_cnt) + 1;
+        unsigned remap_index = (con->chan_unmapped % con->chan_cnt) + 1;
         int pos = -1;
         while (remap_index > 0) {
             /* advance to the next used channel */
-            while (_chan_used(con->ll.chan_map, ++pos) == 0) {}
+            while (_chan_used(con->chan_map, ++pos) == 0) {}
             --remap_index;
         }
-        con->ll.ctx.chan = pos;
+        con->ctx.chan = pos;
     }
 }

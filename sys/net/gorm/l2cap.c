@@ -1,4 +1,7 @@
 
+
+
+#include "net/gorm/util.h"
 #include "net/gorm/l2cap.h"
 #include "net/gorm/gatt.h"
 #include "net/gorm/pdupool.h"
@@ -8,7 +11,7 @@
 
 
 
-int gorm_l2cap_send(gorm_ll_connection_t *con, void *data, size_t len)
+int gorm_l2cap_send(gorm_ctx_t *con, void *data, size_t len)
 {
     (void)con;
     (void)data;
@@ -29,15 +32,14 @@ int gorm_l2cap_send(gorm_ll_connection_t *con, void *data, size_t len)
     return len;
 }
 
-void gorm_l2cap_reply(gorm_ll_connection_t *con,
-                      gorm_buf_t *buf, uint16_t data_len)
+void gorm_l2cap_reply(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t data_len)
 {
     gorm_util_htoles(buf->pkt.pdu, data_len);
     buf->pkt.len = (uint8_t)(data_len + GORM_L2CAP_HDR_LEN);
-    gorm_pduq_enq(&con->txq, buf);
+    gorm_pduq_enq(&con->ll.txq, buf);
 }
 
-void gorm_l2cap_on_data(gorm_ll_connection_t *con, uint8_t llid, gorm_buf_t *buf)
+void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
 {
     (void)llid; /* for future use */
 
