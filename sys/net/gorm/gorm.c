@@ -51,5 +51,5 @@ void gorm_init(netdev_t *dev)
     gorm_gatt_server_init();
 #endif
 
-    gorm_ll_host_init();
+    gorm_host_init();
 }

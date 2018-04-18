@@ -202,11 +202,10 @@ static size_t _on_gap_name(const gorm_gatt_char_t *characteristic,
                            uint8_t method, uint8_t *buf, size_t buf_len)
 {
     (void)characteristic;
-    /* TODO: check method */
-    (void)method;
 
-    DEBUG("READ READ READ: _on_gap_name()!\n");
-
+    if (method != GORM_GATT_READ) {
+        return 0;
+    }
     return gorm_gap_copy_name(buf, buf_len);
 }
 
@@ -214,29 +213,22 @@ static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
                                  uint8_t method, uint8_t *buf, size_t buf_len)
 {
     (void)characteristic;
-    (void)method;
-    (void)buf;
-    (void)buf_len;
 
-    if (buf_len >= 2) {
-        DEBUG("READ READ READ _on_gap_appearance()\n");
-        gorm_gap_copy_appearance(buf);
-        return 2;
+    if (method != GORM_GATT_READ) {
+        return 0;
     }
-    return 0;
+    return gorm_gap_copy_appearance(buf, buf_len);
 }
 
 static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
                                 uint8_t method, uint8_t *buf, size_t buf_len)
 {
     (void)characteristic;
-    /* TODO: check this... */
-    (void)method;
 
-    DEBUG("READ READ READ: _on_gap_con_param()!\n");
-
-    /* TODO */
-    return 0;
+    if (method != GORM_GATT_READ) {
+        return 0;
+    }
+    return gorm_gap_copy_con_params(buf, buf_len);
 }
 
 void gorm_gatt_tab_init(void)

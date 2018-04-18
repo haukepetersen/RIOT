@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017,2018 Freie Universität Berlin
+ * Copyright (C) 2017-2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     net_gorm
+ * @ingroup     net_gorm_ll
  * @{
  *
  * @file
@@ -21,15 +21,11 @@
 #ifndef GORM_LL_H
 #define GORM_LL_H
 
-#include "mutex.h"
-#include "assert.h"
-#include "event/timeout.h"
-#include "event/callback.h"
-
-#include "net/ble.h"
 #include "net/netdev/ble.h"
+
 #include "net/gorm/buf.h"
 #include "net/gorm/arch/timer.h"
+#include "net/gorm/gap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,52 +37,6 @@ extern "C" {
  */
 #define GORM_LL_ADV_AA          (0x8e89bed6)
 #define GORM_LL_ADV_CRC         (0x00555555)
-/** @} */
-
-/* TODO: moved to ble.h */
-/**
- * @name    BLE advertising data packet types
- * @{
- */
-#define GORM_LL_PDU_MASK        (0x0f)
-#define GORM_LL_ADV_IND         (0x00)
-#define GORM_LL_DIRECT_IND      (0x01)
-#define GORM_LL_ADV_NONCON_IND  (0x02)
-#define GORM_LL_SCAN_REQ        (0x03)
-#define GORM_LL_AUX_SCAN_REQ    (0x03)
-#define GORM_LL_SCAN_RESP       (0x04)
-#define GORM_LL_CONNECT_IND     (0x05)
-#define GORM_LL_AUX_CONNECT_REQ (0x05)
-#define GORM_LL_ADV_SCAN_IND    (0x06)
-#define GORM_LL_ADV_EXT_IND     (0x07)
-#define GORM_LL_AUX_ADV_IND     (0x07)
-#define GORM_LL_AUX_SCAN_RSP    (0x07)
-#define GORM_LL_AUX_SYNC_IND    (0x07)
-#define GORM_LL_AUX_CHAIN_IND   (0x07)
-#define GORM_LL_CONNECT_RESP    (0x08)
-/** @} */
-
-/**
- * @name    Advertising data PDU flags
- */
-#define GORM_LL_FLAG_CHSEL      (0x20)
-#define GORM_LL_FLAG_TXADD      (0x40)
-#define GORM_LL_FLAG_RXADD      (0x80)
-/** @} */
-
-/**
- * @name    Link layer data PDU flags
- * @{
- */
-#define GORM_LL_LLID_MASK       (0x03)
-#define GORM_LL_LLID_DATA_CONT  (0x01)  /**< continued or empty packet */
-#define GORM_LL_LLID_DATA_START (0x02)
-#define GORM_LL_LLID_CTRL       (0x03)
-#define GORM_LL_NESN            (0x04)  /**< next expected sequence number */
-#define GORM_LL_SN              (0x08)  /**< sequence number */
-#define GORM_LL_MD              (0x10)  /**< more data */
-#define GORM_LL_SEQ_MASK        (0x0c)  /**< mask SN and NESN */
-#define GORM_LL_FLOW_MASK       (0x1c)  /**< mask SN, NESN, and MD */
 /** @} */
 
 /**
@@ -101,15 +51,6 @@ extern "C" {
 #define GORM_LL_STATE_ADV_ONLY  (0x06)
 /** @} */
 
-/* TODO: revmove, right? */
-typedef struct {
-    gorm_arch_timer_t timer;
-    uint32_t interval;
-    netdev_ble_pkt_t *pkt;
-} gorm_ll_adv_nonconn_t;
-
-
-/* TODO: re-order fields to optimize memory usage... */
 typedef struct  gorm_ll_connection_struct {
     /* connection state: holds ll state, flow control, and anchor state */
     uint8_t state;
@@ -119,11 +60,8 @@ typedef struct  gorm_ll_connection_struct {
     uint16_t event_counter;
     netdev_ble_ctx_t ctx;
 
-    /* pointer to advertising data */
-    uint8_t *adv_data;
-    uint8_t adv_data_len;
-    uint8_t *scan_data;
-    uint8_t scan_data_len;
+    /* pointer to advertising configuration and data */
+    const gorm_gap_adv_ctx_t *gap;
 
     /* remember address of connected peer */
     uint8_t peer_addr[BLE_ADDR_LEN];
@@ -144,7 +82,6 @@ typedef struct  gorm_ll_connection_struct {
     uint32_t timeout_rx;        /**< receive timeout */
     uint32_t interval;          /**< connection event interval */
     uint16_t slave_latency; /**< count number of connection events, reset on new connection */
-    // uint32_t adv_interval;   /**< -> we use a static define for this (for now) */
 
     /* buffered timing parameter update values */
     struct {
@@ -171,19 +108,16 @@ typedef struct  gorm_ll_connection_struct {
 } gorm_ll_ctx_t;
 
 
-extern event_queue_t gorm_ll_runqueue;
-extern event_queue_t gorm_ll_waitqueue;
-
-/* TODO: only include in peripheral, scanner, and central roles */
-extern event_callback_t gorm_ll_rx_action;
-
 void gorm_ll_host_init(void);
 
+
 int gorm_ll_controller_init(netdev_t *dev);
-// void gorm_ll_run(netdev_t *dev);
 
+int gorm_ll_adv_conn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
+int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
+int gorm_ll_adv_stop(gorm_ll_ctx_t *ctx);
 
-uint8_t *gorm_ll_addr_rand(void);
+int gorm_ll_terminate(gorm_ll_ctx_t *ctx);
 
 
 /* TODO: merge broadcaster code with `ll_perihp`, use gorm_ll_connection_t for
@@ -209,10 +143,10 @@ static inline void gorm_ll_adv_nonconn_stop(gorm_ll_adv_nonconn_t *adv)
 
 
 #ifdef MODULE_GORM_PERIPHERAL
-void gorm_ll_periph_init(void);
-void gorm_ll_periph_adv_start(void);
-void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
-                              void *ad_scan, size_t scan_len);
+// void gorm_ll_periph_init(void);
+// void gorm_ll_periph_adv_start(void);
+// void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
+//                               void *ad_scan, size_t scan_len);
 
 /**
  * @brief   Close the given connection, independent of its state
@@ -223,7 +157,7 @@ void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
  *
  * @param[in,out] con   connection to close
  */
-void gorm_ll_periph_terminate(gorm_ll_ctx_t *con);
+// void gorm_ll_periph_terminate(gorm_ll_ctx_t *con);
 #endif
 
 /**
@@ -232,7 +166,7 @@ void gorm_ll_periph_terminate(gorm_ll_ctx_t *con);
  * @param con [description]
  * @return [description]
  */
-int gorm_ll_adv_start(gorm_ll_ctx_t *con);
+// int gorm_ll_adv_start(gorm_ll_ctx_t *con);
 
 #ifdef __cplusplus
 }

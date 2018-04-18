@@ -492,6 +492,46 @@ extern "C" {
 #define BLE_LL_MIN_USED_CHAN_IND            (0x19)
 /** @} */
 
+/**
+ * @name    Link layer advertising channel PDU flags
+ * @{
+ */
+#define BLE_LL_PDU_MASK                     (0x0f)
+#define BLE_LL_ADV_IND                      (0x00)
+#define BLE_LL_DIRECT_IND                   (0x01)
+#define BLE_LL_ADV_NONCON_IND               (0x02)
+#define BLE_LL_SCAN_REQ                     (0x03)
+#define BLE_LL_AUX_SCAN_REQ                 (0x03)
+#define BLE_LL_SCAN_RESP                    (0x04)
+#define BLE_LL_CONNECT_IND                  (0x05)
+#define BLE_LL_AUX_CONNECT_REQ              (0x05)
+#define BLE_LL_ADV_SCAN_IND                 (0x06)
+#define BLE_LL_ADV_EXT_IND                  (0x07)
+#define BLE_LL_AUX_ADV_IND                  (0x07)
+#define BLE_LL_AUX_SCAN_RSP                 (0x07)
+#define BLE_LL_AUX_SYNC_IND                 (0x07)
+#define BLE_LL_AUX_CHAIN_IND                (0x07)
+#define BLE_LL_CONNECT_RESP                 (0x08)
+#define BLE_LL_CHSEL                        (0x20)
+#define BLE_LL_TXADD                        (0x40)
+#define BLE_LL_RXADD                        (0x80)
+/** @} */
+
+/**
+ * @name    Link layer data channel PDU flags
+ * @{
+ */
+#define BLE_LL_LLID_MASK            (0x03)
+#define BLE_LL_LLID_DATA_CONT       (0x01)  /**< continued or empty packet */
+#define BLE_LL_LLID_DATA_START      (0x02)
+#define BLE_LL_LLID_CTRL            (0x03)
+#define BLE_LL_NESN                 (0x04)  /**< next expected sequence number */
+#define BLE_LL_SN                   (0x08)  /**< sequence number */
+#define BLE_LL_MD                   (0x10)  /**< more data */
+#define BLE_LL_SEQ_MASK             (0x0c)  /**< mask SN and NESN */
+#define BLE_LL_FLOW_MASK            (0x1c)  /**< mask SN, NESN, and MD */
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif

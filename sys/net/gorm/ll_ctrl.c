@@ -44,7 +44,7 @@ static void _terminate(gorm_ll_ctx_t *con, gorm_buf_t *buf)
     gorm_ll_terminate(con);
 }
 
-static void _feature_resp(gorm_buf_t *buf)
+static void _feature_resp(gorm_ctx_t *con, gorm_buf_t *buf)
 {
     buf->pkt.len = sizeof(uint64_t) + 1;
     buf->pkt.pdu[0] = BLE_LL_FEATURE_RSP;
@@ -52,7 +52,7 @@ static void _feature_resp(gorm_buf_t *buf)
     gorm_buf_enq(&con->ll.txq, buf);
 }
 
-static void _ctrl_version(gorm_buf_t *buf)
+static void _ctrl_version(gorm_ctx_t *con, gorm_buf_t *buf)
 {
     buf->pkt.len = 6;
     buf->pkt.pdu[0] = BLE_LL_VERSION_IND;
@@ -78,11 +78,11 @@ void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             DEBUG("[gorm_ll_ctrl] on_data: processed TERMINATE_IND\n");
             break;
         case BLE_LL_FEATURE_REQ:
-            _feature_resp(buf);
+            _feature_resp(con, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to FEATURE_REQ\n");
             break;
         case BLE_LL_VERSION_IND:
-            _ctrl_version(buf);
+            _ctrl_version(con, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to VERSION_IND\n");
             break;
         case BLE_LL_ENC_REQ:

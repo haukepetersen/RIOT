@@ -29,10 +29,13 @@
 #include "net/gorm/gatt/desc.h"
 #include "net/ggs/riot.h"
 
+/* for the example, we chose the appearance of a generic computer */
+#define APPEARANCE      (0x0080)
+
 #define UUID_INFO       (0x0815)
 #define UUID_INFO_TEXT  (0x0816)
 
-static uint8_t gap_ad[GORM_GAP_AD_MAXLEN];
+// static uint8_t gap_ad[GORM_GAP_AD_MAXLEN];
 
 // static gorm_ctx_t _con;
 
@@ -92,22 +95,20 @@ static size_t _info_cb(const gorm_gatt_char_t *characteristic, uint8_t method,
 
 int main(void)
 {
-    puts("Gorm's GATT example");
+    puts("Gorm's GATT example\n");
 
     /* register the GATT service */
     gorm_gatt_tab_reg_service(&info_entry, &info_service);
 
     /* setup the GAP fields for advertising our services */
-    gorm_gap_init(device_name, 0);
-    /* TODO: move this to some more central place away from the user */
-    /* TODO: make this run per default but enable custom way to do it */
-    size_t pos = gorm_gap_ad_add_flags(gap_ad, 0, GORM_GAP_FLAGS_DEFAULT);
-    pos = gorm_gap_ad_add(gap_ad, pos, GORM_GAP_NAME, device_name, 4);
-    /* TODO: remove and make implicit by connection host and GAP modules */
-    gorm_ll_periph_adv_setup(gap_ad, pos, NULL, 0);
+    gorm_gap_init(NULL, device_name, APPEARANCE);
+    gorm_gap_print();
 
-    /* start advertising this node */
-    // gorm_gap_adv_start();
+    /* start advertising */
+    gorm_host_adv_start();
+
+    /* and run the host event loop */
+    gorm_host_run();
 
     return 0;
 }

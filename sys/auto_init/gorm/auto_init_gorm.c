@@ -67,16 +67,6 @@ void auto_init_gorm(void)
     /* initialize Gorm */
     gorm_init(dev);
 
-    /* run Gorm's link layer */
-    // LOG_DEBUG("[auto_init_gorm] setting up Gorm's link layer thread now\n");
-    // thread_create(stack_ctrl,
-    //               sizeof(stack_ctrl),
-    //               GORM_CFG_THREAD_PRIO_CONTROLLER,
-    //               TFLAGS,
-    //               ctrl_thread,
-    //               dev,
-    //               GORM_CFG_THREAD_NAME_CONTROLLER);
-
     /* if standalone mode is activated, we also spawn Gorm's host thread now */
 #ifdef MODULE_GORM_STANDALONE
     LOG_DEBUG("[auto_init_gorm] setting up Gorm's host thread now\n");

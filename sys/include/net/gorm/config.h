@@ -19,16 +19,14 @@
 #ifndef GORM_CONFIG_H
 #define GORM_CONFIG_H
 
+#include "timex.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef GORM_CFG_CONNECTIONS_NUMOF
-#define GORM_CFG_CONNECTIONS_NUMOF                  (4U)
-#endif
-
-#ifndef GORM_CFG_LL_PERIPH_ADV_INTERVAL
-#define GORM_CFG_LL_PERIPH_ADV_INTERVAL             (1U * US_PER_SEC)
+#ifndef GORM_CFG_CONNECTION_NUMOF
+#define GORM_CFG_CONNECTION_NUMOF                   (4U)
 #endif
 
 #ifndef GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION
@@ -37,6 +35,38 @@ extern "C" {
 
 #ifndef GORM_CFG_LL_PERIPH_ADV_CHANNELS
 #define GORM_CFG_LL_PERIPH_ADV_CHANNELS             { 37, 38, 39 }
+#endif
+
+#ifndef GORM_CFG_DEFAULT_ADV_INTERVAL
+#define GORM_CFG_DEFAULT_ADV_INTERVAL               (1U * US_PER_SEC)
+#endif
+
+/**
+ * @brief   Default minimum connection interval, default is 5ms (4 * 1.25ms)
+ */
+#ifndef GORM_CFG_CON_PARAM_MIN_INTERVAL
+#define GORM_CFG_CON_PARAM_MIN_INTERVAL             (4U)
+#endif
+
+/**
+ * @brief   Maximum connection interval, default is 1s (800  * 1.25ms)
+ */
+#ifndef GORM_CFG_CON_PARAM_MAX_INTERVAL
+#define GORM_CFG_CON_PARAM_MAX_INTERVAL             (800U)
+#endif
+
+/**
+ * @brief   Preferred slave latency, default is 10
+ */
+#ifndef GORM_CFG_CON_PARAM_LATENCY
+#define GORM_CFG_CON_PARAM_LATENCY                  (10U)
+#endif
+
+/**
+ * @brief   Preferred connection timeout, default is 5s (4000 * 1.25ms)
+ */
+#ifndef GORM_CFG_CON_PARAM_TIMEOUT
+#define GORM_CFG_CON_PARAM_TIMEOUT                  (4000U)
 #endif
 
 /* ADVANCED */
