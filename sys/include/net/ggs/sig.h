@@ -18,8 +18,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_SERVICE_RIOT_H
-#define GORM_SERVICE_RIOT_H
+#ifndef GGS_SERVICE_SIG_H
+#define GGS_SERVICE_SIG_H
 
 #include "net/gorm/gatt.h"
 
@@ -39,11 +39,11 @@ extern "C" {
 /**
  * @brief   Export the `Internet Protocol Support Service`
  */
-extern const gorm_gatt_service_t ggs_ips_service;
+extern gorm_gatt_service_t ggs_ips_service;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GORM_SERVICE_RIOT_H */
+#endif /* GGS_SERVICE_SIG_H */
 /** @} */

@@ -66,7 +66,7 @@ size_t gorm_uuid_to_buf(uint8_t *buf, const gorm_uuid_t *uuid);
  * @return  0 if UUIDs are different
  * @return  != 0 if UUIDs are equal
  */
-int gorm_uuid_cmp(const gorm_uuid_t *a, const gorm_uuid_t *b);
+int gorm_uuid_equal(const gorm_uuid_t *a, const gorm_uuid_t *b);
 
 
 static inline int gorm_uuid_sig(const gorm_uuid_t *uuid)

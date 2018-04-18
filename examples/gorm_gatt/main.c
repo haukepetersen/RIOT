@@ -24,7 +24,6 @@
 #include "net/gorm/ll.h"
 #include "net/gorm/gap.h"
 #include "net/gorm/host.h"
-#include "net/gorm/gatt.h"
 #include "net/gorm/gatt/tab.h"
 #include "net/gorm/gatt/desc.h"
 #include "net/ggs/riot.h"
@@ -41,33 +40,6 @@
 
 static const char *device_name = "RIOT";
 static const char *info_str = "Hackschnitzel";
-
-static size_t _info_cb(const gorm_gatt_char_t *characteristic, uint8_t method,
-                       uint8_t *buf, size_t buf_len);
-
-static gorm_gatt_entry_t info_entry;
-
-static const gorm_gatt_desc_t info_desc[] = {
-    GORM_GATT_DESC_FMT(BLE_UNIT_BLE_FMT_UTF8, 0, BLE_UNIT_NONE),
-    GORM_GATT_DESC_EXT_PROP(0, 0),
-};
-
-static const gorm_gatt_char_t info_char[] = {
-    {
-        .type     = GORM_UUID(UUID_INFO_TEXT, &ggs_uuid_riot_base),
-        .arg      = (void *)23,
-        .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
-        .cb       = _info_cb,
-        .desc_cnt = 1,
-        .desc     = info_desc,
-    },
-};
-
-static const gorm_gatt_service_t info_service = {
-    .uuid     = GORM_UUID(UUID_INFO, &ggs_uuid_riot_base),
-    .char_cnt = 1,
-    .chars    = info_char,
-};
 
 static size_t _info_cb(const gorm_gatt_char_t *characteristic, uint8_t method,
                       uint8_t *buf, size_t buf_len)
@@ -93,12 +65,34 @@ static size_t _info_cb(const gorm_gatt_char_t *characteristic, uint8_t method,
     return GORM_GATT_OP_NOT_SUPPORTED;
 }
 
+static const gorm_gatt_desc_t info_desc[] = {
+    GORM_GATT_DESC_FMT(BLE_UNIT_BLE_FMT_UTF8, 0, BLE_UNIT_NONE),
+    GORM_GATT_DESC_EXT_PROP(0, 0),
+};
+
+static const gorm_gatt_char_t info_char[] = {
+    {
+        .type     = GORM_UUID(UUID_INFO_TEXT, &ggs_uuid_riot_base),
+        .arg      = (void *)23,
+        .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
+        .cb       = _info_cb,
+        .desc_cnt = 1,
+        .desc     = info_desc,
+    },
+};
+
+static gorm_gatt_service_t info_service = {
+    .uuid     = GORM_UUID(UUID_INFO, &ggs_uuid_riot_base),
+    .char_cnt = 1,
+    .chars    = info_char,
+};
+
 int main(void)
 {
     puts("Gorm's GATT example\n");
 
     /* register the GATT service */
-    gorm_gatt_tab_reg_service(&info_entry, &info_service);
+    gorm_gatt_tab_reg_service(&info_service);
 
     /* setup the GAP fields for advertising our services */
     gorm_gap_init(NULL, device_name, APPEARANCE);

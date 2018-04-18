@@ -214,7 +214,7 @@ static const gorm_gatt_char_t _led_chars[] = {
 #endif
 };
 
-const gorm_gatt_service_t ggs_riot_led_service = {
+gorm_gatt_service_t ggs_riot_led_service = {
     .uuid  = GORM_UUID(GORM_UUID_RIOT_LED_SERVICE, &ggs_uuid_riot_base),
     .char_cnt = NUMOF_LED,
     .chars = _led_chars,

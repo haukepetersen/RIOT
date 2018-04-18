@@ -67,7 +67,7 @@ static void _on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             gorm_l2cap_on_data(con, llid, buf);
             break;
         default:
-            DEBUG("[gorm_ll_host] on_data: invalid LLID value\n");
+            DEBUG("[gorm_host] on_data: invalid LLID value\n");
             gorm_buf_return(buf);
             break;
     }
@@ -93,7 +93,7 @@ void gorm_host_run(void)
     DEBUG("[gorm_host] run: running Gorm's host event loop\n");
 
     while (thread_flags_wait_any(NOTIFY_FLAG)) {
-        DEBUG("[gorm_ll_host] run: got notified about incoming data! ~~~~~~~~~~~\n");
+        DEBUG("[gorm_host] run: got notified about incoming data! ~~~~~~~~~~~\n");
 
         /* TODO: find better and more efficient way to select and dispatch the
          *       the pending data! */

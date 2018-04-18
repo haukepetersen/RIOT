@@ -27,12 +27,14 @@
 #define ENABLE_DEBUG                (1)
 #include "debug.h"
 
-#define HANDLE_GAP                  (0x0100)
-#define HANDLE_ATT                  (0x0200)
+#define FIRST_SIG_HANDLE            (0x0100)
 #define FIRST_CUSTOM_HANDLE         (0x8100)
 
 #define NONSIG_FLAG                 (0x8000)
+#define SERVICE_NUM_MASK            (0x7f00)
 #define SERVICE_MASK                (0xff00)
+#define SERVICE_HANDLE_INC          (0x0100)
+#define SERVICE_HANDLE_LAST         (0xff00)
 #define CHAR_MASK                   (0x00f8)
 #define CHAR_INC                    (0x0010)
 #define CHAR_NUM_MASK               (0x00f0)
@@ -42,86 +44,36 @@
 #define DESC_INC                    (0x0001)
 #define VAL_DESC_MASK               (0x000f)
 
-static gorm_gatt_entry_t gap_entry;
-static gorm_gatt_entry_t att_entry;
-static gorm_gatt_entry_t *customs = NULL;
-
+static gorm_gatt_entry_t *_sig = NULL;
+static gorm_gatt_entry_t *_custom = NULL;
 static mutex_t lock = MUTEX_INIT;
 
-/* forward declarations of callbacks for mandatory characteristics */
-static size_t _on_gap_name(const gorm_gatt_char_t *characteristic,
-                           uint8_t method, uint8_t *buf, size_t buf_len);
-static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
-                                 uint8_t method, uint8_t *buf, size_t buf_len);
-static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
-                                uint8_t method, uint8_t *buf, size_t buf_len);
-
-/* declare mandatory services */
-static const gorm_gatt_service_t gap_service = {
-    .uuid  = GORM_UUID(GORM_UUID_GAP, NULL),
-    .char_cnt = 2,
-    .chars = (gorm_gatt_char_t[]){
-        {
-            .cb   = _on_gap_name,
-            .type = GORM_UUID(GORM_UUID_DEVICE_NAME, NULL),
-            .perm = BLE_ATT_READ,
-        },
-        {
-            .cb   = _on_gap_appearance,
-            .type = GORM_UUID(GORM_UUID_APPEARANCE, NULL),
-            .perm = BLE_ATT_READ,
-        },
-        {
-            .cb   = _on_gap_con_param,
-            .type = GORM_UUID(GORM_UUID_PREF_CON_PARAM, NULL),
-            .perm = BLE_ATT_READ,
-        },
-    },
-};
-
-static const gorm_gatt_service_t att_service = {
-    .uuid  = GORM_UUID(GORM_UUID_ATT, NULL),
-    .char_cnt = 0,
-    .chars = NULL,
-};
-
 /* good */
-static gorm_gatt_entry_t *_get_table(uint16_t handle)
+static gorm_gatt_entry_t *_get_table_by_handle(uint16_t handle)
 {
-    return (handle & NONSIG_FLAG) ? customs : &gap_entry;
+    return (handle & NONSIG_FLAG) ? _custom : _sig;
 }
 
-/* REMOVE, use '_get_entry()' instead */
-static gorm_gatt_entry_t *_get_exact(uint16_t handle)
+static gorm_gatt_service_t *_get_table_by_uuid(gorm_uuit_t *uuid)
 {
-    gorm_gatt_entry_t *res = _get_table(handle);
-    DEBUG("get_exact: base is %p\n", res);
-    while (res && (res->handle != handle)) {
-        res = res->next;
-    }
-    return res;
+    return (gorm_uuid_sig(uuid)) ? _sig : _custom;
 }
 
-static gorm_gatt_entry_t *_get_last(gorm_gatt_entry_t *start)
-{
-    assert(start);
+// /* REMOVE, use '_get_entry()' instead */
+// static gorm_gatt_entry_t *_get_exact(uint16_t handle)
+// {
+//     gorm_gatt_entry_t *res = _get_table(handle);
+//     DEBUG("get_exact: base is %p\n", res);
+//     while (res && (res->handle != handle)) {
+//         res = res->next;
+//     }
+//     return res;
+// }
 
-    while (start->next != NULL) {
-        start = start->next;
-    }
-    return start;
-}
-
-/* good */
-static uint16_t _next_service_handle(uint16_t last)
-{
-    return (((last >> 8) + 1) << 8);
-}
-
-static uint16_t _char_handle(uint16_t base, uint8_t num)
-{
-    return ((base & SERVICE_MASK) | (((num + 1) << CHAR_NUM_POS) & CHAR_NUM_MASK));
-}
+// static uint16_t _char_handle(uint16_t base, uint8_t num)
+// {
+//     return ((base & SERVICE_MASK) | (((num + 1) << CHAR_NUM_POS) & CHAR_NUM_MASK));
+// }
 
 
 
@@ -163,13 +115,13 @@ static uint16_t _find_char_handle(uint16_t start_handle)
 }
 
 /* good */
-static gorm_gatt_entry_t *_get_entry(uint16_t handle)
+static gorm_gatt_service_t *_get_service(uint16_t handle)
 {
-    gorm_gatt_entry_t *e = _get_table(handle);
-    while (e && (e->handle != (handle & SERVICE_MASK))) {
-        e = e->next;
+    gorm_gatt_service_t *s = _get_table_by_handle(handle);
+    while (s && (s->handle != (handle & SERVICE_MASK))) {
+        s = s->next;
     }
-    return e;
+    return s;
 }
 
 /* good */
@@ -198,87 +150,46 @@ static const gorm_gatt_desc_t *_get_desc(uint16_t handle,
     return NULL;
 }
 
-static size_t _on_gap_name(const gorm_gatt_char_t *characteristic,
-                           uint8_t method, uint8_t *buf, size_t buf_len)
-{
-    (void)characteristic;
-
-    if (method != GORM_GATT_READ) {
-        return 0;
-    }
-    return gorm_gap_copy_name(buf, buf_len);
-}
-
-static size_t _on_gap_appearance(const gorm_gatt_char_t *characteristic,
-                                 uint8_t method, uint8_t *buf, size_t buf_len)
-{
-    (void)characteristic;
-
-    if (method != GORM_GATT_READ) {
-        return 0;
-    }
-    return gorm_gap_copy_appearance(buf, buf_len);
-}
-
-static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
-                                uint8_t method, uint8_t *buf, size_t buf_len)
-{
-    (void)characteristic;
-
-    if (method != GORM_GATT_READ) {
-        return 0;
-    }
-    return gorm_gap_copy_con_params(buf, buf_len);
-}
-
-void gorm_gatt_tab_init(void)
-{
-    mutex_lock(&lock);
-    gap_entry.next = &att_entry;
-    gap_entry.service = &gap_service;
-    gap_entry.handle = HANDLE_GAP;
-    att_entry.next = NULL;
-    att_entry.service = &att_service;
-    att_entry.handle = HANDLE_ATT;
-    mutex_unlock(&lock);
-
-    DEBUG("[gorm_gatt_tab] initialization successful\n");
-}
-
 /* good */
-void gorm_gatt_tab_reg_service(gorm_gatt_entry_t *entry,
-                               const gorm_gatt_service_t *service)
+void gorm_gatt_tab_reg_service(gorm_gatt_service_t *s)
 {
-    assert(entry && service);
+    assert(s);
 
     /* prepare new entry */
-    entry->next = NULL;
-    entry->service = service;
+    s->next = NULL;
 
-    /* find last entry of fitting table (16- vs 128- bit UUID...) */
     mutex_lock(&lock);
-    gorm_gatt_entry_t *table = (gorm_uuid_sig(&service->uuid)) ?
-                                                        &att_entry : customs;
-
-    if (table == NULL) {
-        customs = entry;
-        entry->handle = FIRST_CUSTOM_HANDLE;
+    /* add as first element into SIG table when empty */
+    if (gorm_uuid_sig(&s->uuid) && (_sig == NULL)) {
+        _sig = s;
+        s->handle = FIRST_SIG_HANDLE;
     }
+    /* add as first element in custom table when empty */
+    else if (!gorm_uuid_sig(&s->uuid) && (_custom == NULL)) {
+        _custom = s;
+        s->handle = FIRST_CUSTOM_HANDLE;
+    }
+    /* else we get the last element of the fitting table and add the new service
+     * there. */
     else {
-        table = _get_last(table);
-        table->next = entry;
-        entry->handle = _next_service_handle(table->handle);
+        gorm_gatt_service_t *tab = _get_table_by_uuid(&s->uuid);
+        while (tab->next != NULL) {
+            tab = tab->next;
+        }
+        tab->next = s;
+        s->handle = gorm_gatt_tab_service_next_handle(tab->handle);
     }
     mutex_unlock(&lock);
 }
 
 /* good */
-void gorm_gatt_tab_get_by_handle(gorm_gatt_tab_iter_t *iter)
+void gorm_gatt_tab_get(gorm_gatt_tab_iter_t *iter, uint16_t handle)
 {
     assert(iter);
+    memset(iter, 0, sizeof(gorm_gatt_tab_iter_t));
 
     mutex_lock(&lock);
-    iter->e = _get_entry(iter->handle);
+    iter->e = _get_service(iter->handle);
     if (iter->e == NULL) {
         goto end;
     }
@@ -313,30 +224,58 @@ void gorm_gatt_tab_get_next(gorm_gatt_tab_iter_t *iter)
     mutex_unlock(&lock);
 }
 
-void gorm_gatt_tab_get_service_by_uuid(gorm_gatt_tab_iter_t *iter,
-                                       gorm_uuid_t *type)
+uint16_t gorm_gatt_tab_service_next_handle(uint16_t last)
 {
-    assert(iter && type);
-
-    uint16_t handle = iter->handle;
-
-    if (handle & (CHAR_MASK | DESC_MASK)) {
-        handle = _next_service_handle(iter->handle);
+    if ((last & SERVICE_NUM_MASK) == SERVICE_NUM_MASK) {
+        return UINT16_MAX;
     }
-    iter->e = _get_entry(handle);
-    while (iter->e) {
-        if (gorm_uuid_cmp(&iter->e->service->uuid, type)) {
-            iter->handle = iter->e->handle;
-            return;
-        }
-        iter->e = iter->e->next;
-    }
+    return ((last + SERVICE_HANDLE_INC) & SERVICE_MASK);
 }
+
+uint16_t gorm_gatt_tab_service_last_handle(uint16_t handle)
+{
+    return (gorm_gatt_tab_service_next_handle(handle) - 1);
+}
+
+
+static gorm_gatt_service_t *_find_service_by_uuid(gorm_uuid_t *type,
+                                                  uint16_t start, uint16_t end)
+{
+    gorm_gatt_tab_iter_t iter;
+    gorm_gatt_tab_get(&iter, start);
+
+    while (iter.s && (iter.handle <= end)) {
+        if (gorm_uuid_equal(&iter.s->uuid, type)) {
+            return (gorm_gatt_service_t *)iter.s;
+        }
+    }
+
+    return NULL;
+}
+
+gorm_gatt_service_t *gorm_gatt_tab_service_by_uuid(gorm_uuid_t *type,
+                                                   uint16_t start, uint16_t end)
+{
+    assert(type);
+
+    uint16_t handle = gorm_gatt_tab_service_next_handle(start - 1);
+    gorm_gatt_service_t *s = _find_service_by_uuid(type, start, end);
+
+    if (s == NULL && (!(handle & NONSIG_FLAG)) && (FIRST_CUSTOM_HANDLE <= end)) {
+        s = _find_service_by_uuid(type, FIRST_CUSTOM_HANDLE, end);
+    }
+
+    return s;
+}
+
+
+
+
 
 gorm_gatt_entry_t *gorm_gatt_tab_find_service(uint16_t start_from)
 {
     mutex_lock(&lock);
-    gorm_gatt_entry_t *res = _get_table(start_from);
+    gorm_gatt_entry_t *res = _get_table_by_handle(start_from);
     while (res && (res->next) && (res->handle < start_from)) {
         res = res->next;
     }
@@ -370,8 +309,8 @@ uint16_t gorm_gatt_tab_get_end_handle(const gorm_gatt_entry_t *entry)
     if (entry->next) {
         return (entry->next->handle - 1);
     }
-    if (!(entry->handle & NONSIG_FLAG) && customs) {
-        return (customs->handle - 1);
+    if (!(entry->handle & NONSIG_FLAG) && _custom) {
+        return (_custom->handle - 1);
     }
     return UINT16_MAX;
 }
@@ -385,6 +324,17 @@ uint16_t gorm_gatt_tab_get_val_handle(gorm_gatt_entry_t *entry, uint16_t num)
 {
     return (entry->handle | ((num + 1) << CHAR_NUM_POS) | CHAR_VAL_MASK);
 }
+
+
+
+
+
+
+
+
+
+
+
 
 /* TODO: remove or move to debug file or similar */
 #include <stdio.h>
@@ -434,7 +384,7 @@ void gorm_gatt_tab_print(void)
 {
 
     printf("| handle | type    | value\n");
-    _print_table(&gap_entry);
-    _print_table(customs);
+    _print_table(_sig);
+    _print_table(_custom);
     printf("|------------------|-------\n");
 }

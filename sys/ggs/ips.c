@@ -21,7 +21,7 @@
 
 #include "net/ggs/sig.h"
 
-const gorm_gatt_service_t ggs_ips_service = {
+gorm_gatt_service_t ggs_ips_service = {
     .uuid = GORM_UUID(GGS_UUID_IPS, NULL),
     .char_cnt = 0,      /* this service has no characteristics */
     .chars = NULL,

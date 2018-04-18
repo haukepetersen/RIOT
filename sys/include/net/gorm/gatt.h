@@ -87,70 +87,21 @@ struct gorm_gatt_char {
 };
 
 typedef struct {
+    struct gorm_gatt_service *next;
     gorm_uuid_t uuid;
-    /* TODO: how to handle includes?
-     *       -> maybe simply: GORM does not support includes?! */
+    uint16_t handle;
     uint16_t char_cnt;
     const gorm_gatt_char_t *chars;
 } gorm_gatt_service_t;
 
-/**
- * @brief   Entry in the GATT table containing a service
- */
-typedef struct gorm_gatt_entry {
-    struct gorm_gatt_entry *next;
-    const gorm_gatt_service_t *service;
-    uint16_t handle;
-} gorm_gatt_entry_t;
-
-
 
 void gorm_gatt_server_init(void);
 
+void gorm_gatt_services_init(void);
+
+
 void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len);
-
-
-
-
-
-
-gorm_gatt_entry_t *gorm_gatt_tab_find_service(uint16_t start_from);
-
-/**
- * @brief   Get the service identified by the service part of the given handle
- *
- * @param[in] handle    handle with valid service part
- *
- * @return  the service entry for the given handle
- * @return  NULL if service could not be found
- */
-gorm_gatt_entry_t *gorm_gatt_tab_get_service(uint16_t handle);
-
-
-
-
-
-int gorm_gatt_tab_find_char(gorm_gatt_entry_t *entry, uint16_t start_handle);
-
-gorm_gatt_desc_t *gorm_gatt_tab_get_desc(uint16_t handle);
-
-uint16_t gorm_gatt_tab_get_end_handle(const gorm_gatt_entry_t *entry);
-uint16_t gorm_gatt_tab_get_char_handle(gorm_gatt_entry_t *entry, uint16_t num);
-uint16_t gorm_gatt_tab_get_val_handle(gorm_gatt_entry_t *entry, uint16_t num);
-
-/* TDOO: just for debugging -> remove or move ... */
-void gorm_gatt_tab_print(void);
-
-
-
-
-/**
- * GATT Table interface:
- *
- * - get base x: ignore lower bits and match only higher ones
- * - get exact x: use all bits and check lower ones to be 0
- */
 
 #ifdef __cplusplus
 }

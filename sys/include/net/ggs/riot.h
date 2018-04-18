@@ -18,8 +18,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_SERVICE_RIOT_H
-#define GORM_SERVICE_RIOT_H
+#ifndef GGS_SERVICE_RIOT_H
+#define GGS_SERVICE_RIOT_H
 
 #include "net/gorm/gatt.h"
 #include "net/gorm/uuid.h"
@@ -40,11 +40,11 @@ static const gorm_uuid_base_t ggs_uuid_riot_base = {{
 /**
  * @brief   Export the RIOT LED service
  */
-extern const gorm_gatt_service_t ggs_riot_led_service;
+extern gorm_gatt_service_t ggs_riot_led_service;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GORM_SERVICE_RIOT_H */
+#endif /* GGS_SERVICE_RIOT_H */
 /** @} */

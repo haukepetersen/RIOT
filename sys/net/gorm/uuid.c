@@ -54,7 +54,7 @@ size_t gorm_uuid_to_buf(uint8_t *buf, const gorm_uuid_t *uuid)
     }
 }
 
-int gorm_uuid_cmp(const gorm_uuid_t *a, const gorm_uuid_t *b)
+int gorm_uuid_equal(const gorm_uuid_t *a, const gorm_uuid_t *b)
 {
     if (a->uuid16 == b->uuid16) {
         if (a->base == NULL) {

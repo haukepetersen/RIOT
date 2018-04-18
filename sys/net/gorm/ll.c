@@ -555,6 +555,7 @@ int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
 int gorm_ll_adv_stop(gorm_ll_ctx_t *ctx)
 {
     assert(ctx);
+    (void)ctx;
 
     /* TODO */
     return GORM_OK;
@@ -563,6 +564,7 @@ int gorm_ll_adv_stop(gorm_ll_ctx_t *ctx)
 int gorm_ll_terminate(gorm_ll_ctx_t *con)
 {
     assert(con);
+    (void)con;
 
     // unsigned is = irq_disable();
     // gorm_ll_trx_stop();

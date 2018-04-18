@@ -33,30 +33,38 @@ extern "C" {
  * @brief   GATT table iterator
  */
 typedef struct {
-    const gorm_gatt_entry_t *e; /**< base entry (points to a single service) */
+    const gorm_gatt_service_t *s; /**< pinter to a service */
     const gorm_gatt_char_t *c;  /**< pointer to a characteristic */
     const gorm_gatt_desc_t *d;  /**< pointer to a descriptor */
     uint16_t handle;            /**< corresponding/current handle */
 } gorm_gatt_tab_iter_t;
 
 
-/**
- * @brief   Initialize Gorm's GATT table
- */
-void gorm_gatt_tab_init(void);
+
+void gorm_gatt_tab_reg_service(gorm_gatt_service_t *service);
+
+void gorm_gatt_tab_get(gorm_gatt_tab_iter_t *iter, uint16_t handle);
+void gorm_gatt_tab_get_next(gorm_gatt_tab_iter_t *iter, uint16_t end_handle);
+
+gorm_gatt_service_t *gorm_gatt_tab_service_by_uuid(gorm_uuid_t *type,
+                                                   uint16_t start, uint16_t end);
+
+uint16_t gorm_gatt_tab_service_next_handle(uint16_t last);
+uint16_t gorm_gatt_tab_service_last_handle(uint16_t handle);
+uint16_t gorm_gatt_tab_char_val_handle(uint16_t char_handle);
+uint16_t gorm_gatt_tab_char_next_handle(uint16_t last);
+uint16_t gorm_gatt_tab_desc_next_handle(uint16_t last);
 
 
-void gorm_gatt_tab_reg_service(gorm_gatt_entry_t *entry,
-                               const gorm_gatt_service_t *service);
+
+
 
 /**
  * @brief   Read the given handle
+ *
+ * @param[out] iter     initialize iterator to the entry found for handle
  */
-/* good */
-void gorm_gatt_tab_get_by_handle(gorm_gatt_tab_iter_t *iter);
 
-/* good */
-void gorm_gatt_tab_get_next(gorm_gatt_tab_iter_t *iter);
 
 /* good */
 void gorm_gatt_tab_get_service_by_uuid(gorm_gatt_tab_iter_t *iter,
@@ -65,7 +73,7 @@ void gorm_gatt_tab_get_service_by_uuid(gorm_gatt_tab_iter_t *iter,
 
 static inline int gorm_gatt_tab_is_service(const gorm_gatt_tab_iter_t *iter)
 {
-    return ((iter->e != NULL) && (iter->c == NULL));
+    return ((iter->s != NULL) && (iter->c == NULL));
 }
 
 static inline int gorm_gatt_tab_is_char_decl(const gorm_gatt_tab_iter_t *iter)
@@ -85,6 +93,49 @@ static inline int gorm_gatt_tab_is_decl(const gorm_gatt_tab_iter_t *iter)
     return (iter->d != NULL);
 }
 
+
+
+
+
+
+
+
+
+/**
+ * GATT Table interface:
+ *
+ * - get base x: ignore lower bits and match only higher ones
+ * - get exact x: use all bits and check lower ones to be 0
+ */
+
+
+
+// gorm_gatt_entry_t *gorm_gatt_tab_find_service(uint16_t start_from);
+
+// /**
+//  * @brief   Get the service identified by the service part of the given handle
+//  *
+//  * @param[in] handle    handle with valid service part
+//  *
+//  * @return  the service entry for the given handle
+//  * @return  NULL if service could not be found
+//  */
+// gorm_gatt_entry_t *gorm_gatt_tab_get_service(uint16_t handle);
+
+
+
+
+
+// int gorm_gatt_tab_find_char(gorm_gatt_entry_t *entry, uint16_t start_handle);
+
+// gorm_gatt_desc_t *gorm_gatt_tab_get_desc(uint16_t handle);
+
+// uint16_t gorm_gatt_tab_get_end_handle(const gorm_gatt_entry_t *entry);
+// uint16_t gorm_gatt_tab_get_char_handle(gorm_gatt_entry_t *entry, uint16_t num);
+// uint16_t gorm_gatt_tab_get_val_handle(gorm_gatt_entry_t *entry, uint16_t num);
+
+// /* TDOO: just for debugging -> remove or move ... */
+// void gorm_gatt_tab_print(void);
 
 #ifdef __cplusplus
 }

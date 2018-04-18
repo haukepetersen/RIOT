@@ -46,12 +46,8 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
     uint16_t cid = gorm_util_letohs(&buf->pkt.pdu[2]);
     uint8_t *data = &buf->pkt.pdu[4];
 
-    /* TODO: handle fragmentation / re-assembly */
-
     switch (cid) {
         case GORM_L2CAP_CID_ATT:
-            DEBUG("[gorm_l2cap] on_data: got ATT data\n");
-            /* TODO: handle data */
             gorm_gatt_on_data(con, buf, data, len);
             break;
         case GORM_L2CAP_CID_LE_SIGNAL:

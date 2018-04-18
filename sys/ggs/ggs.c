@@ -24,25 +24,14 @@
 #include "net/ggs/riot.h"
 #include "net/ggs/sig.h"
 
-/* TDODO: move SIG services into the Gorm stack at some point? */
-#ifdef MODULE_GGS_IPS
-static gorm_gatt_entry_t ips_entry;
-extern gorm_gatt_service_t ggs_ips_service;
-#endif
-
-#ifdef MODULE_GGS_RIOT_LED
-static gorm_gatt_entry_t led_entry;
-extern gorm_gatt_service_t ggs_riot_led_service;
-#endif
-
 void ggs_init(void)
 {
 #ifdef MODULE_GGS_IPS
-    gorm_gatt_tab_reg_service(&ips_entry, &ggs_ips_service);
+    gorm_gatt_tab_reg_service(&ggs_ips_service);
 #endif
 
 #ifdef MODULE_GGS_RIOT_LED
-    gorm_gatt_tab_reg_service(&led_entry, &ggs_riot_led_service);
+    gorm_gatt_tab_reg_service(&ggs_riot_led_service);
 #endif
 /* TODO: add SAUL etc ... */
 }
