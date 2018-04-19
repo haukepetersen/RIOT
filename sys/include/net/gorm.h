@@ -47,6 +47,17 @@ extern "C" {
 #endif
 
 /**
+ * @name    Event types send from the controller to the host
+ * @{
+ */
+#define GORM_EVT_DATA               (0x0001)
+#define GORM_EVT_CONNECTED          (0x0002)
+#define GORM_EVT_CON_ABORT          (0x0004)
+#define GORM_EVT_CON_TIMEOUT        (0x0008)
+#define GORM_EVT_CON_CLOSED         (0x0010)
+/** @} */
+
+/**
  * @brief   Generic error codes used by Gorm
  */
 enum {
@@ -79,11 +90,15 @@ void gorm_init(netdev_t *radio);
 /**
  * @brief   Run Gorm's host layers
  */
-void gorm_run_host(void);
+void gorm_run(void);
 
 
-/* TODO: REMOVE */
-gorm_ctx_t *gorm_ll_periph_getcon(void);
+void gorm_notify(gorm_ctx_t *con, unsigned event);
+
+
+void gorm_adv_start(void);
+
+void gorm_adv_stop(void);
 
 #ifdef __cplusplus
 }

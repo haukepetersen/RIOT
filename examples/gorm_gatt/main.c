@@ -21,9 +21,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "net/gorm/ll.h"
+#include "net/gorm.h"
 #include "net/gorm/gap.h"
-#include "net/gorm/host.h"
 #include "net/gorm/gatt/tab.h"
 #include "net/gorm/gatt/desc.h"
 #include "net/ggs/riot.h"
@@ -99,10 +98,11 @@ int main(void)
     gorm_gap_print();
 
     /* start advertising */
-    gorm_host_adv_start();
+    gorm_adv_start();
 
-    /* and run the host event loop */
-    gorm_host_run();
+    /* run Gorm's event loop (so Gorm will take over the main thread) */
+    gorm_run();
 
+    /* never reached */
     return 0;
 }

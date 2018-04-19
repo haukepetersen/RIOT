@@ -19,10 +19,9 @@
 
 #include <string.h>
 
-#include "net/gorm/ll.h"
+#include "net/gorm.h"
 #include "net/gorm/ll/trx.h"
 #include "net/gorm/ll/chan.h"
-#include "net/gorm/host.h"
 #include "net/gorm/util.h"
 #include "net/gorm/config.h"
 #include "net/gorm/arch/rand.h"
@@ -139,7 +138,7 @@ static void _on_supervision_timeout(void *arg)
     con->state = GORM_LL_STATE_STANDBY;
 
     /* notify the host about the connection timeout */
-    gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_CON_TIMEOUT);
+    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CON_TIMEOUT);
 
     DEBUG("[gorm_ll] on_supervision_timeout: CONNECTION CLOSED\n");
     DEBUG("stats:   rx counter:     %u\n", stats.rx_cnt);
@@ -204,7 +203,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
         /* if the packet contains actual payload we pass it to the host */
         if (con->in_rx->pkt.len > 0) {
             gorm_buf_enq(&con->rxq, con->in_rx);
-            gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_DATA);
+            gorm_notify((gorm_ctx_t *)con, GORM_EVT_DATA);
             con->in_rx = NULL;
         }
         /* and we ACK the incoming packet */
@@ -390,7 +389,7 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
     gorm_arch_timer_set_from_last(&con->timer_con, offset,
                                   _on_connection_event_start, con);
     /* and notify the host about the new connection */
-    gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_CONNECTED);
+    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONNECTED);
     /* now we are in connected state */
     return;
 
@@ -399,7 +398,7 @@ err:
     /* TODO: notify host. Is there actually anything to tell the host?
      *       No state change if the connection fails to be established...
      *       BUT we should continue to advertise. */
-    gorm_host_notify((gorm_ctx_t *)con, GORM_HOST_EVT_CON_ABORT);
+    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CON_ABORT);
 }
 
 static int _on_adv_reply(gorm_buf_t *buf, void *arg)
