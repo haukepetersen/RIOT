@@ -111,7 +111,6 @@ endif
 
 ifneq (,$(filter gorm_peripheral,$(USEMODULE)))
   USEMODULE += gorm
-  # USEMODULE += gorm_pdupool
   USEMODULE += gorm_gap
 endif
 
@@ -120,14 +119,13 @@ ifneq (,$(filter gorm,$(USEMODULE)))
   ifneq (,$(filter auto_init,$(USEMODULE)))
     USEMODULE += auto_init_gorm
   endif
-  # TODO: temporary dependencies, see if we can/want to hide them in the future
   USEMODULE += gorm_arch_riot
 endif
 
 ifneq (,$(filter gorm_arch_riot,$(USEMODULE)))
   USEMODULE += random
-  USEMODULE += event_timeout
-  USEMODULE += event_callback
+  USEMODULE += xtimer
+  USEMODULE += event
 endif
 
 # always select gpio (until explicit dependencies are sorted out)
