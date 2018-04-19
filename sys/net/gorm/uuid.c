@@ -18,6 +18,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "assert.h"
 
@@ -67,4 +68,18 @@ int gorm_uuid_equal(const gorm_uuid_t *a, const gorm_uuid_t *b)
 
     }
     return 0;
+}
+
+void gorm_uuid_print(const gorm_uuid_t *uuid)
+{
+    printf("UUID(");
+    if (gorm_uuid_sig(uuid)) {
+        printf("16): 0x%04x", (int)uuid->uuid16);
+    }
+    else {
+        printf("128): %04x-%04x-%08x-%08x-%08x",
+               (int)uuid->base->raw[0], (int)uuid->uuid16,
+               (int)uuid->base->u32[1], (int)uuid->base->u32[2],
+               (int)uuid->base->u32[3]);
+    }
 }

@@ -25,9 +25,6 @@
 #include "net/gorm/gatt.h"
 #include "net/gorm/gatt/tab.h"
 
-/* REOMVE! */
-#include "xtimer.h"
-
 #define ENABLE_DEBUG                (1)
 #include "debug.h"
 
@@ -62,48 +59,63 @@ static void _error(gorm_ctx_t *con, gorm_buf_t *buf, uint8_t *data,
 static void _on_mtu_req(gorm_ctx_t *con, gorm_buf_t *buf,
                         uint8_t *data, size_t len)
 {
+    /* this message type is used in GATT to
+     * - exchange the MTU size */
+
     if (len != 3) {
-        DEBUG("[gatt_server] _on_mtu_req: invalid PDU len\n");
+        DEBUG("[gorm_gatt] mtu_req: invalid PDU len\n");
         _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
         return;
     }
 
+    DEBUG("[gorm_gatt] mtu_req: reply with MTU set to %u\n",
+          GORM_GATT_DEFAULT_MTU);
+
     data[0] = BLE_ATT_MTU_RESP;
     gorm_util_htoles(&data[1], GORM_GATT_DEFAULT_MTU);
-    DEBUG("[gatt_server] _on_mtu_req: sending reply now\n");
     gorm_l2cap_reply(con, buf, 3);
 }
 
-/* discover all primary services on the server */
 static void _on_read_by_group_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
                                        uint8_t *data, size_t len)
 {
-    /* we only allow discovery of primary (0x2800) and secondary (0x2801)
-     * service through this method, hence we use only 16-bit UUIDs here */
+    /* this message type is used in GATT to
+     * - discover all primary services (type 0x2800)
+     * Not supported so far:
+     * - discovery of secondary services (0x2801) */
+
     if (len != 7) {
-        DEBUG("[gatt_server] _on_read_by_group_type_req: invalid PDU len\n");
+        DEBUG("[gorm_gatt] read_by_group_type_req: invalid PDU\n");
         _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
         return;
     }
 
     /* parse request data */
     uint16_t start_handle = gorm_util_letohs(&data[1]);
-    uint16_t first_handle = gorm_gatt_tab_service_next_handle(start_handle - 1);
     uint16_t end_handle = gorm_util_letohs(&data[3]);
     gorm_uuid_t uuid;
     gorm_uuid_from_buf(&uuid, &data[5], 2);
+    gorm_gatt_tab_iter_t iter;
+    iter.handle = gorm_gatt_tab_service_next_handle(start_handle - 1);
+
+    DEBUG("[gorm_gatt] read_by_group_type_req: "
+          "start 0x%04x end 0x%04x service 0x%04x\n",
+          (int)start_handle, (int)end_handle, (int)iter.handle);
 
     /* validate input data */
-    if ((uuid.uuid16 != BLE_DECL_PRI_SERVICE) || (first_handle > end_handle)) {
-        DEBUG("[gatt_server] _on_read_by_group_type_req: invalid input\n");
+    if ((uuid.uuid16 != BLE_DECL_PRI_SERVICE) || (iter.handle > end_handle)) {
         goto error;
     }
 
     /* prepare response, start by getting the first viable entry */
-    gorm_gatt_tab_iter_t iter;
-    gorm_gatt_tab_get(&iter, first_handle);
+    gorm_gatt_tab_get(&iter);
+    if ((iter.s == NULL) &&
+        (iter.handle < GORM_GATT_TAB_FIRST_CUSTOM_HANDLE) &&
+        (end_handle >= GORM_GATT_TAB_FIRST_CUSTOM_HANDLE)) {
+        iter.handle = GORM_GATT_TAB_FIRST_CUSTOM_HANDLE;
+        gorm_gatt_tab_get(&iter);
+    }
     if (iter.s == NULL) {
-        DEBUG("[gatt_server] _on_read_by_group_type_req: no entry found\n");
         goto error;
     }
 
@@ -115,6 +127,8 @@ static void _on_read_by_group_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
 
     /* fit as many services with the same length UUID into the response */
     while (iter.s && (limit > 0)) {
+        DEBUG("[gorm_gatt]                       : "
+              "found 0x%04x\n", (int)iter.s->handle);
         pos += _write_service_attr_data(&data[pos], &iter);
         --limit;
         gorm_gatt_tab_get_next(&iter, end_handle);
@@ -124,6 +138,7 @@ static void _on_read_by_group_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
     return;
 
 error:
+    DEBUG("[gorm_gatt]                       : no entry found\n");
     _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
 }
 
@@ -131,14 +146,14 @@ static void _on_read_by_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
                                  uint8_t *data, size_t len)
 {
     /* this message type is used in GATT to
-     * - find included services (not supported in Gorm for now)
      * - discover all characteristics of a service
+     * Not supported so far:
+     * - read char using characteristic UUID (?)
      * - discover characteristic by UUID
-     * - read char using characteristic UUID (?) */
+     * - find included services (not supported in Gorm for now) */
 
-    /* expected size is 7 or 21 byte (16- or 128-bit UUID) */
     if ((len != 7) && (len != 21)) {
-        DEBUG("[gatt_server] read_by_type_req: invalid request length\n");
+        DEBUG("[gorm_gatt] read_by_type_req: invalid request length\n");
         _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
         return;
     }
@@ -149,14 +164,25 @@ static void _on_read_by_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
     gorm_uuid_t uuid;
     gorm_uuid_from_buf(&uuid, &data[5], (len - 5));
 
+    DEBUG("[gorm_gatt] read_by_type_req: type ");
+#if ENABLE_DEBUG
+    gorm_uuid_print(&uuid);
+#endif
+    DEBUG("\n");
+
     if (gorm_uuid_eq16(&uuid, BLE_DECL_CHAR)) {
-        uint16_t char_handle = gorm_gatt_tab_char_next_handle(start_handle - 1);
-        if (char_handle > end_handle) {
+        gorm_gatt_tab_iter_t iter;
+        iter.handle = gorm_gatt_tab_char_closest_handle(start_handle);
+
+        DEBUG("[gorm_gatt]                 : CHAR_DECL - "
+              "start 0x%04x end 0x%04x char 0x%04x\n",
+              (int)start_handle, (int)end_handle, (int)iter.handle);
+
+        if (iter.handle > end_handle) {
             goto error;
         }
 
-        gorm_gatt_tab_iter_t iter;
-        gorm_gatt_tab_get(&iter, char_handle);
+        gorm_gatt_tab_get(&iter);
 
         if (iter.c == NULL) {
             goto error;
@@ -170,6 +196,8 @@ static void _on_read_by_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
 
         while (iter.c && (limit > 0) &&
                (gorm_uuid_len(&iter.c->type) == uuidlen)) {
+            DEBUG("[gorm_gatt]                 : "
+                  "found 0x%04x\n", (int)iter.handle);
             pos += _write_char_attr_data(&data[pos], &iter);
             --limit;
             gorm_gatt_tab_get_next(&iter, end_handle);
@@ -180,7 +208,118 @@ static void _on_read_by_type_req(gorm_ctx_t *con, gorm_buf_t *buf,
     }
 
 error:
-    /* if nothing fitting was found, we return the default error here */
+    DEBUG("[gorm_gatt]                 : no entry found\n");
+    _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
+}
+
+static void _on_find_info_req(gorm_ctx_t *con, gorm_buf_t *buf,
+                              uint8_t *data, size_t len)
+{
+    /* this message type is used in GATT to
+     * - discover all characteristic descriptors */
+
+    if (len != 5) {
+        DEBUG("[gorm_gatt] find_info_req: invalid PDU\n");
+        _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
+        return;
+    }
+
+    /* get input parameters */
+    uint16_t start_handle = gorm_util_letohs(&data[1]);
+    uint16_t end_handle = gorm_util_letohs(&data[3]);
+    gorm_gatt_tab_iter_t iter;
+    iter.handle = gorm_gatt_tab_desc_closest_handle(start_handle);
+
+    DEBUG("[gorm_gatt] find_info_req: "
+          "start 0x%04x end 0x%04x desc 0x%04x\n",
+          (int)start_handle, (int)end_handle, (int)iter.handle);
+
+    /* parse first fitting descriptor handle and validate it */
+    if (iter.handle > end_handle) {
+        goto error;
+    }
+
+    /* read descriptor from table */
+    gorm_gatt_tab_get(&iter);
+    if (iter.d == NULL) {
+        goto error;
+    }
+
+    /* prepare response */
+    data[0] = BLE_ATT_FIND_INFO_RESP;
+    data[1] = BLE_ATT_FORMAT_U16;
+    size_t pos = 2;
+    size_t limit = ((GORM_GATT_DEFAULT_MTU - 2) / 4);
+
+    while (iter.d && (limit > 0)) {
+        DEBUG("[gorm_gatt]              : found 0x%04x\n", (int)iter.handle);
+        gorm_util_htoles(&data[pos], iter.handle);
+        gorm_util_htoles(&data[pos + 2], iter.d->type);
+        pos += 4;
+        limit--;
+        gorm_gatt_tab_get_next(&iter, end_handle);
+    }
+
+    gorm_l2cap_reply(con, buf, pos);
+    return;
+
+error:
+    DEBUG("[gorm_gatt]              : no entry found\n");
+    _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
+}
+
+void _on_find_by_type_val(gorm_ctx_t *con, gorm_buf_t *buf,
+                          uint8_t *data, size_t len)
+{
+    /* this message type is used in GATT to
+     * - discover primary services by service UUID */
+
+    if ((len != 9) && (len != 23)) {
+        _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
+        DEBUG("[gorm_gatt] find_by_type_val: invalid PDU\n");
+        return;
+    }
+
+    /* parse PDU */
+    uint16_t start_handle = gorm_util_letohs(&data[1]);
+    uint16_t service_handle = gorm_gatt_tab_service_next_handle(start_handle - 1);
+    uint16_t end_handle = gorm_util_letohs(&data[3]);
+    uint16_t type = gorm_util_letohs(&data[5]);
+    gorm_uuid_t uuid;
+    gorm_uuid_from_buf(&uuid, &data[7], (len - 7));
+
+#if ENABLE_DEBUG
+    DEBUG("[gorm_gatt] find_by_type_val: type 0x%04x filter ", (int)type);
+    gorm_uuid_print(&uuid);
+#endif
+    DEBUG("\n[gorm_gatt]                 : "
+          "start 0x%02x end 0x%02x service_handle 0x%04x\n",
+          (int)start_handle, (int)end_handle, (int)service_handle);
+
+    /* validate input data */
+    if ((type != BLE_DECL_PRI_SERVICE) || (service_handle > end_handle)) {
+        goto error;
+    }
+
+    /* find first matching service */
+    gorm_gatt_service_t *s = gorm_gatt_tab_service_by_uuid(&uuid,
+                                                           service_handle,
+                                                           end_handle);
+    if (s == NULL) {
+        DEBUG("[gorm_gatt] _on_find_by_type_val: no service with UUID found\n");
+        goto error;
+    }
+
+    /* prepare results */
+    DEBUG("[gorm_gatt]                 : found 0x%04x\n", (int)service_handle);
+    data[0] = BLE_ATT_FIND_BY_VAL_RESP;
+    gorm_util_htoles(&data[1], service_handle);
+    gorm_util_htoles(&data[3], gorm_gatt_tab_service_last_handle(service_handle));
+    gorm_l2cap_reply(con, buf, 5);
+    return;
+
+error:
+    DEBUG("[gorm_gatt]                 : no service with given UUID found\n");
     _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
 }
 
@@ -196,35 +335,43 @@ static void _on_read_req(gorm_ctx_t *con, gorm_buf_t *buf,
     }
 
     /* parse handle from request */
-    uint16_t handle = gorm_util_letohs(&data[1]);
+    gorm_gatt_tab_iter_t iter;
+    iter.handle = gorm_util_letohs(&data[1]);
 
     /* read data */
-    gorm_gatt_tab_iter_t iter;
-    gorm_gatt_tab_get(&iter, handle);
+    gorm_gatt_tab_get(&iter);
     data[0] = BLE_ATT_READ_RESP;
 
     /* if handle belongs to a characteristic value, check permissions and read
      * that value when allowed */
     if (gorm_gatt_tab_is_char_val(&iter)) {
+        DEBUG("[gorm_gatt] read_req: reading handle 0x%04x (char val)\n",
+              (int)iter.handle);
         /* TODO: check read permissions and authen/author */
         /* check if characteristic value is readable */
         if (iter.c->perm & BLE_ATT_READ) {
+            DEBUG("[gorm_gatt]         : OK to read\n");
             size_t len = iter.c->cb(iter.c, GORM_GATT_READ,
                                     &data[1], (GORM_GATT_DEFAULT_MTU - 1));
             gorm_l2cap_reply(con, buf, (len + 1));
         }
         else {
-            _error(con, buf, data, handle, BLE_ATT_READ_NOT_PERMITTED);
+            DEBUG("[gorm_gatt]         : READ operation not permitted\n");
+            _error(con, buf, data, iter.handle, BLE_ATT_READ_NOT_PERMITTED);
         }
     }
     /* if the handle belongs to a descriptor, we read it */
     else if (gorm_gatt_tab_is_decl(&iter)) {
+        DEBUG("[gorm_gatt] read_req: reading handle 0x%04x (description)\n",
+              (int)iter.handle);
         /* note: we assume all descriptors are readable without permissions */
         size_t len = iter.d->cb(iter.d, &data[1], (GORM_GATT_DEFAULT_MTU - 1));
         gorm_l2cap_reply(con, buf, (len + 1));
     }
     else {
-        _error(con, buf, data, handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
+        DEBUG("[gorm_gatt] read_req: unable to find handle 0x%04x\n",
+              (int)iter.handle);
+        _error(con, buf, data, iter.handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
     }
 }
 
@@ -237,121 +384,33 @@ static void _on_write_req(gorm_ctx_t *con, gorm_buf_t *buf,
     }
 
     /* parse input data */
-    uint16_t handle = gorm_util_letohs(&data[1]);
+    gorm_gatt_tab_iter_t iter;
+    iter.handle = gorm_util_letohs(&data[1]);
 
     /* write data if applicable */
-    gorm_gatt_tab_iter_t iter;
-    gorm_gatt_tab_get(&iter, handle);
+    gorm_gatt_tab_get(&iter);
 
     if (gorm_gatt_tab_is_char_val(&iter)) {
+        DEBUG("[gorm_gatt] write_req: writing to handle 0x%04x (char value)\n",
+              (int)iter.handle);
         /* make sure the value is writable and we are allowed to do so */
         /* TODO: check encryption, authentication, and authorization... */
         if (iter.c->perm & BLE_ATT_WRITE) {
+            DEBUG("[gorm_gatt]          : OK to write\n");
             iter.c->cb(iter.c, GORM_GATT_WRITE, &data[3], (len - 3));
             data[0] = BLE_ATT_WRITE_RESP;
             gorm_l2cap_reply(con, buf, 1);
         }
         else {
-            _error(con, buf, data, handle, BLE_ATT_WRITE_NOT_PERMITTED);
+            DEBUG("[gorm_gatt]          : WRITE operation not permitted\n");
+            _error(con, buf, data, iter.handle, BLE_ATT_WRITE_NOT_PERMITTED);
         }
     }
     else {
-        _error(con, buf, data, handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
+        DEBUG("[gorm_gatt] write_req: unable to find handle 0x%04x\n",
+              (int)iter.handle);
+        _error(con, buf, data, iter.handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
     }
-}
-
-static void _on_find_info_req(gorm_ctx_t *con, gorm_buf_t *buf,
-                              uint8_t *data, size_t len)
-{
-
-    if (len != 5) {
-        _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
-        return;
-    }
-
-    /* get input parameters */
-    uint16_t start_handle = gorm_util_letohs(&data[1]);
-    uint16_t end_handle = gorm_util_letohs(&data[3]);
-
-    /* parse first fitting descriptor handle and validate it */
-    uint16_t desc_handle = gorm_gatt_tab_desc_next_handle(start_handle - 1);
-    if (desc_handle > end_handle) {
-        goto error;
-    }
-
-    /* read descriptor from table */
-    gorm_gatt_tab_iter_t iter;
-    gorm_gatt_tab_get(&iter, start_handle);
-    if (iter.d == NULL) {
-        goto error;
-    }
-
-    /* prepare response */
-    data[0] = BLE_ATT_FIND_INFO_RESP;
-    data[1] = BLE_ATT_FORMAT_U16;
-    size_t pos = 2;
-    size_t limit = ((GORM_GATT_DEFAULT_MTU - 2) / 4);
-
-    while (iter.d && (limit > 0)) {
-        gorm_util_htoles(&data[pos], iter.handle);
-        gorm_util_htoles(&data[pos + 2], iter.d->type);
-        pos += 4;
-        limit--;
-        gorm_gatt_tab_get_next(&iter, end_handle);
-    }
-
-    gorm_l2cap_reply(con, buf, pos);
-    return;
-
-error:
-    _error(con, buf, data, start_handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
-}
-
-void _on_find_by_type_val(gorm_ctx_t *con, gorm_buf_t *buf,
-                          uint8_t *data, size_t len)
-{
-    if ((len != 9) && (len != 23)) {
-        _error(con, buf, data, 0, BLE_ATT_INVALID_PDU);
-        DEBUG("[gorm_gatt] _on_find_by_type_val: invalid PDU\n");
-        return;
-    }
-
-    /* parse PDU */
-    uint16_t start_handle = gorm_util_letohs(&data[1]);
-    uint16_t service_handle = gorm_gatt_tab_service_next_handle(start_handle - 1);
-    uint16_t end_handle = gorm_util_letohs(&data[3]);
-    uint16_t type = gorm_util_letohs(&data[5]);
-    gorm_uuid_t uuid;
-    gorm_uuid_from_buf(&uuid, &data[7], (len - 7));
-
-    DEBUG("[gorm_gatt] _on_find_by_type_val: start 0x%02x, end 0x%02x\n",
-          (int)handle, (int)end_handle);
-
-    /* validate input data */
-    if ((type != BLE_DECL_PRI_SERVICE) || (service_handle > end_handle)) {
-        goto error;
-    }
-
-    /* find first matching service */
-    gorm_gatt_service_t *s = gorm_gatt_tab_service_by_uuid(&iter, &uuid,
-                                                           start_handle,
-                                                           end_handle);
-
-    if (iter.e == NULL) {
-        DEBUG("[gorm_gatt] _on_find_by_type_val: no service with UUID found\n");
-        goto error;
-    }
-
-    /* prepare results */
-    data[0] = BLE_ATT_FIND_BY_VAL_RESP;
-    gorm_util_htoles(&data[1], iter.s->handle);
-    gorm_util_htoles(&data[3], gorm_gatt_tab_service_last_handle(s->handle));
-    gorm_l2cap_reply(con, buf, 5);
-    DEBUG("[grom_gatt] _on_find_by_type_val: found service 0x%02x\n", (int)iter.handle);
-    return;
-
-error:
-    _error(con, buf, data, handle, BLE_ATT_ATTRIBUTE_NOT_FOUND);
 }
 
 void gorm_gatt_server_init(void)
@@ -363,36 +422,28 @@ void gorm_gatt_server_init(void)
 void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len)
 {
-    uint32_t now = xtimer_now_usec();
-
     switch (data[0]) {
         /* TODO: restore order ... */
         case BLE_ATT_MTU_REQ:
-            DEBUG("[gatt_server] _on_mtu_req()\n");
             _on_mtu_req(con, buf, data, len);
             break;
         case BLE_ATT_READ_BY_GROUP_TYPE_REQ:
-            DEBUG("[gatt_server] _on_read_by_group_type_req()\n");
             _on_read_by_group_type_req(con, buf, data, len);
             break;
         case BLE_ATT_READ_BY_TYPE_REQ:
-            DEBUG("[gatt_server] _on_read_by_type_req()\n");
             _on_read_by_type_req(con, buf, data, len);
             break;
         case BLE_ATT_READ_REQ:
-            DEBUG("[gatt_server] _on_read_req()\n");
             _on_read_req(con, buf, data, len);
             break;
         case BLE_ATT_FIND_INFO_REQ:
-            DEBUG("[gatt_server] _on_find_info_req()\n");
             _on_find_info_req(con, buf, data, len);
             break;
         case BLE_ATT_WRITE_REQ:
-            DEBUG("[gatt_server] _on_write_req()\n");
             _on_write_req(con, buf, data, len);
             break;
         case BLE_ATT_FIND_BY_VAL_REQ:
-            DEBUG("[gatt_server] _on_find_by_type_val()\n");
+            DEBUG("[gorm_gatt] _on_find_by_type_val()\n");
             _on_find_by_type_val(con, buf, data, len);
             break;
         case BLE_ATT_READ_BLOB_REQ:
@@ -427,7 +478,4 @@ void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
             gorm_buf_return(buf);
             break;
     }
-
-    uint32_t diff = xtimer_now_usec() - now;
-    DEBUG("[gatt_server] on_data() done (took %u us)\n", (unsigned)diff);
 }

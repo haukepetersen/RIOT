@@ -68,6 +68,8 @@ size_t gorm_uuid_to_buf(uint8_t *buf, const gorm_uuid_t *uuid);
  */
 int gorm_uuid_equal(const gorm_uuid_t *a, const gorm_uuid_t *b);
 
+void gorm_uuid_print(const gorm_uuid_t *uuid);
+
 
 static inline int gorm_uuid_sig(const gorm_uuid_t *uuid)
 {
@@ -89,7 +91,6 @@ static inline void gorm_uuid_init(gorm_uuid_t *uuid, gorm_uuid_base_t *base,
     uuid->base = base;
     uuid->uuid16 = uuid16;
 }
-
 
 
 #endif /* GORM_UUID_H */

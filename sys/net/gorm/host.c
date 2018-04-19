@@ -72,7 +72,7 @@ static void _on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             break;
     }
 
-    DEBUG("~~~~ pkt done, pool size is %u\n", gorm_buf_count(&gorm_buf_pool));
+    // DEBUG("~~~~ pkt done, pool size is %u\n", gorm_buf_count(&gorm_buf_pool));
 }
 
 void gorm_host_init(void)
@@ -93,7 +93,7 @@ void gorm_host_run(void)
     DEBUG("[gorm_host] run: running Gorm's host event loop\n");
 
     while (thread_flags_wait_any(NOTIFY_FLAG)) {
-        DEBUG("[gorm_host] run: got notified about incoming data! ~~~~~~~~~~~\n");
+        // DEBUG("[gorm_host] run: got notified about incoming data! ~~~~~~~~~~~\n");
 
         /* TODO: find better and more efficient way to select and dispatch the
          *       the pending data! */

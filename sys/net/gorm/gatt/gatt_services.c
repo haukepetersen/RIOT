@@ -19,9 +19,6 @@
 #include "net/gorm/gatt.h"
 #include "net/gorm/gatt/tab.h"
 
-static gorm_gatt_entry_t gap_entry;
-static gorm_gatt_entry_t att_entry;
-
 static size_t _on_gap_name(const gorm_gatt_char_t *characteristic,
                            uint8_t method, uint8_t *buf, size_t buf_len)
 {
@@ -55,10 +52,10 @@ static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
     return gorm_gap_copy_con_params(buf, buf_len);
 }
 
-/* declare mandatory services */
-static const gorm_gatt_service_t gap_service = {
+/* declare mandatory services (GAP & ATT) */
+static gorm_gatt_service_t gap_service = {
     .uuid  = GORM_UUID(GORM_UUID_GAP, NULL),
-    .char_cnt = 2,
+    .char_cnt = 3,
     .chars = (gorm_gatt_char_t[]){
         {
             .cb   = _on_gap_name,
@@ -78,7 +75,7 @@ static const gorm_gatt_service_t gap_service = {
     },
 };
 
-static const gorm_gatt_service_t att_service = {
+static gorm_gatt_service_t att_service = {
     .uuid  = GORM_UUID(GORM_UUID_ATT, NULL),
     .char_cnt = 0,
     .chars = NULL,
@@ -87,6 +84,6 @@ static const gorm_gatt_service_t att_service = {
 
 void gorm_gatt_services_init(void)
 {
-    gorm_gatt_tab_reg_service(&gap_entry, &gap_service);
-    gorm_gatt_tab_reg_service(&att_entry, &att_service);
+    gorm_gatt_tab_reg_service(&gap_service);
+    gorm_gatt_tab_reg_service(&att_service);
 }

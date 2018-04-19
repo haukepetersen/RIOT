@@ -62,6 +62,7 @@ enum {
 
 typedef struct gorm_gatt_char gorm_gatt_char_t;
 typedef struct gorm_gatt_desc gorm_gatt_desc_t;
+typedef struct gorm_gatt_service gorm_gatt_service_t;
 
 typedef size_t (*gorm_gatt_char_cb_t)(const gorm_gatt_char_t *characteristic,
                                       uint8_t method,
@@ -86,13 +87,13 @@ struct gorm_gatt_char {
     const gorm_gatt_desc_t *desc;
 };
 
-typedef struct {
+struct gorm_gatt_service {
     struct gorm_gatt_service *next;
     gorm_uuid_t uuid;
     uint16_t handle;
     uint16_t char_cnt;
     const gorm_gatt_char_t *chars;
-} gorm_gatt_service_t;
+};
 
 
 void gorm_gatt_server_init(void);
