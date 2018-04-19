@@ -101,10 +101,6 @@ typedef struct  gorm_ll_connection_struct {
     gorm_bufq_t txq;
     gorm_buf_t *in_tx;
     gorm_buf_t *in_rx;
-
-    /* allocate memory for sending events to the host thread */
-    // gorm_arch_event_t event;
-    // uint8_t evt_flags;
 } gorm_ll_ctx_t;
 
 

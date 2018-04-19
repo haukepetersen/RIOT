@@ -41,6 +41,7 @@
 
 #include "net/gorm/ll.h"
 #include "net/gorm/config.h"
+#include "net/gorm/arch/evt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,14 +70,10 @@ enum {
 };
 
 typedef struct {
-    /* GATT specific values */
-    /* TODO: split these into separate struct(s) and join structs on higher layer */
-    // uint16_t gatt_max_mtu;
-} gorm_gatt_ctx_t;
-
-typedef struct {
     gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
+    gorm_arch_evt_t event;  /**< event used for synchronizing ISRs and thread */
     /* TODO: add other contexts (L2CAP, ...) */
+    /* allocate memory for sending events to the host thread */
     // gorm_gap_ctx_t gap;
     // gorm_gatt_ctx_t gatt;
     // gorm_l2cap_ctx_t l2cap;
@@ -93,7 +90,7 @@ void gorm_init(netdev_t *radio);
 void gorm_run(void);
 
 
-void gorm_notify(gorm_ctx_t *con, unsigned event);
+void gorm_notify(gorm_ctx_t *con, uint16_t type);
 
 
 void gorm_adv_start(void);

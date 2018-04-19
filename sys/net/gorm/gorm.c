@@ -38,10 +38,6 @@
 #define STATE_STANDBY               (0U)
 #define STATE_ADVERTISING           (1U)
 
-/* TODO: remove */
-#define NOTIFY_FLAG                 (0x0001)
-static thread_t *_host_thread;
-
 /* internal state, used to keep track of global advertisement status */
 static uint8_t _state = STATE_STANDBY;
 
@@ -62,34 +58,70 @@ static gorm_ctx_t *_get_by_state(uint8_t state)
     return NULL;
 }
 
-/* TODO: rework */
-static void _on_data(gorm_ctx_t *con, gorm_buf_t *buf)
+static void _on_data(gorm_ctx_t *con)
 {
-    uint8_t llid = (buf->pkt.flags & BLE_LL_LLID_MASK);
+    gorm_buf_t *buf;
+    while ((buf = gorm_buf_deq(&con->ll.rxq))) {
+        uint8_t llid = (buf->pkt.flags & BLE_LL_LLID_MASK);
 
-    switch (llid) {
-        case BLE_LL_LLID_CTRL:
-            gorm_ll_ctrl_on_data(con, buf);
-            break;
-        case BLE_LL_LLID_DATA_CONT:
-        case BLE_LL_LLID_DATA_START:
-            gorm_l2cap_on_data(con, llid, buf);
-            break;
-        default:
-            DEBUG("[gorm] on_data: invalid LLID value\n");
-            gorm_buf_return(buf);
-            break;
+        switch (llid) {
+            case BLE_LL_LLID_CTRL:
+                gorm_ll_ctrl_on_data(con, buf);
+                break;
+            case BLE_LL_LLID_DATA_CONT:
+            case BLE_LL_LLID_DATA_START:
+                gorm_l2cap_on_data(con, llid, buf);
+                break;
+            default:
+                DEBUG("[gorm] on_data: invalid LLID value\n");
+                gorm_buf_return(buf);
+                break;
+        }
     }
 }
 
-// static void _on_con_terminate(void)
-// {
-//     if (_state == STATE_ADVERTISING) {
-//         gorm_adv_start();
-//     }
-// }
+static void _on_con_terminate(void)
+{
+    if (_state == STATE_ADVERTISING) {
+        gorm_adv_start();
+    }
+}
 
+static void _on_event(gorm_arch_evt_t *event)
+{
+    gorm_ctx_t *ctx = (gorm_ctx_t *)event->ctx;
 
+    /* read pending events */
+    unsigned is = irq_disable();
+    uint16_t state = event->state;
+    event->state = 0;
+    irq_restore(is);
+
+    while (state) {
+        /* NOTE: the order in which we check the events matters! */
+        if (state & GORM_EVT_CON_CLOSED) {
+            DEBUG("[gorm] connection closed\n");
+            _on_con_terminate();
+            state = 0;
+        }
+        if (state & GORM_EVT_CON_TIMEOUT) {
+            DEBUG("[gorm] connection timeout\n");
+            state = 0;
+        }
+        if (state & GORM_EVT_CON_ABORT) {
+            DEBUG("[gorm] connection attempt aborted\n");
+            state = 0;
+        }
+        if (state & GORM_EVT_CONNECTED) {
+            DEBUG("[gorm] connection established\n");
+            state &= ~(GORM_EVT_CONNECTED);
+        }
+        if (state & GORM_EVT_DATA) {
+            _on_data(ctx);
+            state &= ~(GORM_EVT_DATA);
+        }
+    }
+}
 
 void gorm_init(netdev_t *dev)
 {
@@ -113,40 +145,19 @@ void gorm_init(netdev_t *dev)
     for (unsigned i = 0; i < CTX_NUMOF; i++) {
         memset(&_ctx[i], 0, sizeof(gorm_ctx_t));
         _ctx[i].ll.state = GORM_LL_STATE_STANDBY;
+        gorm_arch_evt_init(&_ctx[i].event, (void *)&_ctx[i], _on_event);
     }
     DEBUG("[gorm] contexts initialized\n");
 }
 
-/* TODO: rework */
 void gorm_run(void)
 {
-    _host_thread = (thread_t *)sched_active_thread;
-
-    DEBUG("[gorm] run: running Gorm's host event loop\n");
-
-    while (thread_flags_wait_any(NOTIFY_FLAG)) {
-        // DEBUG("[gorm] run: got notified about incoming data! ~~~~~~~~~~~\n");
-
-        /* TODO: find better and more efficient way to select and dispatch the
-         *       the pending data! */
-        /* idea: could we limit the max number of connections to 16 and use
-         *       dedicated thread flags for each connection? -> dont like the limit*/
-        for (unsigned i = 0; i < CTX_NUMOF; i++) {
-            gorm_ctx_t *con = &_ctx[i];
-            gorm_buf_t *buf;
-            while ((buf = gorm_buf_deq(&con->ll.rxq))) {
-                _on_data(con, buf);
-            }
-        }
-    }
+    gorm_arch_evt_loop();
 }
 
-/* TODO: rework */
-void gorm_notify(gorm_ctx_t *con, unsigned event)
+void gorm_notify(gorm_ctx_t *con, uint16_t event)
 {
-    (void)con;
-    (void)event;
-    thread_flags_set(_host_thread, NOTIFY_FLAG);
+    gorm_arch_evt_post(&con->event, event);
 }
 
 void gorm_adv_start(void)

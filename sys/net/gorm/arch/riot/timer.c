@@ -11,11 +11,7 @@
  * @{
  *
  * @file
- * @brief       RIOT specific implementation of Gorm's event triggering timer
- *
- * @todo        Think about inlining functions, obvious candidates:
- *              - anchor()
- *              - cancel ()
+ * @brief       RIOT specific implementation of Gorm's timer abstraction
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @}
