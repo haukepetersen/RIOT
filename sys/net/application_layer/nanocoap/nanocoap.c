@@ -119,7 +119,7 @@ int coap_parse(coap_pkt_t *pkt, uint8_t *buf, size_t len)
     }
 
 #ifdef MODULE_GCOAP
-    coap_get_uri(pkt, pkt->url);
+    coap_opt_get_uri_query(pkt, pkt->url);
     pkt->content_type = coap_get_content_type(pkt);
 
     if (coap_get_option_uint(pkt, COAP_OPT_OBSERVE, &pkt->observe_value) != 0) {
@@ -230,8 +230,8 @@ unsigned coap_get_content_type(coap_pkt_t *pkt)
     return content_type;
 }
 
-ssize_t coap_get_option_string(const coap_pkt_t *pkt, uint16_t optnum,
-                               uint8_t *target, size_t max_len, char separator)
+ssize_t coap_opt_get_string(const coap_pkt_t *pkt, uint16_t optnum,
+                            uint8_t *target, size_t max_len, char separator)
 {
     assert(pkt && target && (max_len > 1));
 
@@ -304,7 +304,7 @@ ssize_t coap_handle_req(coap_pkt_t *pkt, uint8_t *resp_buf, unsigned resp_buf_le
     uint8_t *uri = pkt->url;
 #else
     uint8_t uri[NANOCOAP_URI_MAX];
-    if (coap_get_uri(pkt, uri) <= 0) {
+    if (coap_opt_get_uri_query(pkt, uri) <= 0) {
         return -EBADMSG;
     }
 #endif
@@ -577,8 +577,8 @@ size_t coap_put_block1_ok(uint8_t *pkt_pos, coap_block1_t *block1, uint16_t last
     }
 }
 
-size_t coap_put_option_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
-                              const char *string, char separator)
+size_t coap_opt_put_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                           const char *string, char separator)
 {
     size_t len = strlen(string);
 

@@ -69,6 +69,7 @@ extern "C" {
 #define COAP_OPT_URI_PATH       (11)
 #define COAP_OPT_CONTENT_FORMAT (12)
 #define COAP_OPT_URI_QUERY      (15)
+#define COAP_OPT_LOCATION_QUERY (20)
 #define COAP_OPT_BLOCK2         (23)
 #define COAP_OPT_BLOCK1         (27)
 /** @} */
@@ -464,25 +465,71 @@ size_t coap_put_option_ct(uint8_t *buf, uint16_t lastonum, uint16_t content_type
  *
  * @return      number of bytes written to @p buf
  */
-size_t coap_put_option_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
-                              const char *string, char separator);
+size_t coap_opt_put_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                           const char *string, char separator);
 
 /**
- * @brief   Insert URI encoded option into buffer
+ * @brief   Convenience function for inserting URI_PATH option into buffer
  *
  * @param[out]  buf         buffer to write to
  * @param[in]   lastonum    number of previous option (for delta calculation),
  *                          or 0 if first option
  * @param[in]   uri         ptr to source URI
- * @param[in]   optnum      option number to use (e.g., COAP_OPT_URI_PATH)
  *
  * @returns     amount of bytes written to @p buf
  */
-static inline size_t coap_put_option_uri(uint8_t *buf, uint16_t lastonum,
-                                         const char *uri, uint16_t optnum)
+static inline size_t coap_opt_put_uri_path(uint8_t *buf, uint16_t lastonum,
+                                           const char *uri)
 {
-    char separator = (optnum == COAP_OPT_URI_PATH) ? '/' : '&';
-    return coap_put_option_string(buf, lastonum, optnum, uri, separator);
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_URI_PATH, uri, '/');
+}
+
+/**
+ * @brief   Convenience function for inserting URI_QUERY option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to source URI
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_uri_query(uint8_t *buf, uint16_t lastonum,
+                                            const char *uri)
+{
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_URI_QUERY, uri, '&');
+}
+
+/**
+ * @brief   Convenience function for inserting LOCATION_PATH option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to string holding the location
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_location_path(uint8_t *buf, uint16_t lastonum,
+                                                const char *loc)
+{
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_LOCATION_PATH, loc, '/');
+}
+
+/**
+ * @brief   Convenience function for inserting LOCATION_QUERY option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to string holding the location
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_location_query(uint8_t *buf, uint16_t lastonum,
+                                                 const char *loc)
+{
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_LOCATION_QUERY, loc, '&');
 }
 
 /**
@@ -642,14 +689,14 @@ unsigned coap_get_content_type(coap_pkt_t *pkt);
  * @return      -ENOSPC if the complete option does not fit into @p target
  * @return      nr of bytes written to @p target (including '\0')
  */
-ssize_t coap_get_option_string(const coap_pkt_t *pkt, uint16_t optnum,
-                               uint8_t *target, size_t max_len, char separator);
+ssize_t coap_opt_get_string(const coap_pkt_t *pkt, uint16_t optnum,
+                            uint8_t *target, size_t max_len, char separator);
 
 /**
- * @brief    Get the packet's request URI
+ * @brief   Convenience function for getting the packet's URI_PATH
  *
- * This function decodes the pkt's URI option into a "/"-seperated and
- * NULL-terminated string.
+ * This function decodes the pkt's URI option into a "/"-separated and
+ * '\0'-terminated string.
  *
  * Caller must ensure @p target can hold at least NANOCOAP_URI_MAX bytes!
  *
@@ -659,16 +706,38 @@ ssize_t coap_get_option_string(const coap_pkt_t *pkt, uint16_t optnum,
  * @returns     -ENOSPC     if URI option is larger than NANOCOAP_URI_MAX
  * @returns     nr of bytes written to @p target (including '\0')
  */
-static inline ssize_t coap_get_uri(const coap_pkt_t *pkt, uint8_t *target)
+static inline ssize_t coap_opt_get_uri_path(const coap_pkt_t *pkt,
+                                            uint8_t *target)
 {
-    return coap_get_option_string(pkt, COAP_OPT_URI_PATH,
-                                  target, NANOCOAP_URI_MAX, '/');
+    return coap_opt_get_string(pkt, COAP_OPT_URI_PATH, target,
+                               NANOCOAP_URI_MAX, '/');
 }
 
 /**
- * @brief    Get the content of a packet's LOCATION_PATH option
+ * @brief   Convenience function for getting the packet's URI_QUERY option
  *
- * This function decodes the pkt's LOCATION_PATH option into a '/'-seperated and
+ * This function decodes the pkt's URI_QUERY option into a "&"-separated and
+ * '\0'-terminated string.
+ *
+ * Caller must ensure @p target can hold at least NANOCOAP_URI_MAX bytes!
+ *
+ * @param[in]   pkt     pkt to work on
+ * @param[out]  target  buffer for target URI
+ *
+ * @returns     -ENOSPC     if URI option is larger than NANOCOAP_URI_MAX
+ * @returns     nr of bytes written to @p target (including '\0')
+ */
+static inline ssize_t coap_opt_get_uri_query(const coap_pkt_t *pkt,
+                                             uint8_t *target)
+{
+    return coap_opt_get_string(pkt, COAP_OPT_URI_QUERY, target,
+                               NANOCOAP_URI_MAX, '&');
+}
+
+/**
+ * @brief    Convenience function for getting the packet's LOCATION_PATH option
+ *
+ * This function decodes the pkt's LOCATION_PATH option into a '/'-separated and
  * '\0'-terminated string.
  *
  * Caller must ensure @p target can hold at least 2 bytes!
@@ -680,11 +749,34 @@ static inline ssize_t coap_get_uri(const coap_pkt_t *pkt, uint8_t *target)
  * @returns     -ENOSPC     if URI option is larger than @p max_len
  * @returns     nr of bytes written to @p target (including '\0')
  */
-static inline ssize_t coap_get_location_path(const coap_pkt_t *pkt,
-                                         uint8_t *target, size_t max_len)
+static inline ssize_t coap_opt_get_location_path(const coap_pkt_t *pkt,
+                                                 uint8_t *target, size_t max_len)
 {
-    return coap_get_option_string(pkt, COAP_OPT_LOCATION_PATH,
-                                  target, max_len, '/');
+    return coap_opt_get_string(pkt, COAP_OPT_LOCATION_PATH,
+                               target, max_len, '/');
+}
+
+/**
+ * @brief    Convenience function for getting the packet's LOCATION_PATH option
+ *
+ * This function decodes the pkt's LOCATION_PATH option into a '&'-separated and
+ * '\0'-terminated string.
+ *
+ * Caller must ensure @p target can hold at least 2 bytes!
+ *
+ * @param[in]   pkt     pkt to work on
+ * @param[out]  target  buffer for location path
+ * @param[in]   max_len size of @p target in bytes
+ *
+ * @returns     -ENOSPC     if URI option is larger than @p max_len
+ * @returns     nr of bytes written to @p target (including '\0')
+ */
+static inline ssize_t coap_opt_get_location_query(const coap_pkt_t *pkt,
+                                                  uint8_t *target,
+                                                  size_t max_len)
+{
+    return coap_opt_get_string(pkt, COAP_OPT_LOCATION_QUERY,
+                               target, max_len, '&');
 }
 
 /**
