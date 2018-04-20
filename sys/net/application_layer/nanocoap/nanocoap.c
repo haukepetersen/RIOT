@@ -577,8 +577,8 @@ size_t coap_put_block1_ok(uint8_t *pkt_pos, coap_block1_t *block1, uint16_t last
     }
 }
 
-size_t coap_opt_put_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
-                           const char *string, char separator)
+size_t coap_opt_put_string_raw(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                               const char *string, char separator)
 {
     size_t len = strlen(string);
 
