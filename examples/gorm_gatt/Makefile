@@ -11,6 +11,9 @@ RIOTBASE ?= $(CURDIR)/../..
 USEMODULE += gorm_gatt
 USEMODULE += auto_init_gorm
 
+# for demonstration purposes we include statistics for Gorm
+USEMODULE += gorm_stats
+
 # include some pre-defined services
 USEMODULE += ggs_riot_led
 USEMODULE += ggs_ips

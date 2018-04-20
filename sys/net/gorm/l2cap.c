@@ -1,5 +1,21 @@
+/*
+ * Copyright (C) 2018 Freie Universität Berlin
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
 
-
+/**
+ * @ingroup     net_gorm_l2cap
+ * @{
+ *
+ * @file
+ * @brief       Gorm's L2CAP layer implementation
+ *
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @}
+ */
 
 #include "net/gorm/util.h"
 #include "net/gorm/l2cap.h"
@@ -7,29 +23,6 @@
 
 #define ENABLE_DEBUG    (1)
 #include "debug.h"
-
-
-
-int gorm_l2cap_send(gorm_ctx_t *con, void *data, size_t len)
-{
-    (void)con;
-    (void)data;
-
-    /* TODO: split data into packets and pass those to the link layer */
-    // uint8_t *buf = (uint8_t *)data;
-    // size_t needed = (len + 2);
-    // /* TODO: use different means to find out the max PDU len */
-    // size_t num_pdus = (needed / NETDEV_BLE_PDU_MAXLEN);
-    // gorm_buf_t *head = gorm_pdupool_get(num_pdus);
-    // if (head == NULL) {
-    //     DEBUG("[gorm_l2cap] send: unable to allocate necessary buffers\n");
-    //     return -1;
-    // }
-    // size_t pos = 2;
-    /* TODO: fill l2cap data header into first packet */
-    /* TODO: copy data into PDU buffers */
-    return len;
-}
 
 void gorm_l2cap_reply(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t data_len)
 {
@@ -53,8 +46,8 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
         case GORM_L2CAP_CID_LE_SIGNAL:
         case GORM_L2CAP_CID_SM:
         default:
-            DEBUG("[gorm_l2cap] on_data: CID (%i) not supported\n", (int)cid);
-            /* TODO: implement */
+            DEBUG("[gorm_l2cap] on_data: CID (%i) not supported (yet)\n",
+                  (int)cid);
             gorm_buf_return(buf);
             break;
     }

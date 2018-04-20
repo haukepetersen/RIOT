@@ -101,10 +101,14 @@ typedef struct  gorm_ll_connection_struct {
     gorm_bufq_t txq;
     gorm_buf_t *in_tx;
     gorm_buf_t *in_rx;
+
+#ifdef MODULE_GORM_STATS
+    struct {
+        unsigned rx_cnt;
+        unsigned tx_cnt;
+    } stats;
+#endif
 } gorm_ll_ctx_t;
-
-
-void gorm_ll_host_init(void);
 
 
 int gorm_ll_controller_init(netdev_t *dev);

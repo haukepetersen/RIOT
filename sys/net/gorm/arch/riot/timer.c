@@ -17,9 +17,6 @@
  * @}
  */
 
-/* TODO: remove */
-#include "board.h"
-
 #include "net/gorm/ll.h"
 #include "net/gorm/arch/timer.h"
 

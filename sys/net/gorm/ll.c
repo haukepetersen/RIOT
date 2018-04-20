@@ -75,11 +75,6 @@ static int _on_data_sent(gorm_buf_t *buf, void *arg);
 static int _on_data_received(gorm_buf_t *buf, void *arg);
 static void _on_connection_event_close(void *arg);
 
-/* TODO: factor out to gorm_stats module */
-static struct {
-    unsigned rx_cnt;
-} stats;
-
 static const uint8_t adv_chan_list[] = GORM_CFG_LL_PERIPH_ADV_CHANNELS;
 
 static void _build_ad_pkt(netdev_ble_pkt_t *pkt, uint8_t type,
@@ -139,21 +134,16 @@ static void _on_supervision_timeout(void *arg)
 
     /* notify the host about the connection timeout */
     gorm_notify((gorm_ctx_t *)con, GORM_EVT_CON_TIMEOUT);
-
-    DEBUG("[gorm_ll] on_supervision_timeout: CONNECTION CLOSED\n");
-    DEBUG("stats:   rx counter:     %u\n", stats.rx_cnt);
-    DEBUG("         event_counter:  %u\n", (unsigned)con->event_counter);
-    DEBUG("         --- timings ---:\n");
-    DEBUG("         timeout_spv:    %u\n", (unsigned)con->timeout_spv);
-    DEBUG("         timeout_rx:     %u\n", (unsigned)con->timeout_rx);
-    DEBUG("         interval:       %u\n", (unsigned)con->interval);
-    DEBUG("         slave_latency:  %u\n", (unsigned)con->slave_latency);
 }
 
 static int _on_data_sent(gorm_buf_t *buf, void *arg)
 {
     (void)buf;
     gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
+
+#ifdef MODULE_GORM_STATS
+    con->stats.tx_cnt++;
+#endif
 
     /* try to allocate a new receive buffer if needed */
     if (!con->in_rx) {
@@ -189,8 +179,8 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
         con->timeout_rx = GORM_CFG_LL_RX_TIMEOUT;
     }
 
-#if ENABLE_DEBUG
-    stats.rx_cnt++;
+#ifdef MODULE_GORM_STATS
+    con->stats.rx_cnt++;
 #endif
 
     /* remember the flags field of the incoming packet */
@@ -248,8 +238,6 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
     gorm_arch_timer_set_from_now(&con->timer_spv, con->timeout_spv,
                                  _on_supervision_timeout, con);
 
-    // LED4_ON;
-
     return 0;
 }
 
@@ -257,8 +245,6 @@ static void _on_connection_event_start(void *arg)
 {
     gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
     int noskip = 1;
-
-    // LED5_OFF;
 
     /* increase the event counter */
     con->event_counter++;
@@ -311,8 +297,6 @@ static void _on_connection_event_close(void *arg)
         con->chan_update.cnt = 0;
     }
     /* calculate channel to be used in next connection event */
-    /* TODO: enable to use algo #2 also... */
-    // con->chan_algo(con);
     gorm_ll_chan_algo1(con);
 
     /* offset to the next window start */
@@ -345,6 +329,11 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
     con->flags = BLE_LL_SN;
     con->event_counter = UINT16_MAX;
 
+#ifdef MODULE_GORM_STATS
+    con->stats.rx_cnt = 0;
+    con->stats.tx_cnt = 0;
+#endif
+
     /* parse the CONNECT_IND payload */
     connect_ind_mtu_t *lldata = (connect_ind_mtu_t *)buf->pkt.pdu;
 
@@ -356,13 +345,8 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
     memcpy(con->ctx.aa.raw, lldata->aa, sizeof(uint32_t));
     memcpy(&con->ctx.crc, lldata->crc, BLE_CRC_LEN);
 
-    /* prepare the channel selection context. So far we only support channel
-     * selection algorithm #1... */
-    /* TODO: support algorithm #2 */
-    // con->chan_algo = (con->in_rx->flags & BLE_LL_CHSEL) ?
-    //                  gorm_ll_chan_algo2 : gorm_ll_chan_algo1;
     if (con->in_rx->pkt.flags & BLE_LL_CHSEL) {
-        DEBUG("[gorm_ll] _connect: channel sel algo #2 not supported\n");
+        DEBUG("[gorm_ll] _connect: channel sel algo #2 not supported (yet)\n");
         goto err;
     }
     memcpy(con->chan_map, lldata->chan_map, BLE_CHANMAP_LEN);
@@ -390,14 +374,10 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
                                   _on_connection_event_start, con);
     /* and notify the host about the new connection */
     gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONNECTED);
-    /* now we are in connected state */
     return;
 
 err:
     con->state = GORM_LL_STATE_STANDBY;
-    /* TODO: notify host. Is there actually anything to tell the host?
-     *       No state change if the connection fails to be established...
-     *       BUT we should continue to advertise. */
     gorm_notify((gorm_ctx_t *)con, GORM_EVT_CON_ABORT);
 }
 

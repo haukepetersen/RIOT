@@ -29,13 +29,6 @@
 extern "C" {
 #endif
 
-/* TODO: not sure we ever need this */
-// static const gorm_uuid_base_t gorm_uuid_sig_base = {{
-//     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-//     0x10, 0x00, 0x80, 0x00,
-//     0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb
-// }};
-
 /**
  * @brief   Export the `Internet Protocol Support Service`
  */

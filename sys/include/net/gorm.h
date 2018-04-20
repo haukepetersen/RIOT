@@ -24,8 +24,7 @@
  * # Implementation Status
  *
  * ## Link-layer
- * Next feature to add
- * - support for channel selection algorithm #2
+ * @todo        support channel selection algorithm #2
  *
  * @{
  * @file
@@ -72,11 +71,7 @@ enum {
 typedef struct {
     gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
     gorm_arch_evt_t event;  /**< event used for synchronizing ISRs and thread */
-    /* TODO: add other contexts (L2CAP, ...) */
-    /* allocate memory for sending events to the host thread */
-    // gorm_gap_ctx_t gap;
-    // gorm_gatt_ctx_t gatt;
-    // gorm_l2cap_ctx_t l2cap;
+    /* add more context fields for higher level protocols on demand (e.g. SM) */
 } gorm_ctx_t;
 
 /**

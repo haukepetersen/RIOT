@@ -211,6 +211,7 @@ PSEUDOMODULES += gorm_broadcaster
 PSEUDOMODULES += gorm_peripheral
 PSEUDOMODULES += gorm_scanner
 PSEUDOMODULES += gorm_central
+PSEUDOMODULES += gorm_stats
 # Provide a framework for Gorm GATT services (GGS)
 PSEUDOMODULES += ggs_%
 

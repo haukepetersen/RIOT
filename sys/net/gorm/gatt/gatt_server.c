@@ -423,12 +423,14 @@ void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len)
 {
     switch (data[0]) {
-        /* TODO: restore order ... */
         case BLE_ATT_MTU_REQ:
             _on_mtu_req(con, buf, data, len);
             break;
-        case BLE_ATT_READ_BY_GROUP_TYPE_REQ:
-            _on_read_by_group_type_req(con, buf, data, len);
+        case BLE_ATT_FIND_INFO_REQ:
+            _on_find_info_req(con, buf, data, len);
+            break;
+        case BLE_ATT_FIND_BY_VAL_REQ:
+            _on_find_by_type_val(con, buf, data, len);
             break;
         case BLE_ATT_READ_BY_TYPE_REQ:
             _on_read_by_type_req(con, buf, data, len);
@@ -436,15 +438,11 @@ void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
         case BLE_ATT_READ_REQ:
             _on_read_req(con, buf, data, len);
             break;
-        case BLE_ATT_FIND_INFO_REQ:
-            _on_find_info_req(con, buf, data, len);
+        case BLE_ATT_READ_BY_GROUP_TYPE_REQ:
+            _on_read_by_group_type_req(con, buf, data, len);
             break;
         case BLE_ATT_WRITE_REQ:
             _on_write_req(con, buf, data, len);
-            break;
-        case BLE_ATT_FIND_BY_VAL_REQ:
-            DEBUG("[gorm_gatt] _on_find_by_type_val()\n");
-            _on_find_by_type_val(con, buf, data, len);
             break;
         case BLE_ATT_READ_BLOB_REQ:
         case BLE_ATT_READ_MUL_REQ:

@@ -18,7 +18,7 @@ static const uint64_t features = (0UL
     | GORM_LL_FEAT_PING_FLAG
 #endif
     /* TODO: add all 17 possible flags */
-    );
+);
 
 
 static void _connection_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)

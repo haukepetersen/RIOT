@@ -106,6 +106,18 @@ static void _on_event(gorm_arch_evt_t *event)
         }
         if (state & GORM_EVT_CON_TIMEOUT) {
             DEBUG("[gorm] connection timeout\n");
+            DEBUG("stats: event_counter:        %u\n", (unsigned)ctx->ll.event_counter);
+#ifdef MODULE_GORM_STATS
+            DEBUG("       packets transmitted:  %u\n", ctx->ll.stats.tx_cnt);
+            DEBUG("       packets received:     %u\n", ctx->ll.stats.rx_cnt);
+            DEBUG("       last chan map update: %u\n", ctx->ll.chan_update.instant);
+            DEBUG("       last param update:    %u\n", ctx->ll.timings_update.instant);
+#endif
+            DEBUG("       --- timings ---:\n");
+            DEBUG("       timeout_spv:          %u\n", (unsigned)ctx->ll.timeout_spv);
+            DEBUG("       timeout_rx:           %u\n", (unsigned)ctx->ll.timeout_rx);
+            DEBUG("       interval:             %u\n", (unsigned)ctx->ll.interval);
+            DEBUG("       slave_latency:        %u\n", (unsigned)ctx->ll.slave_latency);
             state = 0;
         }
         if (state & GORM_EVT_CON_ABORT) {
