@@ -36,8 +36,8 @@ static void test_nanocoap__hdr(void)
     uint8_t *pktpos = &buf[0];
     pktpos += coap_build_hdr((coap_hdr_t *)pktpos, COAP_REQ, NULL, 0,
                              COAP_METHOD_GET, msgid);
-    pktpos += coap_opt_put_location_path(pktpos, 0, loc_path);
-    pktpos += coap_opt_put_uri_path(pktpos, COAP_OPT_LOCATION_PATH, path);
+    pktpos += coap_opt_put_location_path_raw(pktpos, 0, loc_path);
+    pktpos += coap_opt_put_uri_path_raw(pktpos, COAP_OPT_LOCATION_PATH, path);
 
     coap_pkt_t pkt;
     coap_parse(&pkt, &buf[0], pktpos - &buf[0]);
