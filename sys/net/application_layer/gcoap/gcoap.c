@@ -564,8 +564,8 @@ static ssize_t _write_options(coap_pkt_t *pdu, uint8_t *buf, size_t len)
                 DEBUG("gcoap: _write_options: path does not start with '/'\n");
                 return -EINVAL;
             }
-            bufpos += coap_opt_put_uri_path(bufpos, last_optnum,
-                                            (char *)pdu->url);
+            bufpos += coap_opt_put_uri_path_raw(bufpos, last_optnum,
+                                                (char *)pdu->url);
             last_optnum = COAP_OPT_URI_PATH;
         }
     }
@@ -578,7 +578,8 @@ static ssize_t _write_options(coap_pkt_t *pdu, uint8_t *buf, size_t len)
 
     /* Uri-query for requests */
     if (coap_get_code_class(pdu) == COAP_CLASS_REQ) {
-        bufpos += coap_opt_put_uri_query(bufpos, last_optnum, (char *)pdu->qs);
+        bufpos += coap_opt_put_uri_query_raw(bufpos, last_optnum,
+                                             (char *)pdu->qs);
         /* uncomment when further options are added below ... */
         /* last_optnum = COAP_OPT_URI_QUERY; */
     }
