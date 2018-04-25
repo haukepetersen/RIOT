@@ -532,6 +532,29 @@ extern "C" {
 #define BLE_LL_FLOW_MASK            (0x1c)  /**< mask SN, NESN, and MD */
 /** @} */
 
+/**
+ * @name    Link layer feature flags
+ * @{
+ */
+#define BLE_LL_FEAT_ENC                         (1 << 0)
+#define BLE_LL_FEAT_CONN_PARAM_REQ_PROCEDURE    (1 << 1)
+#define BLE_LL_FEAT_EXT_REJECT_IND              (1 << 2)
+#define BLE_LL_FEAT_SLAVE_FEAT_EXCHANGE         (1 << 3)
+#define BLE_LL_FEAT_PING                        (1 << 4)
+#define BLE_LL_FEAT_PACKET_LEN_EXT              (1 << 5)
+#define BLE_LL_FEAT_PRIVACY                     (1 << 6)
+#define BLE_LL_FEAT_EXT_SCANNER_FILTER_POL      (1 << 7)
+#define BLE_LL_FEAT_2M_PHY                      (1 << 8)
+#define BLE_LL_FEAT_STABLE_MOD_INDEX_TX         (1 << 9)
+#define BLE_LL_FEAT_STABLE_MOD_INDEX_RX         (1 << 10)
+#define BLE_LL_FEAT_CODED_PHY                   (1 << 11)
+#define BLE_LL_FEAT_EXTENDED_ADV                (1 << 12)
+#define BLE_LL_FEAT_PERIODIC_ADV                (1 << 13)
+#define BLE_LL_FEAT_CHAN_SEL_ALGO_2             (1 << 14)
+#define BLE_LL_FEAT_POWER_CLASS_1               (1 << 15)
+#define BLE_LL_FEAT_MIN_NUM_USED_CHAN_PROCEDURE (1 << 16)
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif

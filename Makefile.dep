@@ -120,6 +120,8 @@ ifneq (,$(filter gorm,$(USEMODULE)))
     USEMODULE += auto_init_gorm
   endif
   USEMODULE += gorm_arch_riot
+  # include supported link layer features
+  USEMODULE += gorm_feature_ll_ping
 endif
 
 ifneq (,$(filter gorm_arch_riot,$(USEMODULE)))

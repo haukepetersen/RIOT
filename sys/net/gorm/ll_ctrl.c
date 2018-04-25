@@ -11,15 +11,58 @@
 #define CON_UPDATE_LEN              (9U)
 
 static const uint64_t features = (0UL
-#ifdef GORM_LL_FEAT_LE_ENC
-    | GORM_LL_FEAT_LE_ENC_FLAG
+#ifdef MODULE_GORM_FEATURE_LL_ENC
+    | BLE_LL_FEAT_ENC
 #endif
-#ifdef GORM_LL_FEAT_PING
-    | GORM_LL_FEAT_PING_FLAG
+#ifdef MODULE_GORM_FEATURE_LL_CONN_PARAM_REQ_PROCEDURE
+    | BLE_LL_FEAT_CONN_PARAM_REQ_PROCEDURE
 #endif
-    /* TODO: add all 17 possible flags */
+#ifdef MODULE_GORM_FEATURE_LL_EXT_REJECT_IND
+    | BLE_LL_FEAT_EXT_REJECT_IND
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_SLAVE_FEAT_EXCHANGE
+    | BLE_LL_FEAT_SLAVE_FEAT_EXCHANGE
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_PING
+    | BLE_LL_FEAT_PING
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_PACKET_LEN_EXT
+    | BLE_LL_FEAT_PACKET_LEN_EXT
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_PRIVACY
+    | BLE_LL_FEAT_PRIVACY
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_EXT_SCANNER_FILTER_POL
+    | BLE_LL_FEAT_EXT_SCANNER_FILTER_POL
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_2M_PHY
+    | BLE_LL_FEAT_2M_PHY
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_STABLE_MOD_INDEX_TX
+    | BLE_LL_FEAT_STABLE_MOD_INDEX_TX
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_STABLE_MOD_INDEX_RX
+    | BLE_LL_FEAT_STABLE_MOD_INDEX_RX
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_CODED_PHY
+    | BLE_LL_FEAT_CODED_PHY
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_EXTENDED_ADV
+    | BLE_LL_FEAT_EXTENDED_ADV
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_PERIODIC_ADV
+    | BLE_LL_FEAT_PERIODIC_ADV
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_CHAN_SEL_ALGO_2
+    | BLE_LL_FEAT_CHAN_SEL_ALGO_2
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_POWER_CLASS_1
+    | BLE_LL_FEAT_POWER_CLASS_1
+#endif
+#ifdef MODULE_GORM_FEATURE_LL_MIN_NUM_USED_CHAN_PROCEDURE
+    | BLE_LL_FEAT_MIN_NUM_USED_CHAN_PROCEDURE
+#endif
 );
-
 
 static void _connection_update(gorm_ll_ctx_t *con, gorm_buf_t *buf)
 {
@@ -62,6 +105,15 @@ static void _ctrl_version(gorm_ctx_t *con, gorm_buf_t *buf)
     gorm_buf_enq(&con->ll.txq, buf);
 }
 
+#ifdef MODULE_GORM_FEATURE_LL_PING
+static void _ping_resp(gorm_ctx_t *con, gorm_buf_t *buf)
+{
+    buf->pkt.len = 1;
+    buf->pkt.pdu[0] = BLE_LL_PING_RSP;
+    gorm_buf_enq(&con->ll.txq, buf);
+}
+#endif
+
 void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
 {
     switch (buf->pkt.pdu[0]) {
@@ -85,20 +137,31 @@ void gorm_ll_ctrl_on_data(gorm_ctx_t *con, gorm_buf_t *buf)
             _ctrl_version(con, buf);
             DEBUG("[gorm_ll_ctrl] on_data: responded to VERSION_IND\n");
             break;
+        case BLE_LL_PING_REQ:
+#ifdef MODULE_GORM_FEATURE_LL_PING
+            _ping_resp(con, buf);
+            DEBUG("[gorm_ll_ctrl] on_data: responded to PING_REQ\n");
+            break;
+#endif
         case BLE_LL_ENC_REQ:
-        case BLE_LL_ENC_RSP:
         case BLE_LL_START_ENC_REQ:
+        case BLE_LL_PAUSE_ENC_REQ:
+        case BLE_LL_SLAVE_FEATURE_REQ:
+        case BLE_LL_CONN_PARAM_REQ:
+            buf->pkt.len = 2;
+            buf->pkt.pdu[1] = buf->pkt.pdu[0];
+            buf->pkt.pdu[0] = BLE_LL_UNKNOWN_RSP;
+            gorm_buf_enq(&con->ll.txq, buf);
+            break;
+
+        case BLE_LL_ENC_RSP:
         case BLE_LL_START_ENC_RSP:
         case BLE_LL_UNKNOWN_RSP:
         case BLE_LL_FEATURE_RSP:
-        case BLE_LL_PAUSE_ENC_REQ:
         case BLE_LL_PAUSE_ENC_RSP:
         case BLE_LL_REJECT_IND:
-        case BLE_LL_SLAVE_FEATURE_REQ:
-        case BLE_LL_CONN_PARAM_REQ:
         case BLE_LL_CONN_PARAM_RSP:
         case BLE_LL_REJECT_EXT_IND:
-        case BLE_LL_PING_REQ:
         case BLE_LL_PING_RSP:
         case BLE_LL_LENGTH_REQ:
         case BLE_LL_LENGTH_RSP:

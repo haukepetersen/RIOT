@@ -103,6 +103,7 @@ typedef struct  gorm_ll_connection_struct {
     gorm_buf_t *in_rx;
 
 #ifdef MODULE_GORM_STATS
+    /* optional statistics for the last/currently active connection */
     struct {
         unsigned rx_cnt;
         unsigned tx_cnt;
