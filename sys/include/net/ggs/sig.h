@@ -23,8 +23,6 @@
 
 #include "net/gorm/gatt.h"
 
-#define GGS_UUID_IPS            (0x1820)
-
 #ifdef __cplusplus
 extern "C" {
 #endif

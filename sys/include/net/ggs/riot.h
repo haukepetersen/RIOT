@@ -28,8 +28,8 @@
 extern "C" {
 #endif
 
-#define GORM_UUID_RIOT_LED_SERVICE      (0x0001)
-#define GORM_UUID_RIOT_LED_CHAR         (0x0002)
+#define GGS_RIOT_UUID_LED_SERVICE       (0x0001)
+#define GGS_RIOT_UUID_LED_CHAR          (0x0002)
 
 static const gorm_uuid_base_t ggs_uuid_riot_base = {{
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

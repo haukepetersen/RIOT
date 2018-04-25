@@ -25,7 +25,7 @@
 #include "net/gorm/uuid.h"
 #include "net/gorm/util.h"
 
-void gorm_uuid_from_buf(gorm_uuid_t *uuid, uint8_t *buf, size_t len)
+void gorm_uuid_from_buf(gorm_uuid_t *uuid, const uint8_t *buf, size_t len)
 {
     assert(uuid && buf && ((len == 2) || (len == 16)));
 

@@ -62,7 +62,7 @@ void gorm_gap_init(const uint8_t *addr, const char *name, uint16_t appearance)
     config.data.adv_len = gorm_gap_ad_add_flags(config.data.adv_data, 0,
                                                 GORM_GAP_FLAGS_DEFAULT);
     config.data.adv_len = gorm_gap_ad_add(config.data.adv_data,
-                                          config.data.adv_len, GORM_GAP_NAME,
+                                          config.data.adv_len, BLE_GAP_NAME,
                                           config.name, strlen(config.name));
 
     /* per default, we do not send any payload on SCAN_REQUESTS */

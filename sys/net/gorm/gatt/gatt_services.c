@@ -54,29 +54,29 @@ static size_t _on_gap_con_param(const gorm_gatt_char_t *characteristic,
 
 /* declare mandatory services (GAP & ATT) */
 static gorm_gatt_service_t gap_service = {
-    .uuid  = GORM_UUID(GORM_UUID_GAP, NULL),
+    .uuid  = GORM_UUID(BLE_SERVICE_GAP, NULL),
     .char_cnt = 3,
     .chars = (gorm_gatt_char_t[]){
         {
             .cb   = _on_gap_name,
-            .type = GORM_UUID(GORM_UUID_DEVICE_NAME, NULL),
+            .type = GORM_UUID(BLE_CHAR_DEVICE_NAME, NULL),
             .perm = BLE_ATT_READ,
         },
         {
             .cb   = _on_gap_appearance,
-            .type = GORM_UUID(GORM_UUID_APPEARANCE, NULL),
+            .type = GORM_UUID(BLE_CHAR_APPEARANCE, NULL),
             .perm = BLE_ATT_READ,
         },
         {
             .cb   = _on_gap_con_param,
-            .type = GORM_UUID(GORM_UUID_PREF_CON_PARAM, NULL),
+            .type = GORM_UUID(BLE_CHAR_PREF_CON_PARAM, NULL),
             .perm = BLE_ATT_READ,
         },
     },
 };
 
 static gorm_gatt_service_t att_service = {
-    .uuid  = GORM_UUID(GORM_UUID_ATT, NULL),
+    .uuid  = GORM_UUID(BLE_SERVICE_ATT, NULL),
     .char_cnt = 0,
     .chars = NULL,
 };

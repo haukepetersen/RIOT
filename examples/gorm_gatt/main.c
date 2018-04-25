@@ -33,35 +33,30 @@
 #define UUID_INFO       (0x0815)
 #define UUID_INFO_TEXT  (0x0816)
 
-// static uint8_t gap_ad[GORM_GAP_AD_MAXLEN];
-
-// static gorm_ctx_t _con;
-
 static const char *device_name = "RIOT";
-static const char *info_str = "Hackschnitzel";
+static char *info_str = "Hackschnitzel";
 
 static size_t _info_cb(const gorm_gatt_char_t *characteristic, uint8_t method,
                       uint8_t *buf, size_t buf_len)
 {
     (void)characteristic;
 
+    size_t size = strlen(info_str);
+
     if (method == GORM_GATT_READ) {
-        printf("READ READ READ: _info_cb()\n");
-        size_t size = strlen(info_str);
         size = (size > buf_len) ? buf_len : size;
         memcpy(buf, info_str, size);
-        return size;
     }
     else if (method == GORM_GATT_WRITE) {
-        printf("WRITE WRITE WRITE: _info_cb():");
+        size = (buf_len > size) ? size : buf_len;
         for (size_t i = 0; i < buf_len; i++) {
-            printf("%c", (char)buf[i]);
+            info_str[i] = (char)buf[i];
         }
-        puts("");
-        return GORM_GATT_OP_OK;
+        info_str[size] = '\0';
+        printf("info_cb - WRITE: written '%s'\n", info_str);
     }
 
-    return GORM_GATT_OP_NOT_SUPPORTED;
+    return size;
 }
 
 static const gorm_gatt_desc_t info_desc[] = {

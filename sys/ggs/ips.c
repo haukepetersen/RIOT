@@ -17,12 +17,12 @@
  * @}
  */
 
+#include "net/ble.h"
+#include "net/ggs/sig.h"
 #include "net/gorm/uuid.h"
 
-#include "net/ggs/sig.h"
-
 gorm_gatt_service_t ggs_ips_service = {
-    .uuid = GORM_UUID(GGS_UUID_IPS, NULL),
+    .uuid = GORM_UUID(BLE_SERVICE_INTERNET_PROT_SUPPORT, NULL),
     .char_cnt = 0,      /* this service has no characteristics */
     .chars = NULL,
 };

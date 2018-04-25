@@ -51,7 +51,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name    GATT Declaration UUIDs
+ * @name    GATT Declaration 16-bit UUIDs
  *
  * @see https://www.bluetooth.com/specifications/gatt/declarations
  * @{
@@ -63,7 +63,66 @@ extern "C" {
 /** @} */
 
 /**
- * @name    GATT descriptor UUIDs
+ * @name    GATT Service 16-bit UUIDs
+ *
+ * @see https://www.bluetooth.com/specifications/gatt/services
+ * @{
+ */
+#define BLE_SERVICE_GAP                     (0x1800)
+#define BLE_SERVICE_ATT                     (0x1801)
+#define BLE_SERVICE_IMMEDIATE_ALERT         (0x1802)
+#define BLE_SERVICE_LINK_LOSS               (0x1803)
+#define BLE_SERVICE_TX_POWER                (0x1804)
+#define BLE_SERVICE_CURRENT_TIME            (0x1805)
+#define BLE_SERVICE_REFERENCE_TIME_UPDATE   (0x1806)
+#define BLE_SERVICE_NEXT_DST_CHANGE         (0x1807)
+#define BLE_SERVICE_GLUCOSE                 (0x1808)
+#define BLE_SERVICE_HEALTH_THERMOMETER      (0x1809)
+#define BLE_SERVICE_DEVICE_INFO             (0x180a)
+#define BLE_SERVICE_HEART_RATE              (0x180d)
+#define BLE_SERVICE_PHONE_ALERT_STATUS      (0x180e)
+#define BLE_SERVICE_BAT                     (0x180f)
+#define BLE_SERVICE_BLOOD_RESSURE           (0x1810)
+#define BLE_SERVICE_ALERT_NOTIFY            (0x1811)
+#define BLE_SERVICE_HUMAN_INTERFACE_DEV     (0x1812)
+#define BLE_SERVICE_SCAN_PARAMETERS         (0x1813)
+#define BLE_SERVICE_RUNNING_SPEED           (0x1814)
+#define BLE_SERVICE_AUTOMATION_ID           (0x1815)
+#define BLE_SERVICE_CYCLING_SPEED           (0x1816)
+#define BLE_SERVICE_CYCLING_POWER           (0x1818)
+#define BLE_SERVICE_LOCATION_NAVIGATION     (0x1819)
+#define BLE_SERVICE_ENVIRONMENTAL_SENSE     (0x181a)
+#define BLE_SERVICE_BODY_COMPOSITION        (0x181b)
+#define BLE_SERVICE_USER_DATA               (0x181c)
+#define BLE_SERVICE_WEIGHT_SCALE            (0x181d)
+#define BLE_SERVICE_BOND_MANAGEMENT         (0x181e)
+#define BLE_SERVICE_CONT_GLUCOSE_MON        (0x181f)
+#define BLE_SERVICE_INTERNET_PROT_SUPPORT   (0x1820)
+#define BLE_SERVICE_INDOOR_POS              (0x1821)
+#define BLE_SERVICE_PULSE_OXIMETER          (0x1822)
+#define BLE_SERVICE_HTTP_PROXY              (0x1823)
+#define BLE_SERVICE_TRANSPORT_DISC          (0x1824)
+#define BLE_SERVICE_OBJECT_TRANSFER         (0x1825)
+#define BLE_SERVICE_FITNESS_MACHINE         (0x1826)
+#define BLE_SERVICE_MESH_PROVISIONING       (0x1827)
+#define BLE_SERVICE_MESH_PROXY              (0x1828)
+#define BLE_SERVICE_RECONN_CONF             (0x1829)
+/** @} */
+
+/**
+ * @name    Selected GATT characteristics (16-bit UUIDs)
+ *
+ * @see https://www.bluetooth.com/specifications/gatt/characteristics
+ * @{
+ */
+#define BLE_CHAR_DEVICE_NAME       (0x2a00)
+#define BLE_CHAR_APPEARANCE        (0x2a01)
+#define BLE_CHAR_PREF_CON_PARAM    (0x2a04)
+
+/** @} */
+
+/**
+ * @name    GATT descriptors (16-bit UUIDs)
  *
  * @see https://www.bluetooth.com/specifications/gatt/descriptors
  * @{
@@ -156,7 +215,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name    Units (16-bit)
+ * @name    Units (16-bit UUIDs)
  *
  * @see https://www.bluetooth.com/specifications/assigned-numbers/units
  * @{

@@ -51,7 +51,10 @@ extern "C" {
 #define GORM_LL_STATE_ADV_ONLY  (0x06)
 /** @} */
 
-typedef struct  gorm_ll_connection_struct {
+/**
+ * @brief   Link layer context for BLE connections
+ */
+typedef struct {
     /* connection state: holds ll state, flow control, and anchor state */
     uint8_t state;
     uint8_t flags;

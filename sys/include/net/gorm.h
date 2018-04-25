@@ -9,7 +9,9 @@
 /**
  * @defgroup    net_gorm Gorm, the daddy of Bluetooth
  * @ingroup     net
- * @brief       Gorm, the BLE stack for RIOT
+ * @brief       Gorm is a light-weight BLE stack for RIOT
+ *
+ * @warning THIS FEATURE IS EXPERIMENTAL
  *
  * TODO more high-level doc
  *

@@ -7,11 +7,13 @@
  */
 
 /**
+ * @defgroup    net_gorm_buf Gorm's buffer management
  * @ingroup     net_gorm
+ * @brief       Memory management for Gorm
  * @{
  *
  * @file
- * @brief       Gorm's buffer management
+ * @brief       Gorm's buffer management interface
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
@@ -28,19 +30,19 @@
 #define GORM_BUFQ_INIT      { NULL, NULL }
 
 /**
- * @brief   Generic packet buffer structure used throughout Gorm
+ * @brief   Generic packet buffer structure used by Gorm
  */
 typedef struct gorm_pdu {
-    struct gorm_pdu *next;
-    netdev_ble_pkt_t pkt;
+    struct gorm_pdu *next;  /**< pointer to the next buffer in a queue */
+    netdev_ble_pkt_t pkt;   /**< packet buffer holding a BLE packet */
 } gorm_buf_t;
 
 /**
  * @brief   Queue containing Gorm buffers
  */
 typedef struct {
-    gorm_buf_t *head;
-    gorm_buf_t *tail;
+    gorm_buf_t *head;       /**< pointer to the first element in the queue */
+    gorm_buf_t *tail;       /**< pointer to the last element in the queue */
 } gorm_bufq_t;
 
 /**

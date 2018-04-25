@@ -111,7 +111,7 @@ size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
 static inline size_t gorm_gap_ad_add_flags(uint8_t *buf, size_t pos,
                                            uint8_t flags)
 {
-    return gorm_gap_ad_add(buf, pos, GORM_GAP_FLAGS, &flags, 1);
+    return gorm_gap_ad_add(buf, pos, BLE_GAP_FLAGS, &flags, 1);
 }
 
 /**

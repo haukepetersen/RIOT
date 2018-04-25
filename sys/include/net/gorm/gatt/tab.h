@@ -15,6 +15,17 @@
  * @file
  * @brief       Gorm's GATT table interface
  *
+ *
+ * # Allocation of Handles
+ *
+ * 0b
+ * - handle allocation:
+ *    - 0b0xxxxxxxNNNNNNNN -> 16-bit UUIDed services
+ *    - 0b1xxxxxxxNNNNNNNN -> 128-bit UUIDed services
+ *    - 0bxxxxxxxxCCCC0000 -> 4 MSB of lower byte: characteristics
+ *    - 0bxxxxxxxxCCCCDDDD -> 4 LSB of lower byte: char descriptions
+ *
+ *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 

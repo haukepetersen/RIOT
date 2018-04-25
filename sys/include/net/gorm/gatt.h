@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    net_gorm_gatt
+ * @defgroup    net_gorm_gatt GATT for Gorm
  * @ingroup     net_gorm
  * @brief       Gorm's GATT implementation
  *
@@ -28,12 +28,13 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_GATT_H
-#define GORM_GATT_H
+#ifndef NET_GORM_GATT_H
+#define NET_GORM_GATT_H
 
 #include <stdint.h>
 
 #include "net/ble.h"
+#include "net/gorm.h"
 #include "net/gorm/ll.h"
 #include "net/gorm/att.h"
 #include "net/gorm/uuid.h"
@@ -46,61 +47,115 @@ extern "C" {
  * @name    GATT MTU size
  *
  * TODO: make this non-static an negotiate this from the con object
+ * @{
  */
 #define GORM_GATT_MAX_MTU               (NETDEV_BLE_PDU_MAXLEN - 4)
 #define GORM_GATT_DEFAULT_MTU           (23U)
+/** @} */
 
+/**
+ * @brief   Access method flags used by Gorm's GATT implementation
+ */
 enum {
-    GORM_GATT_READ,
-    GORM_GATT_WRITE,
+    GORM_GATT_READ,         /**< read operation */
+    GORM_GATT_WRITE,        /**< write operation */
 };
 
-enum {
-    GORM_GATT_OP_NOT_SUPPORTED = 0,
-    GORM_GATT_OP_OK = 1,
-};
-
+/**
+ * @brief   Type definition for GATT characteristic instances
+ */
 typedef struct gorm_gatt_char gorm_gatt_char_t;
+
+/**
+ * @brief   Type declaration for GATT descriptor instances
+ */
 typedef struct gorm_gatt_desc gorm_gatt_desc_t;
+
+/**
+ * @brief   Type declaration for GATT service instances
+ */
 typedef struct gorm_gatt_service gorm_gatt_service_t;
 
+/**
+ * @brief   Callback signature for access to GATT characteristics
+ *
+ * @param[in] characteristic    characteristic that is being accessed
+ * @param[in] method            operation to carry out
+ * @param[in,out] buf           buffer to read/write data to/from
+ * @param[in] buf_len           (max) size of @buf
+ *
+ * @return  number of bytes read from/written to @p buf
+ * @return  0 if method is not supported
+ */
 typedef size_t (*gorm_gatt_char_cb_t)(const gorm_gatt_char_t *characteristic,
                                       uint8_t method,
                                       uint8_t *buf, size_t buf_len);
 
-/* as of now, Gorm's descriptors are read-only */
+/**
+ * @brief   Callback for reading characteristic descriptors
+ *
+ * As of now, Gorm supports only read-only descriptors, so this callback is
+ * only used for READ operations.
+ *
+ * @param[in] descriptor        descriptor that is read
+ * @param[in] buf               buffer to write result to
+ * @param[in] buf_len           size of @p buf
+ *
+ * @return  number of bytes written to @p buf
+ */
 typedef size_t (*gorm_gatt_desc_cb_t)(const gorm_gatt_desc_t *descriptor,
                                       uint8_t *buf, size_t buf_len);
 
+/**
+ * @brief   Structure for defining instances of GATT characteristic descriptors
+ */
 struct gorm_gatt_desc {
-    gorm_gatt_desc_cb_t cb;
-    uint32_t arg;
-    uint16_t type;          /**< 16-bit UUIDs only */
+    gorm_gatt_desc_cb_t cb;     /**< function called on READ operations */
+    uint32_t arg;               /**< user argument passed to the callback */
+    uint16_t type;              /**< descriptor type, 16-bit UUIDs only */
 };
 
+/**
+ * @brief   Structure for defining instances of GATT characteristics
+ */
 struct gorm_gatt_char {
-    gorm_gatt_char_cb_t cb;
-    void *arg;
-    gorm_uuid_t type;
-    uint8_t perm;
-    uint16_t desc_cnt;
-    const gorm_gatt_desc_t *desc;
+    gorm_gatt_char_cb_t cb;     /**< function called on characteristic access */
+    void *arg;                  /**< user argument passed to the callback */
+    gorm_uuid_t type;           /**< access method (READ or WRITE) */
+    uint8_t perm;               /**< permission flags */
+    uint16_t desc_cnt;          /**< number of descriptors for this char */
+    const gorm_gatt_desc_t *desc;   /**< array holding descriptors */
 };
 
+/**
+ * @brief   Structure for defining instances of GATT services
+ */
 struct gorm_gatt_service {
-    struct gorm_gatt_service *next;
-    gorm_uuid_t uuid;
-    uint16_t handle;
-    uint16_t char_cnt;
-    const gorm_gatt_char_t *chars;
+    struct gorm_gatt_service *next; /**< next service in list */
+    gorm_uuid_t uuid;               /**< UUID of the service */
+    uint16_t handle;                /**< internal base handle of the service */
+    uint16_t char_cnt;              /**< number of contained characteristics */
+    const gorm_gatt_char_t *chars;  /**< pointer to characteristics */
 };
 
-
+/**
+ * @brief   Initialize Gorm's GATT server
+ */
 void gorm_gatt_server_init(void);
 
+/**
+ * @brief   Initialize the mandatory, included GATT services (GAP and ATT)
+ */
 void gorm_gatt_services_init(void);
 
-
+/**
+ * @brief   Handle incoming GATT data packets
+ *
+ * @param[in] con       open connection context
+ * @param[in,out] buf   packet buffer holding the incoming packet
+ * @param[in,out] data  actual GATT payload, skipping lower layer parts of PDU
+ * @param[in] len       length of @p data in bytes
+ */
 void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
                        uint8_t *data, size_t len);
 
@@ -108,5 +163,5 @@ void gorm_gatt_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
 }
 #endif
 
-#endif /* GORM_GATT_H */
+#endif /* NET_GORM_GATT_H */
 /** @} */

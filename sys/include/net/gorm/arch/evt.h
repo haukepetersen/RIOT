@@ -21,21 +21,52 @@
 #ifndef NET_GORM_ARCH_EVENT_H
 #define NET_GORM_ARCH_EVENT_H
 
+/**
+ * @todo    this include is RIOT specific, so move...
+ */
 #include "event.h"
 
+/**
+ * @brief   RIOT specific event definition
+ *
+ * @todo    move to RIOT specific header somehow
+ */
 typedef struct {
-    event_t super;
-    void *ctx;
-    uint16_t state;
+    event_t super;      /**< base timer */
+    void *ctx;          /**< Gorm context tied to the event */
+    uint16_t state;     /**< event flags marking pending event type(s) */
 } gorm_arch_evt_t;
 
+/**
+ * @brief   Event callback signature
+ *
+ * @param[in] event     event that was triggered
+ */
 typedef void (*gorm_arch_evt_cb_t)(gorm_arch_evt_t *event);
 
+/**
+ * @brief   Initialize the given event
+ *
+ * @param[out] event    initialize this event
+ * @param[in]  ctx      set context for the event
+ * @param[in]  cb       callback called when the event is triggered
+ */
 void gorm_arch_evt_init(gorm_arch_evt_t *event,
-                          void *ctx, gorm_arch_evt_cb_t cb);
+                        void *ctx, gorm_arch_evt_cb_t cb);
 
+/**
+ * @brief   Post an event
+ *
+ * @param[in] event     event to trigger
+ * @param[in] type      flag for marking the type of event
+ */
 void gorm_arch_evt_post(gorm_arch_evt_t *event, uint16_t type);
 
+/**
+ * @brief   Run an event loop that waits for new events
+ *
+ * This function will block the calling thread indefinitely waiting for events.
+ */
 void gorm_arch_evt_loop(void);
 
 #endif /* NET_GORM_ARCH_EVENT_H */

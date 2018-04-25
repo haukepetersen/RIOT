@@ -7,47 +7,26 @@
  */
 
 /**
+ * @defgroup    net_gorm_att ATT for Gorm
  * @ingroup     net_gorm
+ * @brief       Gorm's ATT (Attribute protocol) implementation
  * @{
  *
  * @file
- * @brief       Gorm's ATT (Attribute Protocol) implementation
+ * @brief       Gorm's ATT (Attribute Protocol) definitions
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_ATT_H
-#define GORM_ATT_H
-
-#include "net/gorm.h"
-#include "net/gorm/uuid.h"
+#ifndef NET_GORM_ATT_H
+#define NET_GORM_ATT_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @name    ATT error codes
- * @{
- */
-/** @} */
-
-/**
- * @name    Attribute opcodes
- * @{
- */
-/** @} */
-
-/**
- * @name    Attribute properties
- * @{
- */
-/** @} */
-
-/**
- * @name    Permission flags
- *
- * TODO: probably need re-definition...
+ * @name    ATT Permission flags
  * @{
  */
 #define GORM_ATT_READABLE                   (0x01)
@@ -61,5 +40,5 @@ extern "C" {
 }
 #endif
 
-#endif /* GORM_PDUQ_H */
+#endif /* NET_GORM_ATT_H */
 /** @} */
