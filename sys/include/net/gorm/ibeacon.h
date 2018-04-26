@@ -33,14 +33,36 @@ extern "C" {
  */
 #define GORM_IBEACON_PDU_LEN        (36U)
 
+/**
+ * @brief   iBeacon context
+ */
 typedef struct {
-    gorm_ctx_t *ctx;
-    uint8_t pdu[GORM_IBEACON_PDU_LEN];
+    gorm_ctx_t *ctx;            /**< context used for advertising */
+    gorm_gap_adv_ctx_t gap;     /**< advertising data payload */
 } gorm_ibeacon_ctx_t;
 
-void gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ctx, gorm_uuid_t *uuid,
-                            uint16_t major, uint16_t minor,
-                            uint8_t txpower, uint32_t adv_interval);
+/**
+ * @brief   Advertise iBeacon PDUs using the given context
+ *
+ * @param[out] ctx          iBeacon context
+ * @param[in]  addr         device address to advertise
+ * @param[in]  uuid         UUID to advertise
+ * @param[in]  major        iBeacon major number
+ * @param[in]  minor        iBeacon minor number
+ * @param[in]  txpower      calibrated TX power
+ * @param[in]  adv_interval advertising interval [in us]
+ */
+int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ctx, uint8_t *addr,
+                           gorm_uuid_t *uuid,
+                           uint16_t major, uint16_t minor,
+                           uint8_t txpower, uint32_t adv_interval);
+
+/**
+ * @brief   Stop advertising the given iBeacon context
+ *
+ * @param[in] ctx           stop advertising this iBeacon context
+ */
+int gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ctx);
 
 #ifdef __cplusplus
 }

@@ -115,10 +115,9 @@ extern "C" {
  * @see https://www.bluetooth.com/specifications/gatt/characteristics
  * @{
  */
-#define BLE_CHAR_DEVICE_NAME       (0x2a00)
-#define BLE_CHAR_APPEARANCE        (0x2a01)
-#define BLE_CHAR_PREF_CON_PARAM    (0x2a04)
-
+#define BLE_CHAR_DEVICE_NAME                (0x2a00)
+#define BLE_CHAR_APPEARANCE                 (0x2a01)
+#define BLE_CHAR_PREF_CON_PARAM             (0x2a04)
 /** @} */
 
 /**

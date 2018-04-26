@@ -98,6 +98,11 @@ size_t gorm_gap_copy_con_params(uint8_t *buf, size_t max_len)
     return 0;
 }
 
+gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void)
+{
+    return &config.data;
+}
+
 size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
                        uint8_t type, const void *data, size_t len)
 {
@@ -109,11 +114,6 @@ size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
     memcpy(ptr, data, len);
 
     return (pos + 2 + len);
-}
-
-gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void)
-{
-    return &config.data;
 }
 
 void gorm_gap_print(void)

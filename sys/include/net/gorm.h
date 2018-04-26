@@ -16,7 +16,7 @@
  * TODO more high-level doc
  *
  * @todo        Unify concept of static vs dynamic configuaration values, e.g.
- *              - advertisement intervals (conn vs nonconn)
+ *             - advertisement intervals (conn vs nonconn)
  * @todo        Address handling: generation of public addresses etc
  * @todo        Use netdev correctly (do proper switching to thread context)
  * @todo        Implement and use `event_post_first()` and use in link layer for
@@ -63,13 +63,16 @@ extern "C" {
  * @brief   Generic error codes used by Gorm
  */
 enum {
-    GORM_OK     = 0,
-    GORM_ERR_TIMINGS = -1,
+    GORM_OK           = 0,      /**< everything went well */
+    GORM_ERR_TIMINGS  = -1,     /**< context busy */
     GORM_ERR_CTX_BUSY = -2,     /**< the given context is not free to use */
     GORM_ERR_NOBUF    = -3,     /**< no buffer space available */
     GORM_ERR_DEV      = -4,     /**< BLE radio device error */
 };
 
+/**
+ * @brief   Context data holding the full context for each connection
+ */
 typedef struct {
     gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
     gorm_arch_evt_t event;  /**< event used for synchronizing ISRs and thread */
@@ -77,21 +80,35 @@ typedef struct {
 } gorm_ctx_t;
 
 /**
- * @brief   Initialize Gorm's host implementation
+ * @brief   Initialize Gorm
  */
 void gorm_init(netdev_t *radio);
 
 /**
- * @brief   Run Gorm's host layers
+ * @brief   Run Gorm's event loop, servicing the upper (host) layers
  */
 void gorm_run(void);
 
-
+/**
+ * @brief   Notify Gorm's thread about link layer events
+ *
+ * @param[in] con       Connection context that spawned the event
+ * @param[in] type      Event type
+ */
 void gorm_notify(gorm_ctx_t *con, uint16_t type);
 
+/**
+ * @brief   Start advertising the default GAP data using a free context
+ *
+ * @return  GORM_OK if advertising was started or advertising is already in
+ *          progress
+ * @return  GORM_ERR_CTX_BUSY if no free context is available
+ */
+int gorm_adv_start(void);
 
-void gorm_adv_start(void);
-
+/**
+ * @brief   Stop advertising the default GAP data
+ */
 void gorm_adv_stop(void);
 
 #ifdef __cplusplus

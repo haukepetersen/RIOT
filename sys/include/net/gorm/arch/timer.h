@@ -18,8 +18,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_ARCH_TIMER_H
-#define GORM_ARCH_TIMER_H
+#ifndef NET_GORM_ARCH_TIMER_H
+#define NET_GORM_ARCH_TIMER_H
 
 #include "xtimer.h"
 
@@ -27,31 +27,67 @@
 extern "C" {
 #endif
 
-/* TODO: let architecture specific implementation define this somehow */
+/**
+ * @brief   OS specific timer data
+ *
+ * @todo    This should be defined by the OS somewhere
+ */
 typedef struct {
-    xtimer_t base;
-    uint32_t last;
+    xtimer_t base;      /**< the actual timer struct used */
+    uint32_t last;      /**< last used timeout, for offset compensation */
 } gorm_arch_timer_t;
 
-typedef void (*gorm_arch_timer_cb_t)(void *);
+/**
+ * @brief   Gorm specific timer callback signature
+ *
+ * @param[in] arg       user define argument
+ */
+typedef void (*gorm_arch_timer_cb_t)(void *arg);
 
-/* does set last value to now() */
+/**
+ * @brief   Set the time base to the current time minus the compensation value
+ *
+ * @param[out] timer        set base time for this timer
+ * @param[in]  compensation offset compensation value
+ */
 void gorm_arch_timer_anchor(gorm_arch_timer_t *timer, uint32_t compensation);
 
-/* will change last value to last + timeout */
+/**
+ * @brief   Set a timer to trigger @p timeout us after the last time it triggered
+ *
+ * This function will also update the last timeout value of the timer.
+ *
+ * @param[in,out] timer     timer to set
+ * @param[in]     timeout   timeout in us
+ * @param[in]     cb        callback to call on timeout
+ * @param[in]     arg       argument passed to @p cb
+ */
 void gorm_arch_timer_set_from_last(gorm_arch_timer_t *timer, uint32_t timeout,
                                    gorm_arch_timer_cb_t cb, void *arg);
 
-/* does not touch last value */
+/**
+ * @brief   Set a timer to trigger @p timeout us from the current time
+ *
+ * This function will not update the last timeout value save by the timer.
+ *
+ * @param[in,out] timer     timer to set
+ * @param[in]     timeout   timeout in us
+ * @param[in]     cb        callback to call on timeout
+ * @param[in]     arg       argument passed to @p cb
+ */
 void gorm_arch_timer_set_from_now(gorm_arch_timer_t *timer, uint32_t timeout,
                                   gorm_arch_timer_cb_t cb, void *arg);
 
-/* cancel the timer */
+/**
+ * @brief   Cancel the given timer
+ *
+ * @param[in] timer         timer to cancel
+ */
 void gorm_arch_timer_cancel(gorm_arch_timer_t *timer);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GORM_ARCH_TIMER_H */
+#endif /* NET_GORM_ARCH_TIMER_H */
 /** @} */

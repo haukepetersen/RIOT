@@ -172,7 +172,7 @@ void gorm_notify(gorm_ctx_t *con, uint16_t event)
     gorm_arch_evt_post(&con->event, event);
 }
 
-void gorm_adv_start(void)
+int gorm_adv_start(void)
 {
     _state = STATE_ADVERTISING;
     DEBUG("[gorm] adv_start: start advertising\n");
@@ -180,7 +180,7 @@ void gorm_adv_start(void)
     /* make sure we are not already advertising */
     if (_get_by_state(GORM_LL_STATE_ADV) != NULL) {
         DEBUG("[gorm] adv_start: advertising already in progress\n");
-        return;
+        return GORM_OK;
     }
 
     /* get an unused context */
@@ -188,7 +188,10 @@ void gorm_adv_start(void)
     if (con) {
         DEBUG("[gorm] adv_start: trigger advertisements on ctx %p\n", con);
         gorm_ll_adv_conn(&con->ll, gorm_gap_get_default_adv_ctx());
+        return GORM_OK;
     }
+
+    return GORM_ERR_CTX_BUSY;
 }
 
 void gorm_adv_stop(void)
