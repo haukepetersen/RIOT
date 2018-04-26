@@ -361,7 +361,7 @@ static void _on_read_req(gorm_ctx_t *con, gorm_buf_t *buf,
         }
     }
     /* if the handle belongs to a descriptor, we read it */
-    else if (gorm_gatt_tab_is_decl(&iter)) {
+    else if (gorm_gatt_tab_is_desc(&iter)) {
         DEBUG("[gorm_gatt] read_req: reading handle 0x%04x (description)\n",
               (int)iter.handle);
         /* note: we assume all descriptors are readable without permissions */

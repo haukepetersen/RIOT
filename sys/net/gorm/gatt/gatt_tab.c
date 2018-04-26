@@ -49,7 +49,7 @@ static gorm_gatt_service_t *_get_table_by_handle(uint16_t handle)
     return (handle & NONSIG_FLAG) ? _custom : _sig;
 }
 
-static gorm_gatt_service_t *_get_table_by_uuid(gorm_uuid_t *uuid)
+static gorm_gatt_service_t *_get_table_by_uuid(const gorm_uuid_t *uuid)
 {
     return (gorm_uuid_sig(uuid)) ? _sig : _custom;
 }
@@ -175,8 +175,9 @@ void gorm_gatt_tab_get_next(gorm_gatt_tab_iter_t *iter, uint16_t end_handle)
     mutex_unlock(&lock);
 }
 
-gorm_gatt_service_t *gorm_gatt_tab_service_by_uuid(gorm_uuid_t *type,
-                                                   uint16_t start, uint16_t end)
+gorm_gatt_service_t *gorm_gatt_tab_service_by_uuid(const gorm_uuid_t *type,
+                                                   uint16_t start,
+                                                   uint16_t end)
 {
     assert(type);
 

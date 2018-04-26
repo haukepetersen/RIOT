@@ -82,7 +82,7 @@ typedef struct gorm_gatt_service gorm_gatt_service_t;
  * @param[in] characteristic    characteristic that is being accessed
  * @param[in] method            operation to carry out
  * @param[in,out] buf           buffer to read/write data to/from
- * @param[in] buf_len           (max) size of @buf
+ * @param[in] buf_len           (max) size of @p buf
  *
  * @return  number of bytes read from/written to @p buf
  * @return  0 if method is not supported

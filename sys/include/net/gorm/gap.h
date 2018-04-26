@@ -131,7 +131,7 @@ size_t gorm_gap_copy_name(uint8_t *buf, size_t max_len);
  * @param[in]  max_len      size of @p buf in bytes, will only write if >= 2
  *
  * @return   2 if appearance was written successfully
- * @return   0 if not enough space in @buf
+ * @return   0 if not enough space in @p buf
  */
 size_t gorm_gap_copy_appearance(uint8_t *buf, size_t max_len);
 
@@ -142,7 +142,7 @@ size_t gorm_gap_copy_appearance(uint8_t *buf, size_t max_len);
  * @param[in]  max_len      size of @p buf in bytes, will only write if >= 8
  *
  * @return  8 if preferred connection parameters were written to @p buf
- * @return  0 if not enough space in @buf
+ * @return  0 if not enough space in @p buf
  */
 size_t gorm_gap_copy_con_params(uint8_t *buf, size_t max_len);
 
