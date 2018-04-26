@@ -66,7 +66,7 @@ static const gorm_gatt_desc_t info_desc[] = {
 
 static const gorm_gatt_char_t info_char[] = {
     {
-        .type     = GORM_UUID(UUID_INFO_TEXT, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(UUID_INFO_TEXT, &ggs_riot_uuid_base),
         .arg      = (void *)23,
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .cb       = _info_cb,
@@ -76,7 +76,7 @@ static const gorm_gatt_char_t info_char[] = {
 };
 
 static gorm_gatt_service_t info_service = {
-    .uuid     = GORM_UUID(UUID_INFO, &ggs_uuid_riot_base),
+    .uuid     = GORM_UUID(UUID_INFO, &ggs_riot_uuid_base),
     .char_cnt = 1,
     .chars    = info_char,
 };

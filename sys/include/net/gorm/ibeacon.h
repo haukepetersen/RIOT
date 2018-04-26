@@ -52,7 +52,7 @@ typedef struct {
  * @param[in]  txpower      calibrated TX power
  * @param[in]  adv_interval advertising interval [in us]
  */
-int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ctx, uint8_t *addr,
+int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ibeacon, uint8_t *addr,
                            gorm_uuid_t *uuid,
                            uint16_t major, uint16_t minor,
                            uint8_t txpower, uint32_t adv_interval);
@@ -62,7 +62,7 @@ int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ctx, uint8_t *addr,
  *
  * @param[in] ctx           stop advertising this iBeacon context
  */
-int gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ctx);
+int gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ibeacon);
 
 #ifdef __cplusplus
 }

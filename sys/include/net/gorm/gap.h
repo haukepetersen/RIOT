@@ -62,12 +62,12 @@ extern "C" {
  * @brief   Structure holding an advertising context
  */
 typedef struct {
+    uint32_t interval;                      /**< advertising interval [in us] */
     uint8_t addr[BLE_ADDR_LEN];             /**< device address */
     uint8_t adv_data[GORM_GAP_AD_MAXLEN];   /**< advertising payload */
     size_t adv_len;                         /**< size of adv_data */
     uint8_t scan_data[GORM_GAP_AD_MAXLEN];  /**< SCAN_RESPONSE payload */
     size_t scan_len;                        /**< size of scan_len */
-    uint32_t interval;                      /**< advertising interval [in us] */
 } gorm_gap_adv_ctx_t;
 
 /**

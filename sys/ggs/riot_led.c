@@ -137,7 +137,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)0,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -146,7 +146,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)1,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -156,7 +156,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)2,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -166,7 +166,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)3,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -176,7 +176,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)4,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -186,7 +186,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)5,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -196,7 +196,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)6,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -206,7 +206,7 @@ static const gorm_gatt_char_t _led_chars[] = {
     {
         .cb       = _led_cb,
         .arg      = (void *)7,
-        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_uuid_riot_base),
+        .type     = GORM_UUID(GGS_RIOT_UUID_LED_CHAR, &ggs_riot_uuid_base),
         .perm     = (BLE_ATT_READ | BLE_ATT_WRITE),
         .desc_cnt = 1,
         .desc     = _led_desc,
@@ -215,7 +215,7 @@ static const gorm_gatt_char_t _led_chars[] = {
 };
 
 gorm_gatt_service_t ggs_riot_led_service = {
-    .uuid  = GORM_UUID(GGS_RIOT_UUID_LED_SERVICE, &ggs_uuid_riot_base),
+    .uuid  = GORM_UUID(GGS_RIOT_UUID_LED_SERVICE, &ggs_riot_uuid_base),
     .char_cnt = NUMOF_LED,
     .chars = _led_chars,
 };

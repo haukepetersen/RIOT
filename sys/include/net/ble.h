@@ -48,6 +48,9 @@ extern "C" {
 #define BLE_CHAN_DAT_NUMOF      (37U)   /**< number of data channels */
 #define BLE_ADV_PDU_LEN         (31U)   /**< max size of legacy ADV packets */
 #define BLE_ADV_PDU_LEN_EXT     (251U)  /**< max size of extended ADV packets */
+#define BLE_UUID16_LEN          (2U)    /**< length of 16-bit UUIDs */
+#define BLE_UUID32_LEN          (4U)    /**< length of 32-bit UUIDs */
+#define BLE_UUID128_LEN         (16U)   /**< length of 128-bit UUIDs */
 /** @} */
 
 /**

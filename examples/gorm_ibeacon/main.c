@@ -21,10 +21,11 @@
 #include <stdio.h>
 
 #include "timex.h"
+#include "net/ggs/riot.h"
 #include "net/gorm/ibeacon.h"
+#include "net/gorm/addr.h"
 
-#define UUID            { 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, \
-                          0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88 }
+#define UUID            (0xaffe)
 #define MAJOR           (0x0001)
 #define MINOR           (0x0017)
 #define TXPOWER         (0U)
@@ -36,9 +37,23 @@ int main(void)
 {
     puts("Gorm's iBeacon example");
 
+    /* we are using the RIOT base UUID */
+    gorm_uuid_t uuid = GORM_UUID(UUID, &ggs_riot_uuid_base);
+
+    /* generate a random device address */
+    uint8_t addr[BLE_ADDR_LEN];
+    gorm_addr_gen_random(addr);
+
     /* configure the iBeacon and start advertising it */
-    gorm_uuid_t uuid = {UUID};
-    gorm_ibeacon_advertise(&_ctx, &uuid, MAJOR, MINOR, TXPOWER, INTERVAL);
+    int ret = gorm_ibeacon_advertise(&_ctx, addr, &uuid,
+                                     MAJOR, MINOR, TXPOWER, INTERVAL);
+
+    if (ret == GORM_OK) {
+        puts("iBeacon is now being advertised\n");
+    }
+    else {
+        puts("error: unable to advertise iBeacon\n");
+    }
 
     return 0;
 }

@@ -98,7 +98,9 @@ ifneq (,$(filter gorm_standalone,$(USEMODULE)))
 endif
 
 ifneq (,$(filter gorm_ibeacon,$(USEMODULE)))
-  USEMODULE += gorm_broadcaster
+  USEMODULE += gorm_peripheral
+  USEMODULE += gorm_gatt
+  #TODO this must be cut down to broadcaster!
 endif
 
 ifneq (,$(filter gorm_gatt,$(USEMODULE)))
