@@ -7,15 +7,15 @@
  */
 
 /**
- * @ingroup     net_gorm_ll
+ * @defgroup    net_gorm_ll Link layer for Gorm
+ * @ingroup     net_gorm
+ * @brief       Gorm's link layer implementation
  * @{
  *
  * @file
  * @brief       Gorm's BLE link layer
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- *
- * @todo        Split this header for periph/bcaster/host/...
  */
 
 #ifndef GORM_LL_H
@@ -56,121 +56,107 @@ extern "C" {
  */
 typedef struct {
     /* connection state: holds ll state, flow control, and anchor state */
-    uint8_t state;
-    uint8_t flags;
+    uint8_t state;          /**< high-level state of this context */
+    uint8_t flags;          /**< internal flags for tracking sub-states */
 
     /* context data when in connection state */
-    uint16_t event_counter;
-    netdev_ble_ctx_t ctx;
+    uint16_t event_counter; /**< event counter for counting connection events */
+    netdev_ble_ctx_t ctx;   /**< radio context */
 
     /* pointer to advertising configuration and data */
-    const gorm_gap_adv_ctx_t *gap;
+    const gorm_gap_adv_ctx_t *gap;  /**< pointer to active advertising context */
 
     /* remember address of connected peer */
-    uint8_t peer_addr[BLE_ADDR_LEN];
+    uint8_t peer_addr[BLE_ADDR_LEN];    /**< peer address when connected */
 
     /* channel configuration */
-    uint8_t chan_hop;               /**< hop increment value */
-    uint8_t chan_map[5];            /**< active channel map */
-    uint8_t chan_cnt;               /**< number of active channels */
-    uint8_t chan_unmapped;          /**< next unmapped channel */
+    uint8_t chan_hop;       /**< hop increment value */
+    uint8_t chan_map[5];    /**< active channel map */
+    uint8_t chan_cnt;       /**< number of active channels */
+    uint8_t chan_unmapped;  /**< next unmapped channel */
     /* TODO: add channel selection algorithm as function pointer */
 
     /* used timers */
-    gorm_arch_timer_t timer_spv;
-    gorm_arch_timer_t timer_con;
+    gorm_arch_timer_t timer_spv;    /**< supervision timer */
+    gorm_arch_timer_t timer_con;    /**< connection timer */
 
     /* timing parameters */
-    uint32_t timeout_spv;       /**< supervision timeout */
-    uint32_t timeout_rx;        /**< receive timeout */
-    uint32_t interval;          /**< connection event interval */
-    uint16_t slave_latency; /**< count number of connection events, reset on new connection */
+    uint32_t timeout_spv;   /**< supervision timeout */
+    uint32_t timeout_rx;    /**< receive timeout */
+    uint32_t interval;      /**< connection event interval */
+    uint16_t slave_latency; /**< number of conn event we are allowed to miss */
 
     /* buffered timing parameter update values */
     struct {
-        uint16_t instant;       /**< apply the update when event_counter hits this value */
-        uint8_t raw[9];
-    } timings_update;
+        uint16_t instant;   /**< connection event when to apply these timings */
+        uint8_t raw[9];     /**< new timing parameters */
+    } timings_update;       /**< set of new connection parameters */
 
     /* buffered channel map update values */
     struct {
-        uint16_t instant;
-        uint8_t map[5];
-        uint8_t cnt;
-    } chan_update;
+        uint16_t instant;   /**< connection event when to apply the new map */
+        uint8_t map[5];     /**< new channel map to use */
+        uint8_t cnt;        /**< number of active channels in the new map */
+    } chan_update;          /**< set of new channel configuration parameters */
 
     /* pkt queues for passing data to and receiving data from l2cap layer */
-    gorm_bufq_t rxq;
-    gorm_bufq_t txq;
-    gorm_buf_t *in_tx;
-    gorm_buf_t *in_rx;
+    gorm_bufq_t rxq;        /**< packet queue for outgoing packets */
+    gorm_bufq_t txq;        /**< packet queue for incoming packets */
+    gorm_buf_t *in_tx;      /**< next packet to transfer */
+    gorm_buf_t *in_rx;      /**< write next receive packet to this buffer */
 
 #ifdef MODULE_GORM_STATS
     /* optional statistics for the last/currently active connection */
     struct {
-        unsigned rx_cnt;
-        unsigned tx_cnt;
-    } stats;
+        unsigned rx_cnt;    /**< number of packets received since connected */
+        unsigned tx_cnt;    /**< number of packets sent since connected */
+    } stats;                /**< collection of link layer statistics */
 #endif
 } gorm_ll_ctx_t;
 
-
+/**
+ * @brief   Initialize the lower part of the link layer
+ *
+ * @param[in] dev       device descriptor of the BLE radio
+ *
+ * @return  GORM_OK on success
+ * @return  GORM_ERR_DEV if unable to initialize radio
+ */
 int gorm_ll_controller_init(netdev_t *dev);
 
+/**
+ * @brief   Advertise given context and listen for new connections
+ *
+ * @param[in,out] ctx   connection context, needs to be unused (STATE_STANDBY)
+ * @param[in] adv_ctx   pre-configured advertising data
+ *
+ * @return  GORM_OK on success
+ * @return  GORM_ERR_NOBUF if no packet buffer for advertising data is available
+ * @return  GORM_ERR_CTX_BUSY if given context is busy
+ */
 int gorm_ll_adv_conn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
+
+/**
+ * @brief   Advertise given context not accepting any connection (TX only)
+ *
+ * @param[in,out] ctx   connection context, needs to be unused (STATE_STANDBY)
+ * @param[in] adv_ctx   pre-configured advertising data
+ *
+ * @return  GORM_OK on success
+ * @return  GORM_ERR_CTX_BUSY if context is busy
+ * @return  GORM_ERR_NOBUF if no packet buffer for advertising data is available
+ */
 int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
-int gorm_ll_adv_stop(gorm_ll_ctx_t *ctx);
-
-int gorm_ll_terminate(gorm_ll_ctx_t *ctx);
-
-
-/* TODO: merge broadcaster code with `ll_perihp`, use gorm_ll_connection_t for
- *       this also. */
-#if 0
-#ifdef MODULE_GORM_BROADCASTER
-void gorm_ll_adv_nonconn_setup(gorm_ll_adv_nonconn_t *adv,
-                               netdev_ble_pkt_t *pkt, uint32_t interval);
-
-static inline void gorm_ll_adv_nonconn_start(gorm_ll_adv_nonconn_t *adv)
-{
-    assert(adv);
-    gorm_arch_evtim_set_from_now(&adv->timer, adv->interval);
-}
-
-static inline void gorm_ll_adv_nonconn_stop(gorm_ll_adv_nonconn_t *adv)
-{
-    assert(adv);
-    gorm_arch_evtim_cancel(&adv->timer);
-}
-#endif
-#endif
-
-
-#ifdef MODULE_GORM_PERIPHERAL
-// void gorm_ll_periph_init(void);
-// void gorm_ll_periph_adv_start(void);
-// void gorm_ll_periph_adv_setup(void *ad_adv, size_t adv_len,
-//                               void *ad_scan, size_t scan_len);
 
 /**
- * @brief   Close the given connection, independent of its state
+ * @brief   Cancel any operation the given context is involved in
  *
- * If the connection is currently in advertising or connected state, it will
- * be put into STANDBY state. If the connection is already STANDBY, nothing
- * will happen.
+ * If the given context is connected, this connection will be closed. If the
+ * context is being advertised, the advertising is stopped.
  *
- * @param[in,out] con   connection to close
+ * @param[in,out] ctx   context to terminate
  */
-// void gorm_ll_periph_terminate(gorm_ll_ctx_t *con);
-#endif
-
-/**
- * @brief   Start advertising the given context
- *
- * @param con [description]
- * @return [description]
- */
-// int gorm_ll_adv_start(gorm_ll_ctx_t *con);
+void gorm_ll_terminate(gorm_ll_ctx_t *ctx);
 
 #ifdef __cplusplus
 }

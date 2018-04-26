@@ -13,8 +13,51 @@
  *
  * @warning THIS FEATURE IS EXPERIMENTAL
  *
- * TODO more high-level doc
+ * # About
  *
+ * TODO
+ *
+ * # General Design
+ *
+ * # Design Objectives
+ * - focused on SoCs with included, memory mapped BLE radio
+ * - leight-weight
+ * - taking shortcuts from the standard here and there -> skipping HCI
+ *
+ *
+ * # Implementation Status
+ *
+ * Supported roles (as of now):
+ * - broadcaster
+ * - peripheral
+ *
+ *
+ *
+ * # Todos
+ *
+ * This is a list of things that need to be done in the future, and serves as a
+ * rather loose collection of things that should be part of Gorm. This list is
+ * in no means complete, but is also not just a diff between implemented
+ * features and the BT standard...
+ *
+ * ## General
+ * @todo        enable SCANNER role
+ * @todo        enable CENTRAL (GATT client) role
+ * @todo        implement L2CAP reliable channel -> IPSP
+ * @todo        implement IPv6 over BLE (IPSP)
+ *
+ * ## Security Manager
+ * @todo        Implement
+ *
+ * ## Link-layer
+ * @todo        support channel selection algorithm #2
+ * @todo        support extended packet sized
+ *
+ * ## Implementation specific
+ * @todo        cleanup the (sub-)module structure to allow compiling Gorm for
+ *              different roles while keeping code-size down
+ *
+ * TODO sort/fix...
  * @todo        Unify concept of static vs dynamic configuaration values, e.g.
  *             - advertisement intervals (conn vs nonconn)
  * @todo        Address handling: generation of public addresses etc
@@ -22,12 +65,6 @@
  * @todo        Implement and use `event_post_first()` and use in link layer for
  *              received packets
  * @todo        check for consistent naming of static functions (_x vs x)
- *
- * # Implementation Status
- *
- * ## Link-layer
- * @todo        support channel selection algorithm #2
- *
  * @{
  * @file
  * @brief       High level interface for telling Gorm how to behave
@@ -63,11 +100,10 @@ extern "C" {
  * @brief   Generic error codes used by Gorm
  */
 enum {
-    GORM_OK           = 0,      /**< everything went well */
-    GORM_ERR_TIMINGS  = -1,     /**< context busy */
-    GORM_ERR_CTX_BUSY = -2,     /**< the given context is not free to use */
-    GORM_ERR_NOBUF    = -3,     /**< no buffer space available */
-    GORM_ERR_DEV      = -4,     /**< BLE radio device error */
+    GORM_OK           =  0,     /**< everything went well */
+    GORM_ERR_CTX_BUSY = -1,     /**< the given context is not free to use */
+    GORM_ERR_NOBUF    = -2,     /**< no buffer space available */
+    GORM_ERR_DEV      = -3,     /**< BLE radio device error */
 };
 
 /**

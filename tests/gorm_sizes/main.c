@@ -21,11 +21,11 @@
 
 #include "xtimer.h"
 #include "event.h"
-#include "event/timeout.h"
-#include "event/callback.h"
 
+#include "net/gorm.h"
+#include "net/gorm/buf.h"
 #include "net/gorm/ll.h"
-#include "net/gorm/arch/evtim.h"
+#include "net/gorm/arch/timer.h"
 
 
 int main(void)
@@ -38,21 +38,22 @@ int main(void)
     /* link layer data structures */
     puts("\n--- gorm/ll ---");
     printf("%25s - %u bytes\n",
-           "gorm_ll_connection_t", sizeof(gorm_ll_connection_t));
+           "gorm_ctx_t", sizeof(gorm_ctx_t));
     printf("%25s - %u bytes\n",
-           "gorm_ll_adv_nonconn_t", sizeof(gorm_ll_adv_nonconn_t));
+           "gorm_ll_ctx_t", sizeof(gorm_ll_ctx_t));
+    printf("%25s - %u bytes\n",
+           "gorm_arch_evt_t", sizeof(gorm_arch_evt_t));
+
+    printf("%25s - %u bytes\n",
+           "gorm_buf_t", sizeof(gorm_buf_t));
+    printf("%25s - %u bytes\n",
+           "gorm_bufq_t", sizeof(gorm_bufq_t));
 
     puts("\n--- selected RIOT modules ---");
     printf("%25s - %u bytes\n",
            "xtimer_t", sizeof(xtimer_t));
     printf("%25s - %u bytes\n",
            "event_t", sizeof(event_t));
-    printf("%25s - %u bytes\n",
-           "event_timeout_t", sizeof(event_timeout_t));
-    printf("%25s - %u bytes\n",
-           "event_callback_t", sizeof(event_callback_t));
-    printf("%25s - %u bytes\n",
-           "callback + timeout", sizeof(event_callback_t) + sizeof(event_timeout_t));
 
 
     puts("\n[SUCCESS]");

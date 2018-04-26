@@ -37,15 +37,27 @@ extern "C" {
 #define GORM_L2CAP_CID_CB_MAX       (0x007f)
 /** @} */
 
+/**
+ * @brief   L2CAP header length in bytes
+ */
 #define GORM_L2CAP_HDR_LEN          (4U)
 
-/* higher layer interface functions */
-int gorm_l2cap_send(gorm_ctx_t *con, void *data, size_t len);
-
-
-
+/**
+ * @brief   Send a reply to an incoming L2CAP packet
+ *
+ * @param[in] con       connection context used for sending the reply
+ * @param[in,out] buf   pointer to the packet buffer containing the reply
+ * @param[in] data_len  length of the actual payload contained in @p buf
+ */
 void gorm_l2cap_reply(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t data_len);
 
+/**
+ * @brief   Handle incoming L2CAP data
+ *
+ * @param[in] con       connection context the data came in from
+ * @param[in] llid      actual link layer packet type (CONT or START)
+ * @param[in] data      pointer to the incoming packet
+ */
 void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *data);
 
 #ifdef __cplusplus

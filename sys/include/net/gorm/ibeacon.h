@@ -44,7 +44,7 @@ typedef struct {
 /**
  * @brief   Advertise iBeacon PDUs using the given context
  *
- * @param[out] ctx          iBeacon context
+ * @param[out] ibeacon      iBeacon context
  * @param[in]  addr         device address to advertise
  * @param[in]  uuid         UUID to advertise
  * @param[in]  major        iBeacon major number
@@ -60,7 +60,7 @@ int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ibeacon, uint8_t *addr,
 /**
  * @brief   Stop advertising the given iBeacon context
  *
- * @param[in] ctx           stop advertising this iBeacon context
+ * @param[in] ibeacon       stop advertising this iBeacon context
  */
 int gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ibeacon);
 

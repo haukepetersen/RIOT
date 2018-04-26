@@ -28,9 +28,19 @@
 extern "C" {
 #endif
 
+/**
+ * @name    Definition of custom 16-bit UUID parts used by RIOT
+ * @{
+ */
 #define GGS_RIOT_UUID_LED_SERVICE       (0x0001)
 #define GGS_RIOT_UUID_LED_CHAR          (0x0002)
+#define GGS_RIOT_UUID_BTN_SERVICE       (0x0101)
+#define GGS_RIOT_UUID_BTN_CHAR          (0x0102)
+/** @} */
 
+/**
+ * @brief   Custom 128-bit base UUID used for all RIOT services
+ */
 static const gorm_uuid_base_t ggs_riot_uuid_base = {{
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x0a, 0x0f, 0x0f, 0x0e,

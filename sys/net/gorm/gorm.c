@@ -200,6 +200,6 @@ void gorm_adv_stop(void)
 
     gorm_ctx_t *con = _get_by_state(GORM_LL_STATE_ADV);
     if (con) {
-        gorm_ll_adv_stop(&con->ll);
+        gorm_ll_terminate(&con->ll);
     }
 }

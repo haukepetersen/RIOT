@@ -531,16 +531,7 @@ int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
     return _advertise(ctx, adv_ctx);
 }
 
-int gorm_ll_adv_stop(gorm_ll_ctx_t *ctx)
-{
-    assert(ctx);
-    (void)ctx;
-
-    /* TODO */
-    return GORM_OK;
-}
-
-int gorm_ll_terminate(gorm_ll_ctx_t *con)
+void gorm_ll_terminate(gorm_ll_ctx_t *con)
 {
     assert(con);
     (void)con;
@@ -553,5 +544,4 @@ int gorm_ll_terminate(gorm_ll_ctx_t *con)
     // irq_restore(is);
 
     /* TODO */
-    return GORM_OK;
 }

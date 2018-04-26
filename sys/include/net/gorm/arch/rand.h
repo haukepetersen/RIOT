@@ -14,13 +14,11 @@
  * @brief       Mapping of the platform dependent (pseudo-)random number
  *              generator
  *
- * @todo        Think about inlining...
- *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GORM_ARCH_RAND_H
-#define GORM_ARCH_RAND_H
+#ifndef NET_GORM_ARCH_RAND_H
+#define NET_GORM_ARCH_RAND_H
 
 #include <stdio.h>
 
@@ -42,5 +40,5 @@ uint32_t gorm_arch_rand(uint32_t min, uint32_t max);
 }
 #endif
 
-#endif /* RANDOM_H */
+#endif /* NET_GORM_ARCH_RAND_H */
 /** @} */
