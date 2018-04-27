@@ -45,7 +45,7 @@ static uint8_t _state = STATE_STANDBY;
 static gorm_ctx_t _ctx[CTX_NUMOF];
 
 /* allocate initial buffer memory */
-static char _buf_pool[GORM_CFG_POOLSIZE * sizeof(gorm_buf_t)];
+static gorm_buf_t _buf_pool[GORM_CFG_POOLSIZE];
 
 
 static gorm_ctx_t *_get_by_state(uint8_t state)
@@ -138,7 +138,7 @@ static void _on_event(gorm_arch_evt_t *event)
 void gorm_init(netdev_t *dev)
 {
     /* initialize buffer pool */
-    gorm_buf_addmem(_buf_pool, sizeof(_buf_pool));
+    gorm_buf_add_buffers(_buf_pool, GORM_CFG_POOLSIZE);
     DEBUG("[gorm] initialized buffer pool\n");
 
     /* initializing the controller */

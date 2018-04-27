@@ -24,18 +24,11 @@
 /* allocate the global buffer pool */
 gorm_bufq_t gorm_buf_pool = GORM_BUFQ_INIT;
 
-void gorm_buf_addmem(void *mem, size_t len)
+void gorm_buf_add_buffers(gorm_buf_t *buffers, size_t len)
 {
-    assert(mem);
-
-    size_t cnt = (len / sizeof(gorm_buf_t));
-    gorm_buf_t *buffers = (gorm_buf_t *)mem;
-
-    unsigned is = irq_disable();
-    for (size_t i = 0; i < cnt; i++) {
-        gorm_buf_enq(&gorm_buf_pool, &buffers[i]);
+    for (size_t i = 0; i < len; i++) {
+        gorm_buf_return(&buffers[i]);
     }
-    irq_restore(is);
 }
 
 size_t gorm_buf_count(const gorm_bufq_t *queue)

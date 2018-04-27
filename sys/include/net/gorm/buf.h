@@ -51,15 +51,12 @@ typedef struct {
 extern gorm_bufq_t gorm_buf_pool;
 
 /**
- * @brief   Add memory to the global buffer pool
+ * @brief   Add a number of uninitialized buffers to the global buffer pool
  *
- * @pre     (mem != NULL)
- *
- * @param[in] mem       pointer to a block of memory
- * @param[in] len       length of the available memory, should be a multiple of
- *                      sizeof(gorm_buf_t)
+ * @param[in] buffers   array of buffers to add to the pool
+ * @param[in] len       number of buffers given in @p buffers
  */
-void gorm_buf_addmem(void *mem, size_t len);
+void gorm_buf_add_buffers(gorm_buf_t *buffers, size_t len);
 
 /**
  * @brief   Count the number of elements in the given queue
