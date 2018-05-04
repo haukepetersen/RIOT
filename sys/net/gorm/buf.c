@@ -85,3 +85,14 @@ gorm_buf_t *gorm_buf_deq(gorm_bufq_t *queue)
 
     return buf;
 }
+
+void gorm_buf_return_q(gorm_bufq_t *queue)
+{
+    assert(queue);
+
+    gorm_buf_t *buf = gorm_buf_deq(queue);
+    while (buf) {
+        gorm_buf_return(buf);
+        buf = gorm_buf_deq(queue);
+    }
+}

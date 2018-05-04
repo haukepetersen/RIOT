@@ -124,13 +124,22 @@ static inline gorm_buf_t *gorm_buf_get(void)
  *
  * @pre     (buf != NULL)
  *
- * @param[in] buf   buffer to return to global pool
+ * @param[in] buf       buffer to return to global pool
  */
 static inline void gorm_buf_return(gorm_buf_t *buf)
 {
     assert(buf);
     gorm_buf_enq(&gorm_buf_pool, buf);
 }
+
+/**
+ * @brief   Return all buffers in the given queue to the global buffer pool
+ *
+ * @pre     (queue != NULL)
+ *
+ * @param[in] queue     empty this queue
+ */
+void gorm_buf_return_q(gorm_bufq_t *queue);
 
 #endif /* NET_GORM_BUF_H */
 /** @} */

@@ -100,11 +100,6 @@ static void _on_event(gorm_arch_evt_t *event)
     /* TODO: cleanup code */
     while (state) {
         /* NOTE: the order in which we check the events matters! */
-        if (state & GORM_EVT_CONN_CLOSED) {
-            DEBUG("[gorm] connection closed\n");
-            state = 0;
-            _adv_cont();
-        }
         if (state & GORM_EVT_CONN_TIMEOUT) {
             DEBUG("[gorm] connection timeout\n");
             DEBUG("stats: event_counter:        %u\n", (unsigned)ctx->ll.event_counter);
@@ -120,6 +115,11 @@ static void _on_event(gorm_arch_evt_t *event)
             DEBUG("       interval:             %u\n", (unsigned)ctx->ll.interval);
             DEBUG("       slave_latency:        %u\n", (unsigned)ctx->ll.slave_latency);
             state &= ~GORM_EVT_CONN_TIMEOUT;
+        }
+        if (state & GORM_EVT_CONN_CLOSED) {
+            DEBUG("[gorm] connection closed\n");
+            state = 0;
+            _adv_cont();
         }
         if (state & GORM_EVT_CONN_ABORT) {
             DEBUG("[gorm] connection attempt aborted\n");

@@ -127,13 +127,10 @@ static uint32_t _update_timings(gorm_ll_ctx_t *con, uint32_t win_delay,
 static void _on_supervision_timeout(void *arg)
 {
     gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
-
-    gorm_ll_trx_terminate(con);
-    gorm_arch_timer_cancel(&con->timer_con);
-    con->state = GORM_LL_STATE_STANDBY;
-
     /* notify the host about the connection timeout */
     gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONN_TIMEOUT);
+    /* gracefully close and cleanup the connection */
+    gorm_ll_terminate(con);
 }
 
 static int _on_data_sent(gorm_buf_t *buf, void *arg)
@@ -536,10 +533,25 @@ void gorm_ll_terminate(gorm_ll_ctx_t *con)
     assert(con);
 
     unsigned is = irq_disable();
+
+    /* stop all radio operations and cancel timers */
     gorm_ll_trx_terminate(con);
     gorm_arch_timer_cancel(&con->timer_con);
     gorm_arch_timer_cancel(&con->timer_spv);
+
+    /* clear all (pending) buffers */
+    if (con->in_tx) {
+        gorm_buf_return(con->in_tx);
+    }
+    if (con->in_rx) {
+        gorm_buf_return(con->in_rx);
+    }
+    gorm_buf_return_q(&con->txq);
+    gorm_buf_return_q(&con->rxq);
+
+    /* mark context as unused */
     con->state = GORM_LL_STATE_STANDBY;
+
     irq_restore(is);
 
     gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONN_CLOSED);
