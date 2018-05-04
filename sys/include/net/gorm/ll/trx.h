@@ -7,6 +7,7 @@
  */
 
 /**
+ * @defgroup    net_gorm_ll_trx
  * @ingroup     net_gorm
  * @{
  *
@@ -20,6 +21,7 @@
 #define NET_GORM_LL_TRX_H
 
 #include "net/netdev/ble.h"
+#include "net/gorm/ll.h"
 #include "net/gorm/buf.h"
 
 typedef int(*gorm_ll_trx_cb_t)(gorm_buf_t *buf, void *arg);
@@ -37,14 +39,15 @@ int gorm_ll_trx_init(netdev_t *dev);
 /**
  * @brief   Cancel any ongoing operation and put the radio into idle mode
  */
-void gorm_ll_trx_stop(void);
+void gorm_ll_trx_stop(gorm_ll_ctx_t *ll_ctx);
 
+void gorm_ll_trx_terminate(gorm_ll_ctx_t *ll_ctx);
 
 void gorm_ll_trx_send(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
-                      gorm_ll_trx_cb_t cb, void *arg);
+                      gorm_ll_trx_cb_t cb, gorm_ll_ctx_t *ll_ctx);
 
 void gorm_ll_trx_recv(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
-                      gorm_ll_trx_cb_t cb, void *arg);
+                      gorm_ll_trx_cb_t cb, gorm_ll_ctx_t *ll_ctx);
 
 void gorm_ll_trx_send_next(gorm_buf_t *buf, gorm_ll_trx_cb_t cb);
 

@@ -121,17 +121,25 @@ static const uint8_t _ble_chan_map[40] = {
 };
 
 /**
- * @brief   Set radio into idle (DISABLED) state
+ * @brief   Put the radio into (DISABLED) state not matter what
  */
-static void _go_idle(void)
+static void _terminate(void)
+{
+    NRF_RADIO->INTENCLR = INT_DIS;
+    NRF_RADIO->SHORTS = 0;
+    NRF_RADIO->EVENTS_DISABLED = 0;
+    NRF_RADIO->TASKS_DISABLE = 1;
+    while (NRF_RADIO->EVENTS_DISABLED == 0) {}
+    _state = STATE_IDLE;
+}
+
+/**
+ * @brief   Put radio into idle (DISABLED) state if not currently busy
+ */
+static void _stop(void)
 {
     if (!(_state & STATE_BUSY)) {
-        NRF_RADIO->INTENCLR = INT_DIS;
-        NRF_RADIO->SHORTS = 0;
-        NRF_RADIO->EVENTS_DISABLED = 0;
-        NRF_RADIO->TASKS_DISABLE = 1;
-        while (NRF_RADIO->EVENTS_DISABLED == 0) {}
-        _state = STATE_IDLE;
+        _terminate();
     }
 }
 
@@ -140,21 +148,16 @@ static void _go_idle(void)
  */
 static void _set_context(netdev_ble_ctx_t *ctx)
 {
-    if (ctx) {
-        assert(ctx->chan <= NRFBLE_CHAN_MAX);
+    assert(ctx->chan <= NRFBLE_CHAN_MAX);
 
-        _ctx = ctx;
-        NRF_RADIO->FREQUENCY = _ble_chan_map[ctx->chan];
-        NRF_RADIO->PREFIX0 = ctx->aa.raw[3];
-        NRF_RADIO->BASE0   = (uint32_t)((ctx->aa.raw[0] << 8) |
-                                        (ctx->aa.raw[1] << 16) |
-                                        (ctx->aa.raw[2] << 24));
-        NRF_RADIO->DATAWHITEIV = ctx->chan;
-        NRF_RADIO->CRCINIT = (ctx->crc & NETDEV_BLE_CRC_MASK);
-    }
-    else {
-        _go_idle();
-    }
+    _ctx = ctx;
+    NRF_RADIO->FREQUENCY = _ble_chan_map[ctx->chan];
+    NRF_RADIO->PREFIX0 = ctx->aa.raw[3];
+    NRF_RADIO->BASE0   = (uint32_t)((ctx->aa.raw[0] << 8) |
+                                    (ctx->aa.raw[1] << 16) |
+                                    (ctx->aa.raw[2] << 24));
+    NRF_RADIO->DATAWHITEIV = ctx->chan;
+    NRF_RADIO->CRCINIT = (ctx->crc & NETDEV_BLE_CRC_MASK);
 }
 
 static int16_t _nrfble_get_txpower(void)
@@ -343,6 +346,12 @@ static int _nrfble_set(netdev_t *dev, netopt_t opt, const void *val, size_t len)
         case NETOPT_BLE_CTX:
             _set_context((netdev_ble_ctx_t *)val);
             return sizeof(netdev_ble_ctx_t);
+        case NETOPT_BLE_STOP:
+            _stop();
+            return 0;
+        case NETOPT_BLE_TERMINATE:
+            _terminate();
+            return 0;
         case NETOPT_TX_POWER:
             assert(len == sizeof(int16_t));
             _nrfble_set_txpower(*((const int16_t *)val));

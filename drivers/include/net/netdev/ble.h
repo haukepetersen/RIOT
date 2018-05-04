@@ -189,7 +189,19 @@ static inline void netdev_ble_set_ctx(netdev_t *dev, netdev_ble_ctx_t *ctx)
  */
 static inline void netdev_ble_stop(netdev_t *dev)
 {
-    dev->driver->set(dev, NETOPT_BLE_CTX, NULL, 0);
+    dev->driver->set(dev, NETOPT_BLE_STOP, NULL, 0);
+}
+
+/**
+ * @brief   Terminate any ongoing operation
+ *
+ * @note    This function will put the radio to IDLE mode not matter what
+ *
+ * @param[in] dev   target radio device
+ */
+static inline void netdev_ble_terminate(netdev_t *dev)
+{
+    dev->driver->set(dev, NETOPT_BLE_TERMINATE, NULL, 0);
 }
 
 #ifdef __cplusplus

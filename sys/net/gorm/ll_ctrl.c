@@ -5,7 +5,7 @@
 #include "net/gorm/ll/chan.h"
 #include "net/gorm/ll/ctrl.h"
 
-#define ENABLE_DEBUG                (1)
+#define ENABLE_DEBUG                (0)
 #include "debug.h"
 
 #define CON_UPDATE_LEN              (9U)

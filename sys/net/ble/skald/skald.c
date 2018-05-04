@@ -57,7 +57,7 @@ static netdev_t *_radio;
 
 static void _stop_radio(void)
 {
-    netdev_ble_stop(_radio);
+    netdev_ble_terminate(_radio);
     _radio->context = NULL;
 }
 

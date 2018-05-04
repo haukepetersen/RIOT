@@ -80,7 +80,7 @@ static void _on_data(gorm_ctx_t *con)
     }
 }
 
-static void _on_con_terminate(void)
+static void _adv_cont(void)
 {
     if (_state == STATE_ADVERTISING) {
         gorm_adv_start();
@@ -97,14 +97,15 @@ static void _on_event(gorm_arch_evt_t *event)
     event->state = 0;
     irq_restore(is);
 
+    /* TODO: cleanup code */
     while (state) {
         /* NOTE: the order in which we check the events matters! */
-        if (state & GORM_EVT_CON_CLOSED) {
+        if (state & GORM_EVT_CONN_CLOSED) {
             DEBUG("[gorm] connection closed\n");
-            _on_con_terminate();
             state = 0;
+            _adv_cont();
         }
-        if (state & GORM_EVT_CON_TIMEOUT) {
+        if (state & GORM_EVT_CONN_TIMEOUT) {
             DEBUG("[gorm] connection timeout\n");
             DEBUG("stats: event_counter:        %u\n", (unsigned)ctx->ll.event_counter);
 #ifdef MODULE_GORM_STATS
@@ -118,19 +119,23 @@ static void _on_event(gorm_arch_evt_t *event)
             DEBUG("       timeout_rx:           %u\n", (unsigned)ctx->ll.timeout_rx);
             DEBUG("       interval:             %u\n", (unsigned)ctx->ll.interval);
             DEBUG("       slave_latency:        %u\n", (unsigned)ctx->ll.slave_latency);
-            state = 0;
+            state &= ~GORM_EVT_CONN_TIMEOUT;
         }
-        if (state & GORM_EVT_CON_ABORT) {
+        if (state & GORM_EVT_CONN_ABORT) {
             DEBUG("[gorm] connection attempt aborted\n");
             state = 0;
+            _adv_cont();
         }
         if (state & GORM_EVT_CONNECTED) {
-            DEBUG("[gorm] connection established\n");
             state &= ~(GORM_EVT_CONNECTED);
+            DEBUG("[gorm] connection established\n");
+            /* once the last active context is connected, we advertise using the
+             * next unused context */
+            _adv_cont();
         }
         if (state & GORM_EVT_DATA) {
-            _on_data(ctx);
             state &= ~(GORM_EVT_DATA);
+            _on_data(ctx);
         }
     }
 }
@@ -141,8 +146,8 @@ void gorm_init(netdev_t *dev)
     gorm_buf_add_buffers(_buf_pool, GORM_CFG_POOLSIZE);
     DEBUG("[gorm] initialized buffer pool\n");
 
-    /* initializing the controller */
-    if (gorm_ll_controller_init(dev) != GORM_OK) {
+    /* initializing the link layer */
+    if (gorm_ll_init(dev) != GORM_OK) {
         LOG_ERROR("[gorm] error: unable to initialize the controller\n");
         return;
     }

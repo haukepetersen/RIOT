@@ -25,7 +25,7 @@
 #include "net/gorm/gatt.h"
 #include "net/gorm/gatt/tab.h"
 
-#define ENABLE_DEBUG                (1)
+#define ENABLE_DEBUG                (0)
 #include "debug.h"
 
 /* pre: iter must point to service */

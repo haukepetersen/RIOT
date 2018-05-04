@@ -11,7 +11,10 @@
  * @ingroup     net
  * @brief       Gorm is a light-weight BLE stack for RIOT
  *
- * @warning THIS FEATURE IS EXPERIMENTAL
+ * @warning THIS FEATURE IS EXPERIMENTAL:
+ *          - the code might not work as expected (or not at all...)
+ *          - expect heavy refactoring of interfaces and code
+ *          - documentation is incomplete
  *
  * # About
  *
@@ -27,10 +30,38 @@
  *
  * # Implementation Status
  *
- * Supported roles (as of now):
- * - broadcaster
- * - peripheral
+ * ## General
+ * - supported roles (as of now):
+ *   - broadcaster
+ *   - peripheral
  *
+ * ## Link layer
+ * - non-connectible advertising
+ * - connectible advertising
+ * - handling of multiple connections
+ * - support for the following operations:
+ *   - BLE_LL_CONN_UPDATE_IND
+ *   - BLE_LL_CHANNEL_MAP_IND
+ *   - BLE_LL_TERMINATE_IND
+ *   - BLE_LL_FEATURE_REQ
+ *   - BLE_LL_VERSION_IND
+ *   - BLE_LL_PING_REQ
+ *
+ * ## L2CAP
+ * -
+ *
+ * ## GATT
+ * - GATT server implementation
+ * - support for primary services, characteristics and char descriptors
+ * - definition of custom services
+ * - support for the following (ATT) operations
+ *   - BLE_ATT_MTU_REQ
+ *   - BLE_ATT_FIND_INFO_REQ
+ *   - BLE_ATT_FIND_BY_VAL_REQ
+ *   - BLE_ATT_READ_BY_TYPE_REQ
+ *   - BLE_ATT_READ_REQ
+ *   - BLE_ATT_READ_BY_GROUP_TYPE_REQ
+ *   - BLE_ATT_WRITE_REQ
  *
  *
  * # Todos
@@ -52,6 +83,24 @@
  * ## Link-layer
  * @todo        support channel selection algorithm #2
  * @todo        support extended packet sized
+ * @todo        support missing operations:
+ *              - BLE_LL_ENC_REQ
+ *              - BLE_LL_START_ENC_REQ
+ *              - BLE_LL_PAUSE_ENC_REQ
+ *              - BLE_LL_SLAVE_FEATUREREQ
+ *              - BLE_LL_CONN_PARAM_REQ
+ *
+ * ## GATT
+ * @todo        support for the following operation of the GATT server:
+  *             - BLE_ATT_READ_BLOB_REQ
+  *             - BLE_ATT_READ_MUL_REQ
+  *             - BLE_ATT_PREP_WRITE_REQ
+  *             - BLE_ATT_WRITE_COMMAND
+  *             - BLE_ATT_EXEC_WRITE_REQ
+  *             - BLE_ATT_VAL_NOTIFICATION
+  *             - BLE_ATT_VAL_INDICATION
+  *             - BLE_ATT_VAL_CONFIRMATION
+  *             - BLE_ATT_SIGNED_WRITE_CMD
  *
  * ## Implementation specific
  * @todo        cleanup the (sub-)module structure to allow compiling Gorm for
@@ -91,9 +140,9 @@ extern "C" {
  */
 #define GORM_EVT_DATA               (0x0001)
 #define GORM_EVT_CONNECTED          (0x0002)
-#define GORM_EVT_CON_ABORT          (0x0004)
-#define GORM_EVT_CON_TIMEOUT        (0x0008)
-#define GORM_EVT_CON_CLOSED         (0x0010)
+#define GORM_EVT_CONN_ABORT         (0x0004)
+#define GORM_EVT_CONN_TIMEOUT       (0x0008)
+#define GORM_EVT_CONN_CLOSED        (0x0010)
 /** @} */
 
 /**

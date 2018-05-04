@@ -732,6 +732,20 @@ typedef enum {
      */
     NETOPT_RX_SYMBOL_TIMEOUT,
 
+    /**
+     * @brief   (void) stops any ongoing sequence if not transmission is active
+     *
+     * @warning As @ref drivers_netdev_ble is still experimental, use with care!
+     */
+    NETOPT_BLE_STOP,
+
+    /**
+     * @brief   (void) stops any ongoing sequence in any case
+     *
+     * @warning As @ref drivers_netdev_ble is still experimental, use with care!
+     */
+    NETOPT_BLE_TERMINATE,
+
     /* add more options if needed */
 
     /**

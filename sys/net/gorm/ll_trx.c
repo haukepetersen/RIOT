@@ -17,15 +17,13 @@
  * @}
  */
 
-#include "assert.h"
-
 #include "net/gorm/ll/trx.h"
 
-static netdev_t *radio;
+static netdev_t *_radio;
 
-static gorm_buf_t *trx_buf;
-static gorm_ll_trx_cb_t trx_cb;
-static void *trx_arg;
+static gorm_buf_t *_trx_buf;
+static gorm_ll_trx_cb_t _trx_cb;
+static gorm_ll_ctx_t *_trx_ctx;
 
 static void on_trx(netdev_t *netdev, netdev_event_t event)
 {
@@ -33,57 +31,62 @@ static void on_trx(netdev_t *netdev, netdev_event_t event)
     (void)event;
 
     int done = 1;
-    if (trx_cb) {
-        done = trx_cb(trx_buf, trx_arg);
+    if (_trx_cb) {
+        done = _trx_cb(_trx_buf, _trx_ctx);
     }
     if (done) {
-        gorm_ll_trx_stop();
+        netdev_ble_terminate(_radio);
     }
 }
 
 static void remember(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 {
-    trx_buf = buf;
-    trx_cb = cb;
+    _trx_buf = buf;
+    _trx_cb = cb;
 }
 
 void gorm_ll_trx_send(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
-                      gorm_ll_trx_cb_t cb, void *arg)
+                      gorm_ll_trx_cb_t cb, gorm_ll_ctx_t *ll_ctx)
 {
-    assert(buf && ctx);
-
     remember(buf, cb);
-    trx_arg = arg;
-    netdev_ble_set_ctx(radio, ctx);
-    netdev_ble_send(radio, &buf->pkt);
+    _trx_ctx = ll_ctx;
+    netdev_ble_set_ctx(_radio, ctx);
+    netdev_ble_send(_radio, &buf->pkt);
 }
 
 void gorm_ll_trx_recv(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
-                      gorm_ll_trx_cb_t cb, void *arg)
+                      gorm_ll_trx_cb_t cb, gorm_ll_ctx_t *ll_ctx)
 {
-    assert(buf && ctx && cb);
-
     remember(buf, cb);
-    trx_arg = arg;
-    netdev_ble_set_ctx(radio, ctx);
-    netdev_ble_recv(radio, &buf->pkt);
+    _trx_ctx = ll_ctx;
+    netdev_ble_set_ctx(_radio, ctx);
+    netdev_ble_recv(_radio, &buf->pkt);
 }
 
 void gorm_ll_trx_send_next(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 {
     remember(buf, cb);
-    netdev_ble_send(radio, &buf->pkt);
+    netdev_ble_send(_radio, &buf->pkt);
 }
 
 void gorm_ll_trx_recv_next(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 {
     remember(buf, cb);
-    netdev_ble_recv(radio, &buf->pkt);
+    netdev_ble_recv(_radio, &buf->pkt);
 }
 
-void gorm_ll_trx_stop(void)
+void gorm_ll_trx_stop(gorm_ll_ctx_t *ll_ctx)
 {
-    netdev_ble_stop(radio);
+    if (ll_ctx == _trx_ctx) {
+        netdev_ble_stop(_radio);
+    }
+}
+
+void gorm_ll_trx_terminate(gorm_ll_ctx_t *ll_ctx)
+{
+    if (ll_ctx == _trx_ctx) {
+        netdev_ble_terminate(_radio);
+    }
 }
 
 int gorm_ll_trx_init(netdev_t *dev)
@@ -91,7 +94,7 @@ int gorm_ll_trx_init(netdev_t *dev)
     assert(dev);
 
     /* setup the radio */
-    radio = dev;
-    radio->event_callback = on_trx;
-    return radio->driver->init(radio);
+    _radio = dev;
+    _radio->event_callback = on_trx;
+    return _radio->driver->init(_radio);
 }

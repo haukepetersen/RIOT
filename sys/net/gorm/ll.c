@@ -128,12 +128,12 @@ static void _on_supervision_timeout(void *arg)
 {
     gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
 
-    gorm_ll_trx_stop();
+    gorm_ll_trx_terminate(con);
     gorm_arch_timer_cancel(&con->timer_con);
     con->state = GORM_LL_STATE_STANDBY;
 
     /* notify the host about the connection timeout */
-    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CON_TIMEOUT);
+    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONN_TIMEOUT);
 }
 
 static int _on_data_sent(gorm_buf_t *buf, void *arg)
@@ -286,7 +286,7 @@ static void _on_connection_event_close(void *arg)
 
 
     /* cancel receive operation */
-    gorm_ll_trx_stop();
+    gorm_ll_trx_stop(con);
 
 
     /* check if we need to update the channel map */
@@ -378,7 +378,7 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
 
 err:
     con->state = GORM_LL_STATE_STANDBY;
-    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CON_ABORT);
+    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONN_ABORT);
 }
 
 static int _on_adv_reply(gorm_buf_t *buf, void *arg)
@@ -428,7 +428,7 @@ static void _on_adv_chan(void *arg)
     /* stop listening for connection requests and the like */
     /* TODO: make sure we only stop our own operation here... */
     /* TODO: we skip the adv event if someone else is using the radio right now */
-    gorm_ll_trx_stop();
+    gorm_ll_trx_stop(con);
 
     if (con->event_counter < sizeof(adv_chan_list)) {
         /* build packet */
@@ -489,7 +489,7 @@ static int _advertise(gorm_ll_ctx_t *con, const gorm_gap_adv_ctx_t *adv_ctx)
     return GORM_OK;
 }
 
-int gorm_ll_controller_init(netdev_t *dev)
+int gorm_ll_init(netdev_t *dev)
 {
     DEBUG("[gorm_ll] controller_init: initializing controller\n");
     if (gorm_ll_trx_init(dev) != 0) {
@@ -534,14 +534,13 @@ int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
 void gorm_ll_terminate(gorm_ll_ctx_t *con)
 {
     assert(con);
-    (void)con;
 
-    // unsigned is = irq_disable();
-    // gorm_ll_trx_stop();
-    // gorm_arch_timer_cancel(&con->timer_con);
-    // gorm_arch_timer_cancel(&con->timer_spv);
-    // con->state = STATE_STANDBY;
-    // irq_restore(is);
+    unsigned is = irq_disable();
+    gorm_ll_trx_terminate(con);
+    gorm_arch_timer_cancel(&con->timer_con);
+    gorm_arch_timer_cancel(&con->timer_spv);
+    con->state = GORM_LL_STATE_STANDBY;
+    irq_restore(is);
 
-    /* TODO */
+    gorm_notify((gorm_ctx_t *)con, GORM_EVT_CONN_CLOSED);
 }

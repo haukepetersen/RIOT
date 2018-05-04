@@ -122,7 +122,7 @@ typedef struct {
  * @return  GORM_OK on success
  * @return  GORM_ERR_DEV if unable to initialize radio
  */
-int gorm_ll_controller_init(netdev_t *dev);
+int gorm_ll_init(netdev_t *dev);
 
 /**
  * @brief   Advertise given context and listen for new connections
