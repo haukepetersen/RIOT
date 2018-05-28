@@ -8,7 +8,7 @@ PDIR = $(PKG_BUILDDIR)
 
 # As of now, NimBLE does not build without warnings for -Wextra, so we disable
 # that flag for this package. Will hopefully be fixed some time in the future.
-CFLAGS += -Wno-extra
+# CFLAGS += -Wno-extra
 
 .PHONY: all
 

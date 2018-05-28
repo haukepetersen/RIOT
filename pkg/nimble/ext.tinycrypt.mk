@@ -7,4 +7,6 @@ SRC += ecc.c
 SRC += ecc_dh.c
 SRC += utils.c
 
+CFLAGS += -Wno-extra
+
 include $(RIOTBASE)/Makefile.base
