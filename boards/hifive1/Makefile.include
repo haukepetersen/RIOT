@@ -3,7 +3,7 @@ export CPU = fe310
 export CPU_MODEL = fe310
 
 # Uses UART0 for stdio input/output (comment out to disable)
-USEMODULE += uart_stdio
+USEMODULE += stdio_uart
 
 # this board uses openocd
 include $(RIOTMAKE)/tools/openocd.inc.mk
