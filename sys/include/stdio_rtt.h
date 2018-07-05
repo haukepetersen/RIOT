@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 Michael Andersen <m.andersen@berkeley.edu>
+ *               2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,50 +8,26 @@
  */
 
 /**
- * @defgroup    sys_rtt_stdio SEGGER RTT stdio
+ * @defgroup    sys_stdio_rtt STDIO over SEGGER RTT
  * @ingroup     sys
  *
- * @brief       stdio init/read/write functions for SEGGER RTT. This is
- *              designed to shadow the functions in uart_stdio
+ * @brief       STDIO mapping for running the STDIO over SEGGER's RTT interface
  *
  * @{
  * @file
  *
  * @author      Michael Andersen <m.andersen@cs.berkeley.edu>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
-#ifndef RTT_STDIO_H
-#define RTT_STDIO_H
+
+#ifndef STDIO_RTT_H
+#define STDIO_RTT_H
+
+#include "stdio_base.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief initialize the module. This is a noop.
- */
-void uart_stdio_init(void);
-
-/**
- * @brief read @p len bytes from stdio uart into @p buffer
- *
- * @param[out]  buffer  buffer to read into
- * @param[in]   len     nr of bytes to read
- *
- * @return nr of bytes read
- * @return <0 on error
- */
-int uart_stdio_read(char* buffer, int len);
-
-/**
- * @brief write @p len bytes from @p buffer into uart
- *
- * @param[in]   buffer  buffer to read from
- * @param[in]   len     nr of bytes to write
- *
- * @return nr of bytes written
- * @return <0 on error
- */
-int uart_stdio_write(const char* buffer, int len);
 
 /**
  * @brief enable stdin polling, at a power consumption cost. This is enabled
@@ -69,5 +46,6 @@ void rtt_stdio_enable_blocking_stdout(void);
 #ifdef __cplusplus
 }
 #endif
+
 /** @} */
-#endif /* RTT_STDIO_H */
+#endif /* STDIO_RTT_H */

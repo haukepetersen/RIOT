@@ -11,7 +11,7 @@ and enables stdio on platforms that do not have a UART.
 To use this module, add
 
 ```
-USEMODULE += rtt_stdio
+USEMODULE += stdio_rtt
 ```
 
 to your makefile. By default the module will drop bytes written to stdout if the
