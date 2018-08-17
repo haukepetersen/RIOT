@@ -91,6 +91,19 @@ extern "C" {
 #define RDCLI_SERVER_PORT       COAP_PORT
 #endif
 
+/**
+ * @brief   Maximum length of token handed out by the RD server
+ *
+ * @note    Including the `\0` string termination character
+ */
+#ifndef RDCLI_RES_LOC_LEN
+#define RDCLI_RES_LOC_LEN       (63U)
+#endif
+
+#ifndef RDCLI_CTX_NUM
+#define RDCLI_CTX_NUM           (3U)
+#endif
+
 #ifdef __cplusplus
 }
 #endif

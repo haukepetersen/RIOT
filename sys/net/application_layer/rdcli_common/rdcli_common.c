@@ -82,3 +82,32 @@ int rdcli_common_add_qstring(coap_pkt_t *pkt)
 
     return 0;
 }
+
+int rdcli_common_add_qstring(coap_pkt_t *pkt)
+{
+    /* extend the url with some query string options */
+    int res = gcoap_add_qstring(pkt, "ep", rdcli_ep);
+    if (res < 0) {
+        return res;
+    }
+
+    /* [optional] set the lifetime parameter */
+#if RDCLI_LT
+    char lt[11];
+    lt[fmt_u32_dec(lt, RDCLI_LT)] = '\0';
+    res = gcoap_add_qstring(pkt, "lt", lt);
+    if (res < 0) {
+        return res;
+    }
+#endif
+
+    /* [optional] set the domain parameter */
+#ifdef RDCLI_D
+    res = gcoap_add_qstring(pkt, "d", RDCLI_D);
+    if (res < 0) {
+        return res;
+    }
+#endif
+
+    return 0;
+}
