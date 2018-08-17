@@ -759,6 +759,18 @@ ifneq (,$(filter skald,$(USEMODULE)))
   USEMODULE += random
 endif
 
+ifneq (,$(filter rdcli_standalone,$(USEMODULE)))
+  USEMODULE += rdcli
+  USEMODULE += xtimer
+endif
+
+ifneq (,$(filter rdcli,$(USEMODULE)))
+  USEMODULE += rdcli_common
+  USEMODULE += core_thread_flags
+  USEMODULE += gcoap
+  USEMODULE += fmt
+endif
+
 ifneq (,$(filter rdcli_simple_standalone,$(USEMODULE)))
   USEMODULE += rdcli_simple
   USEMODULE += xtimer
