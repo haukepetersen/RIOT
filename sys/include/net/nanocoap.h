@@ -692,7 +692,7 @@ ssize_t coap_opt_get_string(const coap_pkt_t *pkt, uint16_t optnum,
  * @returns     -ENOSPC     if URI option is larger than NANOCOAP_URI_MAX
  * @returns     nr of bytes written to @p target (including '\0')
  */
-static inline ssize_t coap_opt_get_uri_path(const coap_pkt_t *pkt,
+static inline ssize_t coap_get_uri_path(const coap_pkt_t *pkt,
                                             uint8_t *target)
 {
     return coap_opt_get_string(pkt, COAP_OPT_URI_PATH, target,
@@ -713,7 +713,7 @@ static inline ssize_t coap_opt_get_uri_path(const coap_pkt_t *pkt,
  * @returns     -ENOSPC     if URI option is larger than NANOCOAP_URI_MAX
  * @returns     nr of bytes written to @p target (including '\0')
  */
-static inline ssize_t coap_opt_get_uri_query(const coap_pkt_t *pkt,
+static inline ssize_t coap_get_uri_query(const coap_pkt_t *pkt,
                                              uint8_t *target)
 {
     return coap_opt_get_string(pkt, COAP_OPT_URI_QUERY, target,
@@ -735,7 +735,7 @@ static inline ssize_t coap_opt_get_uri_query(const coap_pkt_t *pkt,
  * @returns     -ENOSPC     if URI option is larger than @p max_len
  * @returns     nr of bytes written to @p target (including '\0')
  */
-static inline ssize_t coap_opt_get_location_path(const coap_pkt_t *pkt,
+static inline ssize_t coap_get_location_path(const coap_pkt_t *pkt,
                                                  uint8_t *target, size_t max_len)
 {
     return coap_opt_get_string(pkt, COAP_OPT_LOCATION_PATH,
@@ -757,7 +757,7 @@ static inline ssize_t coap_opt_get_location_path(const coap_pkt_t *pkt,
  * @returns     -ENOSPC     if URI option is larger than @p max_len
  * @returns     nr of bytes written to @p target (including '\0')
  */
-static inline ssize_t coap_opt_get_location_query(const coap_pkt_t *pkt,
+static inline ssize_t coap_get_location_query(const coap_pkt_t *pkt,
                                                   uint8_t *target,
                                                   size_t max_len)
 {
