@@ -25,7 +25,7 @@
 #ifndef NRF802154_H
 #define NRF802154_H
 
-#include "net/netdev.h"
+#include "net/netdev/ieee802154.h"
 
 #ifdef __cplusplus
 extern "C" {

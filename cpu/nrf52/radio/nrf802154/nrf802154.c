@@ -179,7 +179,7 @@ static void set_txpower(int16_t txpower)
     }
 }
 
-static int init(netdev_t *dev)
+static int _init(netdev_t *dev)
 {
     assert(dev);
 
@@ -233,23 +233,23 @@ static int init(netdev_t *dev)
     return 0;
 }
 
-static int send(netdev_t *dev, const struct iovec *vector, unsigned count)
+static int _send(netdev_t *dev,  const iolist_t *iolist)
 {
     (void)dev;
 
     DEBUG("Send a packet\n");
 
-    assert(vector && count);
+    assert(iolist);
 
     /* copy packet data into the transmit buffer */
     int pos = 1;
-    for (unsigned i = 0; i < count; i++) {
-        if ((pos + vector[i].iov_len) > (IEEE802154_FRAME_LEN_MAX + 1)) {
+    for (; iolist; iolist = iolist->iol_next) {
+        if ((pos + iolist->iol_len) > (IEEE802154_FRAME_LEN_MAX + 1)) {
             DEBUG("[nrf802154] send: unable to do so, packet is too large!\n");
             return -EOVERFLOW;
         }
-        memcpy(&txbuf[pos], vector[i].iov_base, vector[i].iov_len);
-        pos += vector[i].iov_len;
+        memcpy(&txbuf[pos], iolist->iol_base, iolist->iol_len);
+        pos += iolist->iol_len;
     }
 
     /* specify the length of the package. */
@@ -262,15 +262,15 @@ static int send(netdev_t *dev, const struct iovec *vector, unsigned count)
     return pos;
 }
 
-static int recv(netdev_t *dev, void *buf, size_t len, void *info)
+static int _recv(netdev_t *dev, void *buf, size_t len, void *info)
 {
     (void)dev;
     (void)info;
 
-    int pktlen = (int)rxbuf[0] - 2;
+    size_t pktlen = (size_t)rxbuf[0] - 2;
 
     /* check if packet data is readable */
-    if (pktlen <= 0) {
+    if (pktlen == 0) {
         DEBUG("recv: no packet data available\n");
         reset_rx();
         return 0;
@@ -295,17 +295,17 @@ static int recv(netdev_t *dev, void *buf, size_t len, void *info)
 
     reset_rx();
 
-    return pktlen;
+    return (int)pktlen;
 }
 
-static void isr(netdev_t *dev)
+static void _isr(netdev_t *dev)
 {
     if (nrf802154_dev.netdev.event_callback) {
         nrf802154_dev.netdev.event_callback(dev, NETDEV_EVENT_RX_COMPLETE);
     }
 }
 
-static int get(netdev_t *dev, netopt_t opt, void *value, size_t max_len)
+static int _get(netdev_t *dev, netopt_t opt, void *value, size_t max_len)
 {
     assert(dev);
 
@@ -327,7 +327,8 @@ static int get(netdev_t *dev, netopt_t opt, void *value, size_t max_len)
     }
 }
 
-static int set(netdev_t *dev, netopt_t opt, void *value, size_t value_len)
+static int _set(netdev_t *dev, netopt_t opt,
+                const void *value, size_t value_len)
 {
     assert(dev);
 
@@ -381,10 +382,10 @@ void isr_radio(void)
  * @brief   Export of the netdev interface
  */
 static const netdev_driver_t nrf802154_netdev_driver = {
-    .send = send,
-    .recv = recv,
-    .init = init,
-    .isr  = isr,
-    .get  = get,
-    .set  = set
+    .send = _send,
+    .recv = _recv,
+    .init = _init,
+    .isr  = _isr,
+    .get  = _get,
+    .set  = _set
 };

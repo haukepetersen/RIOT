@@ -19,38 +19,34 @@
 
 #ifdef MODULE_NRF802154
 
+
 #include "log.h"
 #include "board.h"
-#include "net/gnrc/netdev.h"
-#include "net/gnrc/netdev/ieee802154.h"
-#include "net/gnrc.h"
-
 #include "nrf802154.h"
+#include "net/gnrc/netif/ieee802154.h"
 
 /**
  * @brief   Define stack parameters for the MAC layer thread
  * @{
  */
+#ifndef NRF802154_MAC_STACKSIZE
 #define NRF802154_MAC_STACKSIZE     (THREAD_STACKSIZE_DEFAULT)
-#ifndef NRF802154_MAC_PRIO
-#define NRF802154_MAC_PRIO          (GNRC_NETDEV_MAC_PRIO)
 #endif
+#ifndef NRF802154_MAC_PRIO
+#define NRF802154_MAC_PRIO          (GNRC_NETIF_PRIO)
+#endif
+/** @} */
 
-static gnrc_netdev_t gnrc_adpt;
-static char stack[NRF802154_MAC_STACKSIZE];
+static char _stack[NRF802154_MAC_STACKSIZE];
 
 void auto_init_nrf802154(void)
 {
     LOG_DEBUG("[auto_init_netif] initializing nrf802154\n");
 
-    int res = gnrc_netdev_ieee802154_init(&gnrc_adpt, &nrf802154_dev);
-    if (res < 0) {
-        LOG_ERROR("[auto_init_netif] error initializing nrf802154 radio\n");
-    }
-    else {
-        gnrc_netdev_init(stack, NRF802154_MAC_STACKSIZE, NRF802154_MAC_PRIO,
-                         "nrf802154", &gnrc_adpt);
-    }
+    gnrc_netif_ieee802154_create(_stack,
+                                 NRF802154_MAC_STACKSIZE,
+                                 NRF802154_MAC_PRIO, "nrf802154",
+                                 (netdev_t *)&nrf802154_dev);
 }
 #else
 typedef int dont_be_pedantic;
