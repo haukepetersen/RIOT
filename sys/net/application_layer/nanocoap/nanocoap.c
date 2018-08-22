@@ -119,7 +119,7 @@ int coap_parse(coap_pkt_t *pkt, uint8_t *buf, size_t len)
     }
 
 #ifdef MODULE_GCOAP
-    coap_opt_get_uri_query(pkt, pkt->url);
+    coap_opt_get_uri_path(pkt, pkt->url);
     pkt->content_type = coap_get_content_type(pkt);
 
     if (coap_get_option_uint(pkt, COAP_OPT_OBSERVE, &pkt->observe_value) != 0) {
@@ -577,8 +577,8 @@ size_t coap_put_block1_ok(uint8_t *pkt_pos, coap_block1_t *block1, uint16_t last
     }
 }
 
-size_t coap_opt_put_string_raw(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
-                               const char *string, char separator)
+size_t coap_opt_put_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                           const char *string, char separator)
 {
     size_t len = strlen(string);
 

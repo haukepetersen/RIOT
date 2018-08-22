@@ -465,8 +465,8 @@ size_t coap_put_option_ct(uint8_t *buf, uint16_t lastonum, uint16_t content_type
  *
  * @return      number of bytes written to @p buf
  */
-size_t coap_opt_put_string_raw(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
-                               const char *string, char separator);
+size_t coap_opt_put_string(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                           const char *string, char separator);
 
 /**
  * @brief   Convenience function for inserting URI_PATH option into buffer
@@ -478,10 +478,10 @@ size_t coap_opt_put_string_raw(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
  *
  * @returns     amount of bytes written to @p buf
  */
-static inline size_t coap_opt_put_uri_path_raw(uint8_t *buf, uint16_t lastonum,
-                                               const char *uri)
+static inline size_t coap_opt_put_uri_path(uint8_t *buf, uint16_t lastonum,
+                                           const char *uri)
 {
-    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_URI_PATH, uri, '/');
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_URI_PATH, uri, '/');
 }
 
 /**
@@ -494,10 +494,10 @@ static inline size_t coap_opt_put_uri_path_raw(uint8_t *buf, uint16_t lastonum,
  *
  * @returns     amount of bytes written to @p buf
  */
-static inline size_t coap_opt_put_uri_query_raw(uint8_t *buf, uint16_t lastonum,
-                                                const char *uri)
+static inline size_t coap_opt_put_uri_query(uint8_t *buf, uint16_t lastonum,
+                                            const char *uri)
 {
-    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_URI_QUERY, uri, '&');
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_URI_QUERY, uri, '&');
 }
 
 /**
@@ -510,12 +510,12 @@ static inline size_t coap_opt_put_uri_query_raw(uint8_t *buf, uint16_t lastonum,
  *
  * @returns     amount of bytes written to @p buf
  */
-static inline size_t coap_opt_put_location_path_raw(uint8_t *buf,
-                                                    uint16_t lastonum,
-                                                    const char *location)
+static inline size_t coap_opt_put_location_path(uint8_t *buf,
+                                                uint16_t lastonum,
+                                                const char *location)
 {
-    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_LOCATION_PATH,
-                                   location, '/');
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_LOCATION_PATH,
+                               location, '/');
 }
 
 /**
@@ -528,12 +528,12 @@ static inline size_t coap_opt_put_location_path_raw(uint8_t *buf,
  *
  * @returns     amount of bytes written to @p buf
  */
-static inline size_t coap_opt_put_location_query_raw(uint8_t *buf,
-                                                     uint16_t lastonum,
-                                                     const char *location)
+static inline size_t coap_opt_put_location_query(uint8_t *buf,
+                                                 uint16_t lastonum,
+                                                 const char *location)
 {
-    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_LOCATION_QUERY,
-                                   location, '&');
+    return coap_opt_put_string(buf, lastonum, COAP_OPT_LOCATION_QUERY,
+                               location, '&');
 }
 
 /**
@@ -647,24 +647,6 @@ ssize_t coap_opt_add_uint(coap_pkt_t *pkt, uint16_t optnum, uint32_t value);
  * @return        total number of bytes written to buffer
  */
 ssize_t coap_opt_finish(coap_pkt_t *pkt, uint16_t flags);
-
-/**
- * @brief   Insert LOCATION_PATH option into buffer
- *
- * @param[out]  buf         buffer to write to
- * @param[in]   lastonum    number of previous option (for delta calculation),
- *                          or 0 if first option
- * @param[in]   uri         location path
- *
- * @returns     amount of bytes written to @p buf
- */
-static inline size_t coap_put_option_location_path(uint8_t *buf,
-                                                   uint16_t lastonum,
-                                                   const char *loc_path)
-{
-    return coap_put_option_string(buf, lastonum, COAP_OPT_LOCATION_PATH,
-                                  loc_path, '/');
-}
 
 /**
  * @brief   Get content type from packet
