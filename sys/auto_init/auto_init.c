@@ -266,10 +266,6 @@ void auto_init(void)
     auto_init_nrf802154();
 #endif
 
-#ifdef MODULE_GNRC_IPV6_NETIF
-    gnrc_ipv6_netif_init_by_dev();
-#endif
-
 #endif /* MODULE_AUTO_INIT_GNRC_NETIF */
 
 #ifdef MODULE_GNRC_UHCPC
