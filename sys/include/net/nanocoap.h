@@ -454,6 +454,89 @@ size_t coap_put_option(uint8_t *buf, uint16_t lastonum, uint16_t onum, uint8_t *
 size_t coap_put_option_ct(uint8_t *buf, uint16_t lastonum, uint16_t content_type);
 
 /**
+ * @brief   Encode the given string as multi-part option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   optnum      option number to use
+ * @param[in]   string      string to encode as option
+ * @param[in]   separator   character used in @p string to separate parts
+ *
+ * @return      number of bytes written to @p buf
+ */
+size_t coap_opt_put_string_raw(uint8_t *buf, uint16_t lastonum, uint16_t optnum,
+                               const char *string, char separator);
+
+/**
+ * @brief   Convenience function for inserting URI_PATH option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to source URI
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_uri_path_raw(uint8_t *buf, uint16_t lastonum,
+                                               const char *uri)
+{
+    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_URI_PATH, uri, '/');
+}
+
+/**
+ * @brief   Convenience function for inserting URI_QUERY option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to source URI
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_uri_query_raw(uint8_t *buf, uint16_t lastonum,
+                                                const char *uri)
+{
+    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_URI_QUERY, uri, '&');
+}
+
+/**
+ * @brief   Convenience function for inserting LOCATION_PATH option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to string holding the location
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_location_path_raw(uint8_t *buf,
+                                                    uint16_t lastonum,
+                                                    const char *location)
+{
+    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_LOCATION_PATH,
+                                   location, '/');
+}
+
+/**
+ * @brief   Convenience function for inserting LOCATION_QUERY option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         ptr to string holding the location
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_opt_put_location_query_raw(uint8_t *buf,
+                                                     uint16_t lastonum,
+                                                     const char *location)
+{
+    return coap_opt_put_string_raw(buf, lastonum, COAP_OPT_LOCATION_QUERY,
+                                   location, '&');
+}
+
+/**
  * @brief    Generic block option getter
  *
  * @param[in]   pkt     pkt to work on
@@ -527,16 +610,15 @@ size_t coap_put_block1_ok(uint8_t *pkt_pos, coap_block1_t *block1, uint16_t last
  * @post pkt.payload advanced to first byte after option(s)
  * @post pkt.payload_len reduced by option(s) length
  *
- * @param[in,out] pkt       pkt referencing target buffer
- * @param[in]     optnum    option number to use
- * @param[in]     string    string to encode as option
- * @param[in]     separator character used in @p string to separate parts
+ * @param[in,out] pkt         pkt referencing target buffer
+ * @param[in]     optnum      option number to use
+ * @param[in]     string      string to encode as option
+ * @param[in]     separator   character used in @p string to separate parts
  *
  * @return        number of bytes written to buffer
  * @return        -ENOSPC if no available options
  */
-ssize_t coap_opt_add_string(coap_pkt_t *pkt, uint16_t optnum,
-                            const char *string, char separator);
+ssize_t coap_opt_add_string(coap_pkt_t *pkt, uint16_t optnum, const char *string, char separator);
 
 /**
  * @brief   Encode the given uint option into pkt
@@ -544,69 +626,14 @@ ssize_t coap_opt_add_string(coap_pkt_t *pkt, uint16_t optnum,
  * @post pkt.payload advanced to first byte after option
  * @post pkt.payload_len reduced by option length
  *
- * @param[in,out] pkt       pkt referencing target buffer
- * @param[in]     optnum    option number to use
- * @param[in]     value     uint to encode
+ * @param[in,out] pkt         pkt referencing target buffer
+ * @param[in]     optnum      option number to use
+ * @param[in]     value       uint to encode
  *
  * @return        number of bytes written to buffer
  * @return        <0 reserved for error but not implemented yet
  */
 ssize_t coap_opt_add_uint(coap_pkt_t *pkt, uint16_t optnum, uint32_t value);
-
-/**
- * @brief   Convenience function for adding URI_PATH option to packet
- *
- * @param[in,out] pkt       pkt referencing target buffer
- * @param[in] uri           ptr to URI path string
- *
- * @returns     amount of bytes written to @p buf
- */
-static inline size_t coap_opt_add_uri_path(coap_pkt_t *pkt, const char *uri)
-{
-    return coap_opt_add_string(pkt, COAP_OPT_URI_PATH, uri, '/');
-}
-
-/**
- * @brief   Convenience function for adding URI_QUERY option to packet
- *
- * @param[in,out] pkt       pkt referencing target buffer
- * @param[in] uri           ptr to URI query string
- *
- * @returns     amount of bytes written to @p buf
- */
-static inline size_t coap_opt_add_uri_query(coap_pkt_t *pkt, const char *uri)
-{
-    return coap_opt_add_string(pkt, COAP_OPT_URI_QUERY, uri, '&');
-}
-
-/**
- * @brief   Convenience function for adding LOCATION_PATH option to packet
- *
- * @param[in,out] pkt           pkt referencing target buffer
- * @param[in] location_path     ptr to string holding the location path string
- *
- * @returns     amount of bytes written to @p buf
- */
-static inline size_t coap_opt_add_location_path(coap_pkt_t *pkt,
-                                                const char *location_path)
-{
-    return coap_opt_add_string(pkt, COAP_OPT_LOCATION_PATH, location_path, '/');
-}
-
-/**
- * @brief   Convenience function for adding LOCATION_QUERY option to packet
- *
- * @param[in,out] pkt           pkt referencing target buffer
- * @param[in] location_query    ptr to string holding the location query string
- *
- * @returns     amount of bytes written to @p buf
- */
-static inline size_t coap_opt_add_location_query(coap_pkt_t *pkt,
-                                                 const char *location_query)
-{
-    return coap_opt_add_string(pkt, COAP_OPT_LOCATION_QUERY,
-                               location_query, '&');
-}
 
 /**
  * @brief   Finalizes options as required and prepares for payload
@@ -620,6 +647,24 @@ static inline size_t coap_opt_add_location_query(coap_pkt_t *pkt,
  * @return        total number of bytes written to buffer
  */
 ssize_t coap_opt_finish(coap_pkt_t *pkt, uint16_t flags);
+
+/**
+ * @brief   Insert LOCATION_PATH option into buffer
+ *
+ * @param[out]  buf         buffer to write to
+ * @param[in]   lastonum    number of previous option (for delta calculation),
+ *                          or 0 if first option
+ * @param[in]   uri         location path
+ *
+ * @returns     amount of bytes written to @p buf
+ */
+static inline size_t coap_put_option_location_path(uint8_t *buf,
+                                                   uint16_t lastonum,
+                                                   const char *loc_path)
+{
+    return coap_put_option_string(buf, lastonum, COAP_OPT_LOCATION_PATH,
+                                  loc_path, '/');
+}
 
 /**
  * @brief   Get content type from packet
