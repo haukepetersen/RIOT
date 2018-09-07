@@ -40,7 +40,7 @@
 
 
 #define P(NAME) printf("    tcb->%-11s            %3zu     %3u\n", #NAME, \
-                       (unsigned)sizeof(((thread_t *) 0)->NAME), \
+                       sizeof(((thread_t *) 0)->NAME), \
                        (unsigned)offsetof(thread_t, NAME))
 
 int main(void)
