@@ -39,7 +39,7 @@
 #include "thread.h"
 
 
-#define P(NAME) printf("    tcb->%-11s            %3u     %3u\n", #NAME, \
+#define P(NAME) printf("    tcb->%-11s            %3zu     %3u\n", #NAME, \
                        (unsigned)sizeof(((thread_t *) 0)->NAME), \
                        (unsigned)offsetof(thread_t, NAME))
 
@@ -49,29 +49,29 @@ int main(void)
 
     puts("                                size");
 
-    printf("sizeof(cib_t):                  %3u\n", sizeof(cib_t));
-    printf("sizeof(clist_node_t):           %3u\n", sizeof(clist_node_t));
-    printf("sizeof(core_panic_t):           %3u\n", sizeof(core_panic_t));
-    printf("sizeof(kernel_pid_t):           %3u\n", sizeof(kernel_pid_t));
-    printf("sizeof(list_node_t):            %3u\n", sizeof(list_node_t));
-    printf("sizeof(mbox_t):                 %3u\n", sizeof(mbox_t));
+    printf("sizeof(cib_t):                  %3zu\n", sizeof(cib_t));
+    printf("sizeof(clist_node_t):           %3zu\n", sizeof(clist_node_t));
+    printf("sizeof(core_panic_t):           %3zu\n", sizeof(core_panic_t));
+    printf("sizeof(kernel_pid_t):           %3zu\n", sizeof(kernel_pid_t));
+    printf("sizeof(list_node_t):            %3zu\n", sizeof(list_node_t));
+    printf("sizeof(mbox_t):                 %3zu\n", sizeof(mbox_t));
 #ifdef MODULE_CORE_MSG
-    printf("sizeof(msg_t):                  %3u\n", sizeof(msg_t));
+    printf("sizeof(msg_t):                  %3zu\n", sizeof(msg_t));
 #else
     puts("sizeof(msg_t):                    0   (not enabled)");
 #endif
-    printf("sizeof(mutex_t):                %3u\n", sizeof(mutex_t));
-    printf("sizeof(priority_queue_node_t):  %3u\n", sizeof(priority_queue_node_t));
-    printf("sizeof(priority_queue_t):       %3u\n", sizeof(priority_queue_t));
-    printf("sizeof(ringbuffer_t):           %3u\n", sizeof(ringbuffer_t));
-    printf("sizeof(rmutex_t):               %3u\n", sizeof(rmutex_t));
+    printf("sizeof(mutex_t):                %3zu\n", sizeof(mutex_t));
+    printf("sizeof(priority_queue_node_t):  %3zu\n", sizeof(priority_queue_node_t));
+    printf("sizeof(priority_queue_t):       %3zu\n", sizeof(priority_queue_t));
+    printf("sizeof(ringbuffer_t):           %3zu\n", sizeof(ringbuffer_t));
+    printf("sizeof(rmutex_t):               %3zu\n", sizeof(rmutex_t));
 #ifdef MODULE_CORE_THREAD_FLAGS
-    printf("sizeof(thread_flags_t):         %3u\n", sizeof(thread_flags_t));
+    printf("sizeof(thread_flags_t):         %3zu\n", sizeof(thread_flags_t));
 #else
     puts("sizeof(thread_flags_t):           0   (not enabled)");
 #endif
     printf("\nTCB (thread_t) details:         size  offset\n");
-    printf("sizeof(thread_t):               %3u       -\n", sizeof(thread_t));
+    printf("sizeof(thread_t):               %3zu       -\n", sizeof(thread_t));
     P(sp);
     P(status);
     P(priority);
