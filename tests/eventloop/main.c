@@ -59,8 +59,8 @@ int main(void)
     eventloop_post(&_my1.super);
     eventloop_post(&_my2.super);
 
-    if ((_my1.test_pid != main_pid) && (_my1.test_pid > 0) &&
-        (_my2.test_pid != main_pid) && (_my2.test_pid > 0)) {
+    if ((_my1.pid_test != main_pid) && (_my1.pid_test > 0) &&
+        (_my2.pid_test != main_pid) && (_my2.pid_test > 0)) {
         puts("[SUCCESS]");
     }
     else {
