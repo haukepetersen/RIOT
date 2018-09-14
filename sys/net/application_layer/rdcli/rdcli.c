@@ -182,8 +182,8 @@ static void _on_discover(unsigned req_state, coap_pkt_t *pdu,
         if (uri_len >= _regif_buf_len) {
             goto end;
         }
-        memset(_regif_buf, 0, _regif_buf_len);
-        memcpy(_regif_buf, start, end - start);
+        memcpy(_regif_buf, start, uri_len);
+        memset((_regif_buf + uri_len), 0, (_regif_buf_len - uri_len));
         flag = FLAG_SUCCESS;
     }
     else if (req_state == GCOAP_MEMO_TIMEOUT) {

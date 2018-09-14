@@ -30,8 +30,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef RDCLI_H
-#define RDCLI_H
+#ifndef NET_RDCLI_H
+#define NET_RDCLI_H
 
 #include "net/sock/udp.h"
 
@@ -132,5 +132,5 @@ void rdcli_standalone_signal(bool connected);
 }
 #endif
 
-#endif /* RDCLI_H */
+#endif /* NET_RDCLI_H */
 /** @} */
