@@ -109,6 +109,11 @@ void auto_init(void)
     extern void profiling_init(void);
     profiling_init();
 #endif
+#ifdef MODULE_EVENTLOOP
+    DEBUG("Auto init eventloop module\n");
+    extern void eventloop_init(void);
+    eventloop_init();
+#endif
 #ifdef MODULE_GNRC_PKTBUF
     DEBUG("Auto init gnrc_pktbuf module\n");
     gnrc_pktbuf_init();
