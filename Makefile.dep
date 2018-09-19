@@ -22,6 +22,10 @@ ifneq (,$(filter csma_sender,$(USEMODULE)))
   USEMODULE += xtimer
 endif
 
+ifneq (,$(filter dfplayer,$(USEMODULE)))
+  USEMODULE += event
+endif
+
 ifneq (,$(filter gnrc_mac,$(USEMODULE)))
   USEMODULE += gnrc_priority_pktqueue
   USEMODULE += csma_sender
