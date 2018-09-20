@@ -19,10 +19,14 @@
  * @}
  */
 
-#include "eventloop.h"
+#include "eventthread.h"
 
-static char _stack[EVENTLOOP_STACKSIZE];
-event_queue_t eventloop_queue;
+typedef struct {
+    char stack[EVENTTHREAD_STACKSIZE];
+    event_queue_t q;
+} eventthread_ctx_t;
+
+static eventthread_ctx_t _ctx[(EVENTTHREAD_COUNT - 1)];
 
 void *_handler(void *arg)
 {

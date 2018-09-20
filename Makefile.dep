@@ -701,7 +701,8 @@ ifneq (,$(filter sock_util,$(USEMODULE)))
   USEMODULE += sock_udp
 endif
 
-ifneq (,$(filter eventloop,$(USEMODULE)))
+ifneq (,$(filter eventthread_%,$(USEMODULE)))
+  USEMODULE += eventthread
   USEMODULE += event
 endif
 

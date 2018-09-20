@@ -49,19 +49,36 @@
 extern "C" {
 #endif
 
-#ifndef EVENTLOOP_STACKSIZE
+#ifndef EVENTTHREAD_STACKSIZE
 /**
  * @brief   Default stack size for the global event loop thread
  */
-#define EVENTLOOP_STACKSIZE             (THREAD_STACKSIZE_DEFAULT)
+#define EVENTTHREAD_STACKSIZE       (THREAD_STACKSIZE_DEFAULT)
 #endif
 
-#ifndef EVENTLOOP_PRIORITY
+#ifndef EVENTLOOP_PRIO_DRIVERS
 /**
  * @brief   Default thread priority of the global event loop thread
  */
-#define EVENTLOOP_PRIORITY              (THREAD_PRIORITY_IDLE - 1)
+#define EVENTLOOP_PRIO_DRIVERS      (THREAD_PRIORITY_IDLE - 1)
 #endif
+
+#ifndef EVENTLOOP_PRIO_DRIVERS
+/**
+ * @brief   Default thread priority of the global event loop thread
+ */
+#define EVENTLOOP_PRIO_DRIVERS      (THREAD_PRIORITY_MAIN - 4)
+#endif
+
+typedef enum {
+#ifdef MODULE_EVENTTHREAD_LOWPRIO
+    EVENTTHREAD_LOWPRIO,
+#endif
+#ifdef MODULE_EVENTTHREAD_DRIVERS
+    EVENTTHREAD_DRIVERS,
+#endif
+    EVENTTHREAD_COUNT,
+} eventthread_t;
 
 /**
  * @brief   Expose the global event queue
@@ -69,36 +86,25 @@ extern "C" {
 extern event_queue_t eventloop_queue;
 
 /**
- * @brief   Run the
+ * @brief   Run all configured event threads
  */
-void eventloop_init(void);
+void eventthread_init(void);
 
 /**
- * @brief   Get a reference to the global event queue
+ * @brief   Convenience function to post an event to a global event thread
  *
- * @return  pointer to the global event queue
- */
-event_queue_t *eventloop_get(void);
-
-/**
- * @brief   Convenience function to post an event to the global event queue
- *
+ * @param[in] target    post the given event to this event thread's queue
  * @param[in] event     event to execute
  */
-static inline void eventloop_post(event_t *event)
-{
-    event_post(&eventloop_queue, event);
-}
+void eventthread_post(eventthread_t target, event_t *event);
 
 /**
  * @brief   Convenience function to remove an event from the global event queue
  *
+ * @param[in] target    remove the given event from this event thread's queue
  * @param[in] event     event to cancel
  */
-static inline void eventloop_cancel(event_t *event)
-{
-    event_cancel(&eventloop_queue, event);
-}
+void eventloop_cancel(eventthread_t target, event_t *event);
 
 #ifdef __cplusplus
 }
