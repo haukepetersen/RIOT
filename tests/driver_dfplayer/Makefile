@@ -2,6 +2,6 @@
 include ../Makefile.tests_common
 
 USEMODULE += dfplayer
-USEMODULE += xtimer
+USEMODULE += shell
 
 include $(RIOTBASE)/Makefile.include

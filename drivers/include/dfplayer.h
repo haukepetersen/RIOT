@@ -26,6 +26,7 @@
 
 #include "event.h"
 #include "mutex.h"
+#include "xtimer.h"
 #include "periph/uart.h"
 
 #ifdef __cplusplus
@@ -44,9 +45,17 @@ extern "C" {
 #define DFPLAYER_STACKSIZE          (THREAD_STACKSIZE_DEFAULT)
 #endif
 
+#ifndef DFPLAYER_TIMEOUT
+#define DFPLAYER_TIMEOUT            (200U * US_PER_MS)
+#endif
+
+#define DFPLAYER_VOL_MIN            (0U)
+#define DFPLAYER_VOL_MAX            (31U)
+
 enum {
-    DFPLAYER_OK,
-    DFPLAYER_ERR_UART,
+    DFPLAYER_OK          =  0,
+    DFPLAYER_ERR_UART    = -1,
+    DFPLAYER_ERR_TIMEOUT = -2,
 };
 
 typedef enum {
@@ -67,6 +76,14 @@ typedef enum {
 
 typedef struct dfplayer dfplayer_t;
 
+typedef struct {
+    event_t super;
+    dfplayer_t *dev;
+    uint16_t param;
+    uint8_t code;
+    uint8_t flags;
+} dfplayer_event_t;
+
 typedef union {
     struct __attribute__((packed)) {
         uint8_t start;
@@ -82,11 +99,6 @@ typedef union {
 } dfplayer_buf_t;
 
 typedef struct {
-    event_t super;
-    dfplayer_t *dev;
-} dfplayer_event_t;
-
-typedef struct {
     uart_t uart;
     uint32_t baudrate;
 } dfplayer_params_t;
@@ -96,8 +108,16 @@ struct dfplayer {
     mutex_t lock;
     uint8_t rx_pos;
     dfplayer_buf_t rx_buf;      /**< receive command buffer */
-    dfplayer_buf_t rx_pkt;      /**< last fully received packet */
-    dfplayer_event_t event;
+    uint16_t rx_data;
+    uint8_t exp_code;
+    dfplayer_event_t async_event;
+
+
+    thread_t *waiter;
+    xtimer_t to_timer;
+
+
+    uint32_t time;
 };
 
 int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params);
@@ -108,25 +128,25 @@ void dfplayer_standby(dfplayer_t *dev);
 
 void dfplayer_wakeup(dfplayer_t *dev);
 
-int dfplayer_vol_set(dfplayer_t *dev, uint16_t volume);
+void dfplayer_vol_set(dfplayer_t *dev, uint16_t volume);
 
-int dfplayer_vol_inc(dfplayer_t *dev);
+void dfplayer_vol_up(dfplayer_t *dev);
 
-int dfplayer_fol_dec(dfplayer_t *dev);
+void dfplayer_vol_down(dfplayer_t *dev);
 
-int dfplayer_eq_set(dfplayer_t *dev, dfplayer_eq_t eq);
+void dfplayer_eq_set(dfplayer_t *dev, dfplayer_eq_t eq);
 
-int dfplayer_mode(dfplayer_t *dev, dfplayer_mode_t mode);
+void dfplayer_mode(dfplayer_t *dev, dfplayer_mode_t mode);
 
-int dfplayer_play_track(dfplayer_t *dev, uint16_t track);
+void dfplayer_play(dfplayer_t *dev);
 
-int dfplayer_play_folder(dfplayer_t *dev, uint16_t folder, uint16_t track);
+void dfplayer_play_track(dfplayer_t *dev, uint16_t track);
 
-int dfplayer_play_pause(dfplayer_t *dev);
+void dfplayer_play_folder(dfplayer_t *dev, uint16_t folder, uint16_t track);
 
-int dfplayer_repeat_play(dfplayer_t *dev, bool start);
+void dfplayer_pause(dfplayer_t *dev);
 
-void dfplayer_playback(dfplayer_t *dev);
+void dfplayer_repeat_play(dfplayer_t *dev, bool start);
 
 void dfplayer_next(dfplayer_t *dev);
 

@@ -24,6 +24,7 @@ endif
 
 ifneq (,$(filter dfplayer,$(USEMODULE)))
   USEMODULE += event
+  USEMODULE += xtimer
 endif
 
 ifneq (,$(filter gnrc_mac,$(USEMODULE)))
