@@ -41,8 +41,24 @@
 #define CMD_VOL             (0x10)
 #define CMD_REPEAT_PLAY     (0x11)
 
+#define CMD_FINISH_U        (0x3c)
+#define CMD_FINISH_TF       (0x3d)
+#define CMD_FINISH_FLASH    (0x3e)
+#define CMD_INIT_PARAMS     (0x3f)
 #define CMD_RETRANSMIT      (0x40)
 #define CMD_REPLY           (0x41)
+#define CMD_QUERY_STATUS    (0x42)
+#define CMD_QUERY_VOL       (0x43)
+#define CMD_QUERY_EQ        (0x44)
+#define CMD_QUERY_MODE      (0x45)
+#define CMD_QUERY_VER       (0x46)
+#define CMD_NUM_FILES_TF    (0x47)
+#define CMD_NUM_FILES_U     (0x48)
+#define CMD_NUM_FILES_FLASH (0x49)
+#define CMD_KEEP_ON         (0x4a)
+#define CMD_ATRACK_TF       (0x4b)
+#define CMD_ATRACK_U        (0x4c)
+#define CMD_ATRACK_FLASH    (0x4d)
 
 #define CMD_INVALID         (0xff)
 
@@ -81,8 +97,7 @@ static uint16_t _csum(uint8_t *buf)
     return -res;
 }
 
-static int _cmd(dfplayer_t *dev, uint8_t cmd, uint16_t param,
-                uint8_t resp_code, uint16_t *resp_param)
+static int _cmd(dfplayer_t *dev, uint8_t cmd, uint16_t param, uint8_t resp_code)
 {
     int ret = DFPLAYER_OK;
 
@@ -92,7 +107,8 @@ static int _cmd(dfplayer_t *dev, uint8_t cmd, uint16_t param,
     dev->exp_code = resp_code;
 
     /* build command packet */
-    uint8_t buf[DFPLAYER_PKTLEN] = { START_BYTE, VERSION, LEN, cmd, 1,
+    uint8_t feedback = (resp_code != CMD_INVALID) ? 1 : 0;
+    uint8_t buf[DFPLAYER_PKTLEN] = { START_BYTE, VERSION, LEN, cmd, feedback,
                                      0, 0, 0, 0, END_BYTE };
     byteorder_htobebufs(buf + POS_PARAM, param);
     byteorder_htobebufs(buf + POS_CSUM, _csum(buf));
@@ -104,15 +120,14 @@ static int _cmd(dfplayer_t *dev, uint8_t cmd, uint16_t param,
         thread_flags_t f = thread_flags_wait_any(FLAG_MASK);
         xtimer_remove(&dev->to_timer);
         if (f & FLAG_RESP) {
-            if (resp_param) {
-                *resp_param = dev->rx_data;
-            }
+            DEBUG("REPLY\n");
+            ret = (int)dev->rx_data;
         }
         else {
+            DEBUG("TIMEOUT\n");
             ret = DFPLAYER_TIMEOUT;
         }
         dev->exp_code = CMD_INVALID;
-        DEBUG("got reply");
     }
     mutex_unlock(&dev->lock);
     return ret;
@@ -143,12 +158,12 @@ static void _on_rx_byte(void *arg, uint8_t data)
                     FLAG_RESP
                 }
                 */
-                else {
+                //else {
                     dev->async_event.flags = EVENT_USED;
                     dev->async_event.code = code;
                     dev->async_event.param = param;
                     event_post(&_q, &dev->async_event.super);
-                }
+                //}
             }
             else {
                 DEBUG("CSUM wrong\n");
@@ -209,51 +224,101 @@ int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params)
     return DFPLAYER_OK;
 }
 
+int dfplayer_ver_get(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_QUERY_VER, 0, CMD_QUERY_VER);
+}
+
+int dfplayer_reset(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_RESET, 0, CMD_REPLY);
+}
+
 void dfplayer_wakeup(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_WAKEUP, 0, CMD_INVALID, NULL);
+    _cmd(dev, CMD_WAKEUP, 0, CMD_REPLY);
+}
+
+void dfplayer_standby(dfplayer_t *dev)
+{
+    assert(dev);
+    _cmd(dev, CMD_STANDBY, 0, CMD_REPLY);
 }
 
 void dfplayer_vol_up(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_VOL_INC, 0, CMD_REPLY, NULL);
+    _cmd(dev, CMD_VOL_INC, 0, CMD_REPLY);
 }
 
 void dfplayer_vol_down(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_VOL_DEC, 0, CMD_REPLY, NULL);
+    _cmd(dev, CMD_VOL_DEC, 0, CMD_REPLY);
 }
 
 void dfplayer_vol_set(dfplayer_t *dev, uint16_t level)
 {
     assert(dev);
     assert(level <= DFPLAYER_VOL_MAX);
-    _cmd(dev, CMD_VOL_SET, level, CMD_INVALID, NULL);
+    _cmd(dev, CMD_VOL_SET, level, CMD_REPLY);
+}
+
+int dfplayer_vol_get(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_QUERY_VOL, 0, CMD_QUERY_VOL);
+}
+
+void dfplayer_eq_set(dfplayer_t *dev, dfplayer_eq_t eq)
+{
+    assert(dev);
+    assert(eq <= DFPLAYER_BASE);
+    _cmd(dev, CMD_EQ, (uint16_t)eq, CMD_REPLY);
+}
+
+int dfplayer_eq_get(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_QUERY_EQ, 0, CMD_QUERY_EQ);
+}
+
+void dfplayer_mode_set(dfplayer_t *dev, dfplayer_mode_t mode)
+{
+    assert(dev);
+    assert(mode <= DFPLAYER_RANDOM);
+    _cmd(dev, CMD_MODE, (uint16_t)mode, CMD_REPLY);
+}
+
+int dfplayer_mode_get(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_QUERY_MODE, 0, CMD_QUERY_MODE);
 }
 
 void dfplayer_play(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_PLAYBACK, 0, CMD_INVALID, NULL);
+    _cmd(dev, CMD_PLAYBACK, 0, CMD_REPLY);
 }
 
 void dfplayer_pause(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_PAUSE, 0, CMD_INVALID, NULL);
+    _cmd(dev, CMD_PAUSE, 0, CMD_REPLY);
 }
 
 void dfplayer_next(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_NEXT, 0, CMD_INVALID, NULL);
+    _cmd(dev, CMD_NEXT, 0, CMD_REPLY);
 }
 
 void dfplayer_prev(dfplayer_t *dev)
 {
     assert(dev);
-    _cmd(dev, CMD_PREV, 0, CMD_INVALID, NULL);
+    _cmd(dev, CMD_PREV, 0, CMD_REPLY);
 }

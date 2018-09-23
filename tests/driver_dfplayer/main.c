@@ -63,7 +63,8 @@ static int _cmd_prev(int argc, char **argv)
 static int _cmd_vol(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("usage: %s <up|down|[0-31]>\n", argv[0]);
+        printf("Volume: %i\n", dfplayer_vol_get(&_dev));
+        printf(" usage: %s <up|down|[0-31]>\n", argv[0]);
         return 1;
     }
     if (strncmp(argv[1], "up", 2) == 0) {
@@ -88,12 +89,121 @@ static int _cmd_vol(int argc, char **argv)
     return 0;
 }
 
+static const char *_eq_settings[] = {
+    "normal", "pop", "rock", "jazz", "classic", "base",
+};
+
+static int _cmd_eq(int argc, char **argv)
+{
+    if (argc < 2) {
+        int eq = dfplayer_eq_get(&_dev);
+        if (eq >= DFPLAYER_OK) {
+            printf("EQ setting: %s\n", _eq_settings[eq]);
+        }
+        else {
+            puts("Unable to read current EQ setting");
+        }
+        printf("Usage: %s [normal|pop|rock|jazz|classic|base]\n", argv[0]);
+        return 1;
+    }
+
+    for (unsigned i = 0; i < 6; i++) {
+        if (strcmp(_eq_settings[i], argv[1]) == 0) {
+            dfplayer_eq_set(&_dev, (dfplayer_eq_t)i);
+            break;
+        }
+    }
+
+    return 0;
+}
+
+static const char *_modes[] = {
+    "repeat", "repeat_f", "repeat_s", "random",
+};
+
+static int _cmd_mode(int argc, char **argv)
+{
+    if (argc < 2) {
+        int mode = dfplayer_mode_get(&_dev);
+        if (mode >= DFPLAYER_OK) {
+            printf("Playback mode: %s\n", _modes[mode]);
+        }
+        else {
+            puts("Unable to read current playback mode");
+        }
+        printf("Usage: %s [repeat|repeat_f|repeat_s|random]", argv[0]);
+        return 1;
+    }
+
+    for (unsigned i = 0; i < 4; i++) {
+        if (strcmp(_modes[i], argv[1]) == 0) {
+            dfplayer_mode_set(&_dev, (dfplayer_mode_t)i);
+            break;
+        }
+    }
+
+    return 0;
+}
+
+static int _cmd_reset(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    if (dfplayer_reset(&_dev) == DFPLAYER_OK) {
+        puts("Device reset ok");
+    }
+    else {
+        puts("Error while triggering device reset");
+    }
+    return 0;
+}
+
+static int _cmd_sleep(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("Usage: %s <0|1>\n", argv[0]);
+        return 1;
+    }
+    switch (atoi(argv[1])) {
+        case 0:
+            dfplayer_wakeup(&_dev);
+            puts("Put device do normal working mode");
+            break;
+        case 1:
+            dfplayer_standby(&_dev);
+            puts("Put device into sleep mode");
+            break;
+        default:
+            puts("Error: unable to parse parameter");
+    }
+    return 0;
+}
+
+static int _cmd_ver(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    int res = dfplayer_ver_get(&_dev);
+    if (res < 0) {
+        puts("Error: unable to read version");
+    }
+    else {
+        printf("Device version is: %i\n", res);
+    }
+    return 0;
+}
+
 static const shell_command_t shell_commands[] = {
     { "play", "play the current track", _cmd_play },
     { "pause", "pause playpack", _cmd_pause },
     { "next", "play next track", _cmd_next },
     { "prev", "play previous track", _cmd_prev },
-    { "vol", "set the volume", _cmd_vol },
+    { "vol", "volume control", _cmd_vol },
+    { "eq", "equalizer control", _cmd_eq },
+    { "mode", "playback mode control", _cmd_mode },
+    { "reset", "reset the device", _cmd_reset },
+    { "sleep", "put device to sleep", _cmd_sleep },
+    { "ver", "get device version", _cmd_ver },
     { NULL, NULL, NULL }
 };
 

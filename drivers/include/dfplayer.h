@@ -122,7 +122,9 @@ struct dfplayer {
 
 int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params);
 
-void dfplayer_reset(dfplayer_t *dev);
+int dfplayer_ver_get(dfplayer_t *dev);
+
+int dfplayer_reset(dfplayer_t *dev);
 
 void dfplayer_standby(dfplayer_t *dev);
 
@@ -134,9 +136,15 @@ void dfplayer_vol_up(dfplayer_t *dev);
 
 void dfplayer_vol_down(dfplayer_t *dev);
 
+int dfplayer_vol_get(dfplayer_t *dev);
+
 void dfplayer_eq_set(dfplayer_t *dev, dfplayer_eq_t eq);
 
-void dfplayer_mode(dfplayer_t *dev, dfplayer_mode_t mode);
+int dfplayer_eq_get(dfplayer_t *dev);
+
+void dfplayer_mode_set(dfplayer_t *dev, dfplayer_mode_t mode);
+
+int dfplayer_mode_get(dfplayer_t *dev);
 
 void dfplayer_play(dfplayer_t *dev);
 
