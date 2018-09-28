@@ -67,8 +67,3 @@ int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ibeacon, uint8_t *addr,
     /* start advertising */
     return gorm_ll_adv_nonconn(&ibeacon->ctx->ll, &ibeacon->gap);
 }
-
-int gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ibeacon)
-{
-    return gorm_ll_terminate(&ibeacon->ctx->ll);
-}

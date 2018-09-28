@@ -62,7 +62,10 @@ int gorm_ibeacon_advertise(gorm_ibeacon_ctx_t *ibeacon, uint8_t *addr,
  *
  * @param[in] ibeacon       stop advertising this iBeacon context
  */
-int gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ibeacon);
+static inline void gorm_ibeacon_cancel(gorm_ibeacon_ctx_t *ibeacon)
+{
+    gorm_ll_terminate(&ibeacon->ctx->ll);
+}
 
 #ifdef __cplusplus
 }
