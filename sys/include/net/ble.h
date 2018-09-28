@@ -491,6 +491,37 @@ extern "C" {
 /** @} */
 
 /**
+ * @name    L2CAP signaling channel message codes
+ * @{
+ */
+#define BLE_L2CAP_SIG_REJECT                (0x01)
+#define BLE_L2CAP_SIG_DISCON_REQ            (0x06)
+#define BLE_L2CAP_SIG_DISCON_RESP           (0x07)
+#define BLE_L2CAP_SIG_CPU_REQ               (0x12)
+#define BLE_L2CAP_SIG_CPU_RESP              (0x13)
+#define BLE_L2CAP_SIG_CON_REQ               (0x14)
+#define BLE_L2CAP_SIG_CON_RESP              (0x15)
+#define BLE_L2CAP_SIG_FLOW_CREDIT           (0x16)
+/** @} */
+
+/**
+ * @name    L2CAP signal reject message reasons
+ * @{
+ */
+#define BLE_L2CAP_SIG_REJ_NOT_UNDERSTOOD    (0x0000)
+#define BLE_L2CAP_SIG_REJ_SIG_MTU_EX        (0x0001)
+#define BLE_L2CAP_SIG_REJ_INVALID_CID       (0x0002)
+/** @} */
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ *
+ * @param  [description]
+ * @return [description]
+ */
+
+/**
  * @name    BLE advertising packet types
  * @{
  */

@@ -45,19 +45,6 @@ extern "C" {
 #define GORM_L2CAP_LE_PSM_IPSP      (0x0023)
 
 /**
- * @name    Gorm signaling codes
- */
-#define GORM_L2CAP_SIG_REJECT       (0x01)
-#define GORM_L2CAP_SIG_DISCON_REQ   (0x06)
-#define GORM_L2CAP_SIG_DISCON_RESP  (0x07)
-#define GORM_L2CAP_SIG_CPU_REQ      (0x12)
-#define GORM_L2CAP_SIG_CPU_RESP     (0x13)
-#define GORM_L2CAP_SIG_CON_REQ      (0x14)
-#define GORM_L2CAP_SIG_CON_RESP     (0x15)
-#define GORM_L2CAP_SIG_FLOW_CREDIT  (0x16)
-/** @} */
-
-/**
  * @brief   Send a reply to an incoming L2CAP packet
  *
  * @param[in] con       connection context used for sending the reply
