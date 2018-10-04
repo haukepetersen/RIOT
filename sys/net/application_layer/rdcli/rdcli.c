@@ -312,9 +312,6 @@ end:
 int rdcli_update(void)
 {
     _lock();
-    if (_rd_loc[0] == '\0') {
-        return RDCLI_NORD;
-    }
     int res = _update_remove(COAP_METHOD_POST, _on_update);
     if (res != RDCLI_OK) {
         /* in case we are not able to reach the RD, we drop the association */
