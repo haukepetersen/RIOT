@@ -7,14 +7,19 @@
  */
 
 /**
- * @defgroup    net_rdcli CoRE RD Client
+ * @defgroup    net_rdcli CoRE RD Endpoint Library
  * @ingroup     net
- * @brief       CoRE Resource Directory Client
+ * @brief       Library for using RIOT as CoRE Resource Directory endpoint
  *
- * This module implements a client for connecting to CoRE Resource Directories,
- * implementing the standard client functionality as defined in
+ * This module implements a CoRE Resource Directory endpoint library, that
+ * allows RIOT nodes to register themselves with resource directories.
+ * It implements the standard endpoint functionality as defined in
  * draft-ietf-core-resource-directory-15.
  * @see https://tools.ietf.org/html/draft-ietf-core-resource-directory-15
+ *
+ * @note        As the name of this library (`rdcli`) can be misleading in
+ *              context of the RD draft (endpoint vs client), this library
+ *              will most likely undergo a name change in the near future...
  *
  * # Design Decisions
  * - all operations provided by this module are fully synchronous, meaning that
@@ -25,7 +30,7 @@
  * @{
  *
  * @file
- * @brief       CoRE Resource Directory Client Interface
+ * @brief       CoRE Resource Directory endpoint interface
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
