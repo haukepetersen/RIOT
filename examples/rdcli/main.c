@@ -25,12 +25,30 @@
 #include "net/ipv6/addr.h"
 #include "net/gcoap.h"
 #include "net/rdcli_common.h"
+#include "net/rdcli_standalone.h"
 
 #define MAIN_QUEUE_SIZE     (8)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
+/* we will use a custom event handler for dumping rdcli_standalone events */
+// static void _on_rdcli_event(rdcli_standalone_event_t event)
+// {
+//     switch (event) {
+//         case RDCLI_REGISTERED:
+//             puts("rdcli event: now registered with a RD");
+//             break;
+//         case RDCLI_DEREGISTERED:
+//             puts("rdcli event: dropped client registration");
+//             break;
+//         case RDCLI_UPDATED:
+//             puts("rdcli event: successfully updated client registration");
+//             break;
+//     }
+// }
+
 /* define some dummy CoAP resources */
-static ssize_t handler_dummy(coap_pkt_t *pdu, uint8_t *buf, size_t len, void *ctx)
+static ssize_t _handler_dummy(coap_pkt_t *pdu,
+                              uint8_t *buf, size_t len, void *ctx)
 {
     (void)ctx;
 
@@ -42,7 +60,8 @@ static ssize_t handler_dummy(coap_pkt_t *pdu, uint8_t *buf, size_t len, void *ct
     return gcoap_finish(pdu, plen, COAP_FORMAT_TEXT);
 }
 
-static ssize_t handler_info(coap_pkt_t *pdu, uint8_t *buf, size_t len, void *ctx)
+static ssize_t _handler_info(coap_pkt_t *pdu,
+                             uint8_t *buf, size_t len, void *ctx)
 {
     (void)ctx;
 
@@ -52,15 +71,15 @@ static ssize_t handler_info(coap_pkt_t *pdu, uint8_t *buf, size_t len, void *ctx
     return gcoap_finish(pdu, slen, COAP_FORMAT_TEXT);
 }
 
-static const coap_resource_t resources[] = {
-    { "/node/info",  COAP_GET, handler_info, NULL },
-    { "/sense/hum",  COAP_GET, handler_dummy, NULL },
-    { "/sense/temp", COAP_GET, handler_dummy, NULL }
+static const coap_resource_t _resources[] = {
+    { "/node/info",  COAP_GET, _handler_info, NULL },
+    { "/sense/hum",  COAP_GET, _handler_dummy, NULL },
+    { "/sense/temp", COAP_GET, _handler_dummy, NULL }
 };
 
-static gcoap_listener_t listener = {
-    .resources     = (coap_resource_t *)&resources[0],
-    .resources_len = sizeof(resources) / sizeof(resources[0]),
+static gcoap_listener_t _listener = {
+    .resources     = (coap_resource_t *)&_resources[0],
+    .resources_len = sizeof(_resources) / sizeof(_resources[0]),
     .next          = NULL
 };
 
@@ -70,9 +89,13 @@ int main(void)
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
 
-    puts("CoAP simplified RD registration example!\n");
+    puts("CoRE RD client example!\n");
 
-    gcoap_register_listener(&listener);
+    /* setup CoAP resources */
+    gcoap_register_listener(&_listener);
+
+    /* register event callback with rdcli_standalone */
+    // rdcli_standalone_reg_cb(_on_rdcli_event);
 
     puts("Client information:");
     printf("  ep: %s\n", rdcli_common_get_ep());
