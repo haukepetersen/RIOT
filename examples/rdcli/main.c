@@ -31,20 +31,20 @@
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 /* we will use a custom event handler for dumping rdcli_standalone events */
-// static void _on_rdcli_event(rdcli_standalone_event_t event)
-// {
-//     switch (event) {
-//         case RDCLI_REGISTERED:
-//             puts("rdcli event: now registered with a RD");
-//             break;
-//         case RDCLI_DEREGISTERED:
-//             puts("rdcli event: dropped client registration");
-//             break;
-//         case RDCLI_UPDATED:
-//             puts("rdcli event: successfully updated client registration");
-//             break;
-//     }
-// }
+static void _on_rdcli_event(rdcli_standalone_event_t event)
+{
+    switch (event) {
+        case RDCLI_REGISTERED:
+            puts("rdcli event: now registered with a RD");
+            break;
+        case RDCLI_DEREGISTERED:
+            puts("rdcli event: dropped client registration");
+            break;
+        case RDCLI_UPDATED:
+            puts("rdcli event: successfully updated client registration");
+            break;
+    }
+}
 
 /* define some dummy CoAP resources */
 static ssize_t _handler_dummy(coap_pkt_t *pdu,
@@ -95,7 +95,7 @@ int main(void)
     gcoap_register_listener(&_listener);
 
     /* register event callback with rdcli_standalone */
-    // rdcli_standalone_reg_cb(_on_rdcli_event);
+    rdcli_standalone_reg_cb(_on_rdcli_event);
 
     puts("Client information:");
     printf("  ep: %s\n", rdcli_common_get_ep());
