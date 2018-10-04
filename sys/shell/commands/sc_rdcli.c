@@ -45,10 +45,10 @@ int _rdcli_handler(int argc, char **argv)
 {
     int res;
 
-    if ((argc > 1) && (strcmp(argv[1], "reg") == 0)) {
+    if ((argc > 1) && (strcmp(argv[1], "register") == 0)) {
         char *regif = NULL;
         if (argc < 3) {
-            printf("usage: %s reg <server address> [registration interface]\n",
+            printf("usage: %s register <server address> [registration interface]\n",
                    argv[0]);
             return 1;
         }
@@ -121,7 +121,7 @@ int _rdcli_handler(int argc, char **argv)
         rdcli_dump_status();
     }
     else {
-        printf("usage: %s <reg [RD addr]|discover [RD addr]|update|remove|info>\n",
+        printf("usage: %s <register|discover|update|remove|info>\n",
                argv[0]);
         return 1;
     }
