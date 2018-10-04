@@ -60,8 +60,9 @@ int _rdcli_handler(int argc, char **argv)
         if (argc > 3) {
             regif = argv[3];
         }
+        puts("Registering with RD now, this may take a short while...");
         if (rdcli_register(&remote, regif) != RDCLI_OK) {
-            puts("error during registration");
+            puts("error: registration failed");
         }
         else {
             puts("registration successful\n");
@@ -101,7 +102,7 @@ int _rdcli_handler(int argc, char **argv)
             puts("error: RD update failed");
         }
     }
-    else if ((argc > 1) && (strcmp(argv[1], "rem") == 0)) {
+    else if ((argc > 1) && (strcmp(argv[1], "remove") == 0)) {
         res = rdcli_remove();
         if (res == RDCLI_OK) {
             puts("node successfully removed from RD");
@@ -120,7 +121,7 @@ int _rdcli_handler(int argc, char **argv)
         rdcli_dump_status();
     }
     else {
-        printf("usage: %s <reg [RD addr]|discover [RD addr]|update|rem|info>\n",
+        printf("usage: %s <reg [RD addr]|discover [RD addr]|update|remove|info>\n",
                argv[0]);
         return 1;
     }
