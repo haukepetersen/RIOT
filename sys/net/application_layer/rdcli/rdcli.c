@@ -30,6 +30,9 @@
 #include "net/rdcli_common.h"
 #include "net/rdcli_config.h"
 
+#ifdef MODULE_RDCLI_STANDALONE
+#include "net/rdcli_standalone.h"
+#endif
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
@@ -49,10 +52,16 @@ static char _rd_loc[NANOCOAP_URI_MAX];
 static char _rd_regif[NANOCOAP_URI_MAX];
 static sock_udp_ep_t _rd_remote;
 
-static mutex_t _lock = MUTEX_INIT;
+static mutex_t _mutex = MUTEX_INIT;
 static volatile thread_t *_waiter;
 
 static uint8_t buf[BUFSIZE];
+
+static void _lock(void)
+{
+    mutex_lock(&_mutex);
+    _waiter = sched_active_thread;
+}
 
 static int _sync(void)
 {
@@ -223,10 +232,9 @@ int rdcli_discover_regif(const sock_udp_ep_t *remote, char *regif, size_t maxlen
 {
     assert(remote && regif);
 
-    mutex_lock(&_lock);
-    _waiter = sched_active_thread;
+    _lock();
     int res = _discover_internal(remote, regif, maxlen);
-    mutex_unlock(&_lock);
+    mutex_unlock(&_mutex);
     return res;
 }
 
@@ -239,8 +247,7 @@ int rdcli_register(const sock_udp_ep_t *remote, const char *regif)
     int retval;
     coap_pkt_t pkt;
 
-    mutex_lock(&_lock);
-    _waiter = sched_active_thread;
+    _lock();
 
     /* if no registration interface is given, we will need to trigger a URI
      * discovery for it first (see section 5.2) */
@@ -298,13 +305,16 @@ end:
     }
 #endif
 
-    mutex_unlock(&_lock);
+    mutex_unlock(&_mutex);
     return retval;
 }
 
 int rdcli_update(void)
 {
-    mutex_lock(&_lock);
+    _lock();
+    if (_rd_loc[0] == '\0') {
+        return RDCLI_NORD;
+    }
     int res = _update_remove(COAP_METHOD_POST, _on_update);
     if (res != RDCLI_OK) {
         /* in case we are not able to reach the RD, we drop the association */
@@ -313,13 +323,17 @@ int rdcli_update(void)
 #endif
         _rd_loc[0] = '\0';
     }
-    mutex_unlock(&_lock);
+    mutex_unlock(&_mutex);
     return res;
 }
 
 int rdcli_remove(void)
 {
-    mutex_lock(&_lock);
+    _lock();
+    if (_rd_loc[0] == '\0') {
+        mutex_unlock(&_mutex);
+        return RDCLI_NORD;
+    }
 #ifdef MODULE_RDCLI_STANDALONE
     rdcli_standalone_signal(false);
 #endif
@@ -327,7 +341,7 @@ int rdcli_remove(void)
     /* we actually do not care about the result, we drop the RD local RD entry
      * in any case */
     _rd_loc[0] = '\0';
-    mutex_unlock(&_lock);
+    mutex_unlock(&_mutex);
     return RDCLI_OK;
 }
 

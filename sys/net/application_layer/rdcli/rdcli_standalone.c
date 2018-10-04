@@ -21,10 +21,12 @@
 #include <stdint.h>
 
 #include "log.h"
+#include "assert.h"
 #include "thread.h"
 #include "xtimer.h"
 #include "net/rdcli.h"
 #include "net/rdcli_config.h"
+#include "net/rdcli_standalone.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -44,9 +46,18 @@ static xtimer_t _timer;
 static kernel_pid_t _runner_pid;
 static msg_t _msg;
 
+static rdcli_standalone_cb_t _cb = NULL;
+
 static void _set_timer(void)
 {
     xtimer_set_msg64(&_timer, TIMEOUT_US, &_msg, _runner_pid);
+}
+
+static void _notify(rdcli_standalone_event_t event)
+{
+    if (_cb) {
+        _cb(event);
+    }
 }
 
 static void *_reg_runner(void *arg)
@@ -59,10 +70,16 @@ static void *_reg_runner(void *arg)
     _msg.type = UPDATE_TIMEOUT;
 
     while (1) {
+        DEBUG("rd stand: waiting for message\n");
         msg_receive(&in);
         if (in.type == UPDATE_TIMEOUT) {
             if (rdcli_update() == RDCLI_OK) {
+                DEBUG("rd stand: update ok\n");
                 _set_timer();
+                _notify(RDCLI_UPDATED);
+            }
+            else {
+                _notify(RDCLI_DEREGISTERED);
             }
         }
     }
@@ -82,6 +99,17 @@ void rdcli_standalone_signal(bool connected)
     /* reset the update timer in case a connection was established or updated */
     if (connected) {
         _set_timer();
+        _notify(RDCLI_REGISTERED);
+    } else {
+        _notify(RDCLI_DEREGISTERED);
     }
+}
 
+void rdcli_standalone_reg_cb(rdcli_standalone_cb_t cb)
+{
+    /* Note: we do not allow re-setting the callback (via passing cb := NULL),
+     *       as this would mean additional complexity for synchronizing the
+     *       value of `_cb` to prevent concurrency issues... */
+    assert(cb);
+    _cb = cb;
 }

@@ -7,14 +7,14 @@
  */
 
 /**
- * @defgroup    net_rdcli CoRE Resource Directory Client
+ * @defgroup    net_rdcli CoRE RD Client
  * @ingroup     net
  * @brief       CoRE Resource Directory Client
  *
  * This module implements a client for connecting to CoRE Resource Directories,
  * implementing the standard client functionality as defined in
- * draft-ietf-core-resource-directory-14
- * (@see https://tools.ietf.org/html/draft-ietf-core-resource-directory-14).
+ * draft-ietf-core-resource-directory-15.
+ * @see https://tools.ietf.org/html/draft-ietf-core-resource-directory-15
  *
  * # Design Decisions
  * - all operations provided by this module are fully synchronous, meaning that
@@ -109,24 +109,6 @@ int rdcli_remove(void);
  * @brief   Dump the current RD connection status to STDIO (for debugging)
  */
 void rdcli_dump_status(void);
-
-#ifdef MODULE_RDCLI_STANDALONE
-/**
- * @brief   Spawn a new thread that takes care of sending periodic updates to an
- *          active RD entry
- *
- * @note    This function must only be called once (typically during system
- *          initialization)
- */
-void rdcli_standalone_run(void);
-
-/**
- * @brief   Signal the rdcli thread about connection status change
- *
- * @param[in] connected     set to true if we are connected to a RD
- */
-void rdcli_standalone_signal(bool connected);
-#endif
 
 #ifdef __cplusplus
 }
