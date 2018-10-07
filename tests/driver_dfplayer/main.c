@@ -28,6 +28,20 @@
 
 static dfplayer_t _dev;
 
+static int _cmd_cur(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    int res = dfplayer_current_track(&_dev);
+    if (res < DFPLAYER_OK) {
+        puts("Error: unable to read current track");
+    }
+    else {
+        printf("Current track: %i\n", res);
+    }
+    return 0;
+}
+
 static int _cmd_play(int argc, char **argv)
 {
     (void)argc;
@@ -183,7 +197,7 @@ static int _cmd_ver(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
-    int res = dfplayer_ver_get(&_dev);
+    int res = dfplayer_ver(&_dev);
     if (res < 0) {
         puts("Error: unable to read version");
     }
@@ -193,7 +207,36 @@ static int _cmd_ver(int argc, char **argv)
     return 0;
 }
 
+static int _cmd_status(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    int res = dfplayer_status(&_dev);
+    if (res < DFPLAYER_OK) {
+        puts("Error: unable to read device status\n");
+    }
+    else {
+        printf("Device Status: %i\n", res);
+    }
+    return 0;
+}
+
+static int _cmd_count(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    int res = dfplayer_count_files(&_dev);
+    if (res < DFPLAYER_OK) {
+        puts("Error: unable to count number of files on TF card");
+    }
+    else {
+        printf("Number of files on TF card: %i\n", res);
+    }
+    return 0;
+}
+
 static const shell_command_t shell_commands[] = {
+    { "cur", "get number of current track", _cmd_cur },
     { "play", "play the current track", _cmd_play },
     { "pause", "pause playpack", _cmd_pause },
     { "next", "play next track", _cmd_next },
@@ -204,6 +247,8 @@ static const shell_command_t shell_commands[] = {
     { "reset", "reset the device", _cmd_reset },
     { "sleep", "put device to sleep", _cmd_sleep },
     { "ver", "get device version", _cmd_ver },
+    { "status", "get current device status", _cmd_status },
+    { "count", "count the number of available tracks", _cmd_count },
     { NULL, NULL, NULL }
 };
 

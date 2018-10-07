@@ -122,11 +122,14 @@ struct dfplayer {
 
 int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params);
 
-int dfplayer_ver_get(dfplayer_t *dev);
+int dfplayer_ver(dfplayer_t *dev);
+
 
 int dfplayer_reset(dfplayer_t *dev);
 
 void dfplayer_standby(dfplayer_t *dev);
+
+int dfplayer_status(dfplayer_t *dev);
 
 void dfplayer_wakeup(dfplayer_t *dev);
 
@@ -159,6 +162,11 @@ void dfplayer_repeat_play(dfplayer_t *dev, bool start);
 void dfplayer_next(dfplayer_t *dev);
 
 void dfplayer_prev(dfplayer_t *dev);
+
+int dfplayer_current_track(dfplayer_t *dev);
+
+int dfplayer_count_files(dfplayer_t *dev);
+
 
 
 #ifdef __cplusplus

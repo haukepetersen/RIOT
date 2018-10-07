@@ -9,6 +9,9 @@
 #define ENABLE_DEBUG        (1)
 #include "debug.h"
 
+#define STARTUP_RETRY_CNT   (3U)
+#define STARTUP_RETRY_DELAY (250U * US_PER_MS)
+
 #define POS_START           (0U)
 #define POS_VER             (1U)
 #define POS_LEN             (2U)
@@ -43,7 +46,7 @@
 
 #define CMD_FINISH_U        (0x3c)
 #define CMD_FINISH_TF       (0x3d)
-#define CMD_FINISH_FLASH    (0x3e)
+#define CMD_FINISH_FL       (0x3e)
 #define CMD_INIT_PARAMS     (0x3f)
 #define CMD_RETRANSMIT      (0x40)
 #define CMD_REPLY           (0x41)
@@ -54,15 +57,18 @@
 #define CMD_QUERY_VER       (0x46)
 #define CMD_NUM_FILES_TF    (0x47)
 #define CMD_NUM_FILES_U     (0x48)
-#define CMD_NUM_FILES_FLASH (0x49)
+#define CMD_NUM_FILES_FL    (0x49)
 #define CMD_KEEP_ON         (0x4a)
-#define CMD_ATRACK_TF       (0x4b)
-#define CMD_ATRACK_U        (0x4c)
-#define CMD_ATRACK_FLASH    (0x4d)
+#define CMD_CUR_TRACK_TF    (0x4b)
+#define CMD_CUR_TRACK_U     (0x4c)
+#define CMD_CUR_TRACK_FL    (0x4d)
 
 #define CMD_INVALID         (0xff)
 
-#define LAST_BYTE           (9U)
+#define SRC_UDISK           (0x01)
+#define SRC_TF              (0x02)
+#define SRC_PC              (0x04)
+#define SRC_FLASH           (0x08)
 
 #define FLAG_RESP           (1u << 7)       /* chosen arbitrarily */
 #define FLAG_RETRANSMIT     (1u << 8) /* TODO */
@@ -219,12 +225,18 @@ int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params)
         return DFPLAYER_ERR_UART;
     }
 
-    DEBUG("init ok\n");
+    /* read the source configuration from the device */
+    for (unsigned retries = 0; retries < STARTUP_RETRY_CNT; retries++) {
+        int res = _cmd(dev, CMD_INIT_PARAMS, 0, CMD_INIT_PARAMS);
+        if (res == SRC_TF) {
+            return DFPLAYER_OK;
+        }
+    }
 
-    return DFPLAYER_OK;
+    return DFPLAYER_TIMEOUT;
 }
 
-int dfplayer_ver_get(dfplayer_t *dev)
+int dfplayer_ver(dfplayer_t *dev)
 {
     assert(dev);
     return _cmd(dev, CMD_QUERY_VER, 0, CMD_QUERY_VER);
@@ -246,6 +258,12 @@ void dfplayer_standby(dfplayer_t *dev)
 {
     assert(dev);
     _cmd(dev, CMD_STANDBY, 0, CMD_REPLY);
+}
+
+int dfplayer_status(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_QUERY_STATUS, 0, CMD_QUERY_STATUS);
 }
 
 void dfplayer_vol_up(dfplayer_t *dev)
@@ -321,4 +339,15 @@ void dfplayer_prev(dfplayer_t *dev)
 {
     assert(dev);
     _cmd(dev, CMD_PREV, 0, CMD_REPLY);
+}
+
+int dfplayer_current_track(dfplayer_t *dev)
+{
+    assert(dev);
+    return _cmd(dev, CMD_CUR_TRACK_TF, 0, CMD_CUR_TRACK_TF);
+}
+
+int dfplayer_count_files(dfplayer_t *dev)
+{
+    return _cmd(dev, CMD_NUM_FILES_TF, 0, CMD_NUM_FILES_TF);
 }
