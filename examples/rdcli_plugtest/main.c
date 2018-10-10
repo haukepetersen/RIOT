@@ -54,15 +54,15 @@ static ssize_t _handler_dummy(coap_pkt_t *pdu,
 
     /* get random data */
     int16_t val = 23;
-
     gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
     size_t plen = fmt_s16_dec((char *)pdu->payload, val);
     return gcoap_finish(pdu, plen, COAP_FORMAT_TEXT);
 }
 
 static const coap_resource_t _resources[] = {
-    { "/sensors/light",  COAP_GET, _handler_dummy, NULL },
-    { "/sensors/temp",  COAP_GET, _handler_dummy, NULL },
+    { "/light", COAP_GET, _handler_dummy, NULL },
+    { "/t",     COAP_GET, _handler_dummy, NULL },
+    { "/temp",  COAP_GET, _handler_dummy, NULL },
 };
 
 static gcoap_listener_t _listener = {
