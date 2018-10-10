@@ -277,7 +277,7 @@ int rdcli_register(const sock_udp_ep_t *remote, const char *regif)
 
     /* add the resource description as payload */
     res = gcoap_get_resource_list(pkt.payload, pkt.payload_len,
-                                      COAP_FORMAT_LINK);
+                                  COAP_FORMAT_LINK);
     if (res < 0) {
         retval = RDCLI_ERR;
         goto end;
