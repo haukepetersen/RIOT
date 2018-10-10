@@ -11,6 +11,12 @@
  * @ingroup     drivers_actuators
  * @brief       Driver the DFPlayer Mini audio playback device
  *
+ * This
+ *
+ * Missing:
+ * - play advertisement (0x13)
+ *- stop advertisement (0x15)
+ *
  * @{
  * @file
  * @brief       Interface definition for the DFPLayer Mini device driver
@@ -46,11 +52,11 @@ extern "C" {
 #endif
 
 #ifndef DFPLAYER_TIMEOUT
-#define DFPLAYER_TIMEOUT            (200U * US_PER_MS)
+#define DFPLAYER_TIMEOUT            (500U * US_PER_MS)
 #endif
 
 #define DFPLAYER_VOL_MIN            (0U)
-#define DFPLAYER_VOL_MAX            (31U)
+#define DFPLAYER_VOL_MAX            (30U)
 
 enum {
     DFPLAYER_OK          =  0,
@@ -84,20 +90,6 @@ typedef struct {
     uint8_t flags;
 } dfplayer_event_t;
 
-typedef union {
-    struct __attribute__((packed)) {
-        uint8_t start;
-        uint8_t ver;
-        uint8_t len;
-        uint8_t cmd;
-        uint8_t feedback;
-        uint8_t param[2];
-        uint8_t csum[2];
-        uint8_t end;
-    } pkt;
-    uint8_t raw[DFPLAYER_PKTLEN];
-} dfplayer_buf_t;
-
 typedef struct {
     uart_t uart;
     uint32_t baudrate;
@@ -107,7 +99,7 @@ struct dfplayer {
     uart_t uart;
     mutex_t lock;
     uint8_t rx_pos;
-    dfplayer_buf_t rx_buf;      /**< receive command buffer */
+    uint8_t rx_buf[DFPLAYER_PKTLEN];      /**< receive command buffer */
     uint16_t rx_data;
     uint8_t exp_code;
     dfplayer_event_t async_event;
@@ -120,44 +112,61 @@ struct dfplayer {
     uint32_t time;
 };
 
+/* ok */
 int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params);
 
-int dfplayer_ver(dfplayer_t *dev);
-
-
+/* ok */
 int dfplayer_reset(dfplayer_t *dev);
 
+/* ok */
 void dfplayer_standby(dfplayer_t *dev);
 
-int dfplayer_status(dfplayer_t *dev);
-
+/* ok */
 void dfplayer_wakeup(dfplayer_t *dev);
 
-void dfplayer_vol_set(dfplayer_t *dev, uint16_t volume);
+/* ok */
+int dfplayer_ver(dfplayer_t *dev);
 
+/* ok */
+int dfplayer_status(dfplayer_t *dev);
+
+/* ok */
+void dfplayer_vol_set(dfplayer_t *dev, unsigned level);
+
+/* ok */
 void dfplayer_vol_up(dfplayer_t *dev);
 
+/* ok */
 void dfplayer_vol_down(dfplayer_t *dev);
 
+/* ok */
 int dfplayer_vol_get(dfplayer_t *dev);
+
 
 void dfplayer_eq_set(dfplayer_t *dev, dfplayer_eq_t eq);
 
 int dfplayer_eq_get(dfplayer_t *dev);
 
-void dfplayer_mode_set(dfplayer_t *dev, dfplayer_mode_t mode);
-
 int dfplayer_mode_get(dfplayer_t *dev);
 
 void dfplayer_play(dfplayer_t *dev);
 
-void dfplayer_play_track(dfplayer_t *dev, uint16_t track);
+void dfplayer_play_track(dfplayer_t *dev, unsigned track);
 
-void dfplayer_play_folder(dfplayer_t *dev, uint16_t folder, uint16_t track);
+/**
+ * @brief      { function_description }
+ *
+ * Will simply return and do nothing on invalid parameters
+ *
+ * @param      dev     The development
+ * @param[in]  folder  The folder
+ * @param[in]  track   The track
+ */
+void dfplayer_play_folder(dfplayer_t *dev, unsigned folder, unsigned track);
+
+void dfplayer_loop_track(dfplayer_t *dev, unsigned track);
 
 void dfplayer_pause(dfplayer_t *dev);
-
-void dfplayer_repeat_play(dfplayer_t *dev, bool start);
 
 void dfplayer_next(dfplayer_t *dev);
 
@@ -166,6 +175,8 @@ void dfplayer_prev(dfplayer_t *dev);
 int dfplayer_current_track(dfplayer_t *dev);
 
 int dfplayer_count_files(dfplayer_t *dev);
+
+int dfplayer_count_files_in_folder(dfplayer_t *dev, unsigned folder);
 
 
 

@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       Test application for the DFPLayer device driver
+ * @brief       Test application for the DFPLayer Mini device driver
  *
  * @author      Hauke Petersen <devel@haukepetersen.de>
  *
@@ -34,7 +34,7 @@ static int _cmd_cur(int argc, char **argv)
     (void)argv;
     int res = dfplayer_current_track(&_dev);
     if (res < DFPLAYER_OK) {
-        puts("Error: unable to read current track");
+        puts("error: unable to read current track");
     }
     else {
         printf("Current track: %i\n", res);
@@ -44,9 +44,21 @@ static int _cmd_cur(int argc, char **argv)
 
 static int _cmd_play(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
-    dfplayer_play(&_dev);
+    if (argc >= 3) {
+        unsigned folder = (unsigned)atoi(argv[1]);
+        unsigned track = (unsigned)atoi(argv[2]);
+        dfplayer_play_folder(&_dev, folder, track);
+        printf("playing folder %u, track %u\n", folder, track);
+    }
+    else if (argc >= 2) {
+        uint16_t track = (uint16_t)atoi(argv[1]);
+        dfplayer_play_track(&_dev, track);
+        printf("playing track %u\n", track);
+    }
+    else{
+        dfplayer_play(&_dev);
+        puts("play ok");
+    }
     return 0;
 }
 
@@ -55,6 +67,7 @@ static int _cmd_pause(int argc, char **argv)
     (void)argc;
     (void)argv;
     dfplayer_pause(&_dev);
+    puts("paused playback");
     return 0;
 }
 
@@ -63,6 +76,7 @@ static int _cmd_next(int argc, char **argv)
     (void)argc;
     (void)argv;
     dfplayer_next(&_dev);
+    puts("playing next song");
     return 0;
 }
 
@@ -71,23 +85,37 @@ static int _cmd_prev(int argc, char **argv)
     (void)argc;
     (void)argv;
     dfplayer_prev(&_dev);
+    puts("playing previous song");
+    return 0;
+}
+
+static int _cmd_loop(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("usage: %s <track number>\n", argv[0]);
+        return 1;
+    }
+
+    unsigned track = (unsigned)atoi(argv[1]);
+    dfplayer_loop_track(&_dev, track);
+    printf("looping track %u\n", track);
     return 0;
 }
 
 static int _cmd_vol(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("Volume: %i\n", dfplayer_vol_get(&_dev));
-        printf(" usage: %s <up|down|[0-31]>\n", argv[0]);
+        printf("usage: %s <up|down|[0-30]>\n", argv[0]);
+        printf("current volume level is: %i\n", dfplayer_vol_get(&_dev));
         return 1;
     }
     if (strncmp(argv[1], "up", 2) == 0) {
         dfplayer_vol_up(&_dev);
-        puts("Volume UP");
+        puts("volume: UP");
     }
     else if (strncmp(argv[1], "down", 4) == 0) {
         dfplayer_vol_down(&_dev);
-        puts("Volume: DOWN");
+        puts("volume: DOWN");
     }
     else {
         int vol = atoi(argv[1]);
@@ -95,8 +123,8 @@ static int _cmd_vol(int argc, char **argv)
             puts("error: volume level not applicable");
         }
         else {
-            dfplayer_vol_set(&_dev, (uint16_t)vol);
-            printf("Volume: set to %i\n", vol);
+            dfplayer_vol_set(&_dev, (unsigned)vol);
+            printf("volume: set to %i\n", vol);
         }
     }
 
@@ -115,9 +143,9 @@ static int _cmd_eq(int argc, char **argv)
             printf("EQ setting: %s\n", _eq_settings[eq]);
         }
         else {
-            puts("Unable to read current EQ setting");
+            puts("unable to read current EQ setting");
         }
-        printf("Usage: %s [normal|pop|rock|jazz|classic|base]\n", argv[0]);
+        printf("usage: %s [normal|pop|rock|jazz|classic|base]\n", argv[0]);
         return 1;
     }
 
@@ -137,23 +165,15 @@ static const char *_modes[] = {
 
 static int _cmd_mode(int argc, char **argv)
 {
-    if (argc < 2) {
-        int mode = dfplayer_mode_get(&_dev);
-        if (mode >= DFPLAYER_OK) {
-            printf("Playback mode: %s\n", _modes[mode]);
-        }
-        else {
-            puts("Unable to read current playback mode");
-        }
-        printf("Usage: %s [repeat|repeat_f|repeat_s|random]", argv[0]);
-        return 1;
-    }
+    (void)argc;
+    (void)argv;
 
-    for (unsigned i = 0; i < 4; i++) {
-        if (strcmp(_modes[i], argv[1]) == 0) {
-            dfplayer_mode_set(&_dev, (dfplayer_mode_t)i);
-            break;
-        }
+    int mode = dfplayer_mode_get(&_dev);
+    if (mode >= DFPLAYER_OK) {
+        printf("playback mode: %s\n", _modes[mode]);
+    }
+    else {
+        puts("unable to read current playback mode");
     }
 
     return 0;
@@ -164,10 +184,10 @@ static int _cmd_reset(int argc, char **argv)
     (void)argc;
     (void)argv;
     if (dfplayer_reset(&_dev) == DFPLAYER_OK) {
-        puts("Device reset ok");
+        puts("device reset ok");
     }
     else {
-        puts("Error while triggering device reset");
+        puts("error while triggering device reset");
     }
     return 0;
 }
@@ -181,14 +201,14 @@ static int _cmd_sleep(int argc, char **argv)
     switch (atoi(argv[1])) {
         case 0:
             dfplayer_wakeup(&_dev);
-            puts("Put device do normal working mode");
+            puts("put device do normal working mode");
             break;
         case 1:
             dfplayer_standby(&_dev);
-            puts("Put device into sleep mode");
+            puts("put device into sleep mode");
             break;
         default:
-            puts("Error: unable to parse parameter");
+            puts("error: unable to parse parameter");
     }
     return 0;
 }
@@ -199,10 +219,10 @@ static int _cmd_ver(int argc, char **argv)
     (void)argv;
     int res = dfplayer_ver(&_dev);
     if (res < 0) {
-        puts("Error: unable to read version");
+        puts("error: unable to read version");
     }
     else {
-        printf("Device version is: %i\n", res);
+        printf("device version is: %i\n", res);
     }
     return 0;
 }
@@ -213,25 +233,42 @@ static int _cmd_status(int argc, char **argv)
     (void)argv;
     int res = dfplayer_status(&_dev);
     if (res < DFPLAYER_OK) {
-        puts("Error: unable to read device status\n");
+        puts("error: unable to read device status\n");
     }
     else {
-        printf("Device Status: %i\n", res);
+        printf("device Status: %i\n", res);
     }
     return 0;
 }
 
 static int _cmd_count(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
-    int res = dfplayer_count_files(&_dev);
-    if (res < DFPLAYER_OK) {
-        puts("Error: unable to count number of files on TF card");
+    if (argc < 2) {
+        printf("usage: %s <all|[1-99]>\n", argv[0]);
+        return 1;
+    }
+
+    if (strcmp(argv[1], "all") == 0) {
+        int res = dfplayer_count_files(&_dev);
+        if (res < DFPLAYER_OK) {
+            puts("error: unable to count number of files on TF card");
+        }
+        else {
+            printf("number of files on TF card: %i\n", res);
+        }
     }
     else {
-        printf("Number of files on TF card: %i\n", res);
+        unsigned folder = (unsigned)atoi(argv[1]);
+        int res = dfplayer_count_files_in_folder(&_dev, folder);
+        if (res < DFPLAYER_OK) {
+            printf("error: unable to read number of files in folder %u\n",
+                   folder);
+        }
+        else {
+            printf("number of files in folder %u: %i\n", folder, res);
+        }
     }
+
     return 0;
 }
 
@@ -241,6 +278,7 @@ static const shell_command_t shell_commands[] = {
     { "pause", "pause playpack", _cmd_pause },
     { "next", "play next track", _cmd_next },
     { "prev", "play previous track", _cmd_prev },
+    { "loop", "loop given track", _cmd_loop },
     { "vol", "volume control", _cmd_vol },
     { "eq", "equalizer control", _cmd_eq },
     { "mode", "playback mode control", _cmd_mode },
