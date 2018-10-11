@@ -33,18 +33,28 @@
 #define CMD_VOL_DEC         (0x05)
 #define CMD_VOL_SET         (0x06)
 #define CMD_EQ              (0x07)
-#define CMD_LOOP            (0x08)  /* differs from documentation... */
-#define CMD_SOURCE_SELECT   (0x09)
+#define CMD_LOOP            (0x08)
+#define CMD_SOURCE          (0x09)
 #define CMD_STANDBY         (0x0a)
 #define CMD_WAKEUP          (0x0b)
 #define CMD_RESET           (0x0c)
-#define CMD_PLAYBACK        (0x0d)
+#define CMD_RESUME          (0x0d)
 #define CMD_PAUSE           (0x0e)
 #define CMD_PLAY_FOLDER     (0x0f)
-#define CMD_VOL             (0x10)
+#define CMD_VOL_GAIN        (0x10)
 #define CMD_REPEAT_PLAY     (0x11)
-#define CMD_PLAY_RANDOM     (0x18)  /* undocumented feature */
+#define CMD_PLAY_MP3        (0x12)      /* play track from mp3/ folder */
+#define CMD_PLAY_ADV        (0x13)      /* play track from advert/ folder */
+#define CMD_PLAY_FOLDER_EXT (0x14)
+#define CMD_STOP_ADV        (0x15)
+#define CMD_STOP            (0x16)
+#define CMD_REPEAT_FOLDER   (0x17)
+#define CMD_PLAY_RANDOM     (0x18)
+#define CMD_LOOP_CURRENT    (0x19)      /* param := 1 -> loop, 0 := cancel */
+#define CMD_MUTE            (0x1a)      /* param := 1 -> make DAC high-z */
 
+#define CMD_MEM_INSERTED    (0x3a)      /* 1:=USB mem, 2:=TF, 4:=PC connected */
+#define CMD_MEM_EJECTED     (0x3b)      /* 1:=USB mem, 2:=TF, 4:=PC disconnect */
 #define CMD_FINISH_U        (0x3c)
 #define CMD_FINISH_TF       (0x3d)
 #define CMD_FINISH_FL       (0x3e)
@@ -63,7 +73,7 @@
 #define CMD_CUR_TRACK_TF    (0x4b)
 #define CMD_CUR_TRACK_U     (0x4c)
 #define CMD_CUR_TRACK_FL    (0x4d)
-#define CMD_COUNT_FOLDER    (0x4e)  /* undocumented feature */
+#define CMD_COUNT_FOLDER    (0x4e)
 
 #define NO_REPLY            (0xff)
 
@@ -75,8 +85,6 @@
 #define FLAG_RESP           (1u << 7)       /* chosen arbitrarily */
 #define FLAG_RETRANSMIT     (1u << 8) /* TODO */
 #define FLAG_MASK           (THREAD_FLAG_TIMEOUT | FLAG_RESP)
-
-#define EVENT_USED          (0x80)
 
 /* TODO: remove and use global context */
 static event_queue_t _q;
@@ -145,15 +153,12 @@ static void _on_rx_byte(void *arg, uint8_t data)
                     thread_flags_set(dev->waiter, FLAG_RESP);
                 }
                 // else if (code == CMD_FINISH_TF) {
-                    dev->async_event.flags = EVENT_USED;
                     dev->async_event.code = code;
                     dev->async_event.param = param;
                     event_post(&_q, &dev->async_event.super);
                 // }
             }
-            else {
-                DEBUG("CSUM wrong\n");
-            }
+            /* if checksum is wrong, we simply ignore the incoming data */
         }
     }
     else {
@@ -280,19 +285,14 @@ int dfplayer_mode_get(dfplayer_t *dev)
     return _cmd(dev, CMD_QUERY_MODE, 0, CMD_QUERY_MODE);
 }
 
-void dfplayer_play(dfplayer_t *dev)
+void dfplayer_resume(dfplayer_t *dev)
 {
-    _cmd(dev, CMD_PLAYBACK, 0, NO_REPLY);
+    _cmd(dev, CMD_RESUME, 0, NO_REPLY);
 }
 
 void dfplayer_play_track(dfplayer_t *dev, unsigned track)
 {
     _cmd(dev, CMD_PLAY_TRACK, (uint16_t)track, NO_REPLY);
-}
-
-void dfplayer_play_random(dfplayer_t *dev)
-{
-    _cmd(dev, CMD_PLAY_RANDOM, 0, NO_REPLY);
 }
 
 void dfplayer_play_folder(dfplayer_t *dev, unsigned folder, unsigned track)
@@ -306,9 +306,19 @@ void dfplayer_loop_track(dfplayer_t *dev, unsigned track)
     _cmd(dev, CMD_LOOP, (uint16_t)track, NO_REPLY);
 }
 
+void dfplayer_play_random(dfplayer_t *dev)
+{
+    _cmd(dev, CMD_PLAY_RANDOM, 0, NO_REPLY);
+}
+
 void dfplayer_pause(dfplayer_t *dev)
 {
     _cmd(dev, CMD_PAUSE, 0, NO_REPLY);
+}
+
+void dfplayer_stop(dfplayer_t *dev)
+{
+    _cmd(dev, CMD_STOP, 0, NO_REPLY);
 }
 
 void dfplayer_next(dfplayer_t *dev)
@@ -319,6 +329,16 @@ void dfplayer_next(dfplayer_t *dev)
 void dfplayer_prev(dfplayer_t *dev)
 {
     _cmd(dev, CMD_PREV, 0, NO_REPLY);
+}
+
+void dfplayer_adv_play(dfplayer_t *dev, unsigned track)
+{
+    _cmd(dev, CMD_PLAY_ADV, (uint16_t)track, NO_REPLY);
+}
+
+void dfplayer_adv_stop(dfplayer_t *dev)
+{
+    _cmd(dev, CMD_PLAY_ADV, 0, NO_REPLY);
 }
 
 int dfplayer_current_track(dfplayer_t *dev)

@@ -56,8 +56,8 @@ static int _cmd_play(int argc, char **argv)
         printf("playing track %u\n", track);
     }
     else{
-        dfplayer_play(&_dev);
-        puts("play ok");
+        dfplayer_resume(&_dev);
+        puts("resuming playback");
     }
     return 0;
 }
@@ -71,12 +71,21 @@ static int _cmd_pause(int argc, char **argv)
     return 0;
 }
 
+static int _cmd_stop(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    dfplayer_stop(&_dev);
+    puts("stopped playback");
+    return 0;
+}
+
 static int _cmd_next(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
     dfplayer_next(&_dev);
-    puts("playing next song");
+    puts("playing next track");
     return 0;
 }
 
@@ -85,7 +94,27 @@ static int _cmd_prev(int argc, char **argv)
     (void)argc;
     (void)argv;
     dfplayer_prev(&_dev);
-    puts("playing previous song");
+    puts("playing previous track");
+    return 0;
+}
+
+static int _cmd_adv(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("usage: %s <track [0-255]|stop>\n", argv[0]);
+        return 1;
+    }
+
+    if (strcmp(argv[1], "stop") == 0) {
+        dfplayer_adv_stop(&_dev);
+        puts("stop playing advertising track");
+    }
+    else {
+        unsigned track = (unsigned)atoi(argv[1]);
+        dfplayer_adv_play(&_dev, track);
+        printf("playing advertising track %u\n", track);
+    }
+
     return 0;
 }
 
@@ -99,6 +128,15 @@ static int _cmd_loop(int argc, char **argv)
     unsigned track = (unsigned)atoi(argv[1]);
     dfplayer_loop_track(&_dev, track);
     printf("looping track %u\n", track);
+    return 0;
+}
+
+static int _cmd_rand(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    dfplayer_play_random(&_dev);
+    puts("playing random track");
     return 0;
 }
 
@@ -118,13 +156,13 @@ static int _cmd_vol(int argc, char **argv)
         puts("volume: DOWN");
     }
     else {
-        int vol = atoi(argv[1]);
-        if ((vol < (int)DFPLAYER_VOL_MIN) || (vol > (int)DFPLAYER_VOL_MAX)) {
+        unsigned vol = (unsigned)atoi(argv[1]);
+        if (vol > DFPLAYER_VOL_MAX) {
             puts("error: volume level not applicable");
         }
         else {
-            dfplayer_vol_set(&_dev, (unsigned)vol);
-            printf("volume: set to %i\n", vol);
+            dfplayer_vol_set(&_dev, vol);
+            printf("volume: set to %u\n", vol);
         }
     }
 
@@ -276,9 +314,12 @@ static const shell_command_t shell_commands[] = {
     { "cur", "get number of current track", _cmd_cur },
     { "play", "play the current track", _cmd_play },
     { "pause", "pause playpack", _cmd_pause },
+    { "stop", "stop playback", _cmd_stop },
     { "next", "play next track", _cmd_next },
     { "prev", "play previous track", _cmd_prev },
+    { "adv", "interrupt playback with advertising track", _cmd_adv },
     { "loop", "loop given track", _cmd_loop },
+    { "rand", "play random track", _cmd_rand },
     { "vol", "volume control", _cmd_vol },
     { "eq", "equalizer control", _cmd_eq },
     { "mode", "playback mode control", _cmd_mode },
