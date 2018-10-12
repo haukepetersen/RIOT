@@ -100,6 +100,12 @@ ifneq (,$(filter cc2420,$(USEMODULE)))
   FEATURES_REQUIRED += periph_spi
 endif
 
+ifneq (,$(filter dfplayer,$(USEMODULE)))
+  USEMODULE += xtimer
+  USEMODULE += core_thread_flags
+  FEATURES_REQUIRED += periph_uart
+endif
+
 ifneq (,$(filter dht,$(USEMODULE)))
   USEMODULE += xtimer
   FEATURES_REQUIRED += periph_gpio

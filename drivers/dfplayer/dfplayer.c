@@ -1,4 +1,22 @@
+/*
+ * Copyright (C) 2018 Hauke Petersen <devel@haukepetersen.de>
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
 
+/**
+ * @ingroup     drivers_dfplayer
+ * @{
+ *
+ * @file
+ * @brief       Driver for the DFPlayer Mini audio playback device
+ *
+ * @author      Hauke Petersen <devel@haukepetersen.de>
+ *
+ * @}
+ */
 #include <string.h>
 
 #include "assert.h"
@@ -10,7 +28,6 @@
 #include "debug.h"
 
 #define STARTUP_RETRY_CNT   (3U)
-#define STARTUP_RETRY_DELAY (250U * US_PER_MS)
 
 #define POS_START           (0U)
 #define POS_VER             (1U)
@@ -82,13 +99,8 @@
 #define SRC_PC              (0x04)
 #define SRC_FLASH           (0x08)
 
-#define FLAG_RESP           (1u << 7)       /* chosen arbitrarily */
-#define FLAG_RETRANSMIT     (1u << 8) /* TODO */
+#define FLAG_RESP           (1u << 7)   /* chosen arbitrarily */
 #define FLAG_MASK           (THREAD_FLAG_TIMEOUT | FLAG_RESP)
-
-/* TODO: remove and use global context */
-static event_queue_t _q;
-static char _stack[DFPLAYER_STACKSIZE];
 
 static uint16_t _csum(uint8_t *buf)
 {
@@ -152,11 +164,13 @@ static void _on_rx_byte(void *arg, uint8_t data)
                     dev->rx_data = param;
                     thread_flags_set(dev->waiter, FLAG_RESP);
                 }
-                // else if (code == CMD_FINISH_TF) {
-                    dev->async_event.code = code;
-                    dev->async_event.param = param;
-                    event_post(&_q, &dev->async_event.super);
-                // }
+                /* we only allow for some selected events to surface */
+                else if (dev->event_cb &&
+                         ((code == DFPLAYER_ON_MEM_INSERTED) ||
+                          (code == DFPLAYER_ON_MEM_EJECTED) ||
+                          (code == DFPLAYER_ON_TRACK_FINISH))) {
+                    dev->event_cb(dev, code, (unsigned)param);
+                }
             }
             /* if checksum is wrong, we simply ignore the incoming data */
         }
@@ -170,23 +184,6 @@ static void _on_rx_byte(void *arg, uint8_t data)
     dev->rx_pos = 0;
 }
 
-static void _on_pkt(event_t *arg)
-{
-    dfplayer_event_t *e = (dfplayer_event_t *)arg;
-
-    DEBUG("[dfplayer] _on_pkt: CMD 0x%02x, param: %u\n",
-          (int)e->code, (unsigned)e->param);
-}
-
-/* TODO: remove and use global context */
-static void *_thread(void *arg)
-{
-    (void)arg;
-    event_queue_init(&_q);
-    event_loop(&_q);
-    return NULL;
-}
-
 int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params)
 {
     assert(dev);
@@ -197,13 +194,7 @@ int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params)
     dev->uart = params->uart;
     dev->rx_pos = 0;
     dev->exp_code = NO_REPLY;
-    dev->async_event.super.handler = _on_pkt;
-    dev->async_event.dev = dev;
-
-    /* run event queue thread */
-    /* TODO: move towards system wide solution... */
-    thread_create(_stack, sizeof(_stack), DFPLAYER_PRIO, 0,
-                  _thread, NULL, "dfplayer");
+    dev->event_cb = NULL;
 
     /* initialize UART */
     if (uart_init(dev->uart, params->baudrate, _on_rx_byte, dev) != UART_OK) {
@@ -219,6 +210,12 @@ int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params)
     }
 
     return DFPLAYER_ERR_TIMEOUT;
+}
+
+void dfplayer_set_event_cb(dfplayer_t *dev, dfplayer_event_cb_t cb)
+{
+    assert(dev);
+    dev->event_cb = cb;
 }
 
 int dfplayer_reset(dfplayer_t *dev)
@@ -285,11 +282,6 @@ int dfplayer_mode_get(dfplayer_t *dev)
     return _cmd(dev, CMD_QUERY_MODE, 0, CMD_QUERY_MODE);
 }
 
-void dfplayer_resume(dfplayer_t *dev)
-{
-    _cmd(dev, CMD_RESUME, 0, NO_REPLY);
-}
-
 void dfplayer_play_track(dfplayer_t *dev, unsigned track)
 {
     _cmd(dev, CMD_PLAY_TRACK, (uint16_t)track, NO_REPLY);
@@ -314,6 +306,11 @@ void dfplayer_play_random(dfplayer_t *dev)
 void dfplayer_pause(dfplayer_t *dev)
 {
     _cmd(dev, CMD_PAUSE, 0, NO_REPLY);
+}
+
+void dfplayer_resume(dfplayer_t *dev)
+{
+    _cmd(dev, CMD_RESUME, 0, NO_REPLY);
 }
 
 void dfplayer_stop(dfplayer_t *dev)

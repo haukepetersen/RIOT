@@ -36,6 +36,12 @@
  * # Limitations
  * - no support for reading the busy pin -> not really needed as the same
  *   information is available when receiving the CMD_FINISH_x command
+ * - the driver does not keep track of time, so sending certain commands too
+ *   quickly might lead to those commands being ignored
+ *
+ * # Known-issues
+ * - the DFPLAYER_ON_TRACK_FINISH event is triggered twice after a track has
+ *   finished its playback
  *
  *
  * @{
@@ -51,7 +57,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "event.h"
 #include "mutex.h"
 #include "xtimer.h"
 #include "periph/uart.h"
@@ -70,21 +75,10 @@ extern "C" {
  */
 #define DFPLAYER_BAUDRATE_DEFAULT   (9600U)
 
-#ifndef DFPLAYER_PRIO
-/**
- * @brief   Priority used for the dedicated driver thread
- */
-#define DFPLAYER_PRIO               (THREAD_PRIORITY_MAIN - 2)
-#endif
-
-#ifndef DFPLAYER_STACKSIZE
-/**
- * @brief   Stacksize used by the dedicated driver thread
- */
-#define DFPLAYER_STACKSIZE          (THREAD_STACKSIZE_DEFAULT)
-#endif
-
 #ifndef DFPLAYER_TIMEOUT
+/**
+ * @brief   Amount of time to wait for valid command reply (in us)
+ */
 #define DFPLAYER_TIMEOUT            (500U * US_PER_MS)
 #endif
 
@@ -97,9 +91,18 @@ extern "C" {
  * @brief   Return codes used by the driver
  */
 enum {
-    DFPLAYER_OK          =  0,
-    DFPLAYER_ERR_UART    = -1,
-    DFPLAYER_ERR_TIMEOUT = -2,
+    DFPLAYER_OK          =  0,      /**< all ok */
+    DFPLAYER_ERR_UART    = -1,      /**< error initializing UART interface */
+    DFPLAYER_ERR_TIMEOUT = -2,      /**< command timeout */
+};
+
+/**
+ * @brief   Asynchronous device events
+ */
+enum {
+    DFPLAYER_ON_MEM_INSERTED = 0x3a,    /**< memory card was inserted */
+    DFPLAYER_ON_MEM_EJECTED  = 0x3b,    /**< memory card was removed */
+    DFPLAYER_ON_TRACK_FINISH = 0x3d,    /**< finished playback of track */
 };
 
 /**
@@ -130,14 +133,12 @@ typedef enum {
 typedef struct dfplayer dfplayer_t;
 
 /**
- * @brief   Custom event type used for event signaling by the driver
+ * @brief   Event callback type definition
+ *
+ * @warning Event callbacks are executed in interrupt context. You can not call
+ *          any DFPlayer API functions directly from within that context!
  */
-typedef struct {
-    event_t super;                  /**< we extend the base event */
-    dfplayer_t *dev;                /**< device that triggered the event */
-    uint16_t param;                 /**< param send with the reply */
-    uint8_t code;                   /**< type of message */
-} dfplayer_event_t;
+typedef void(*dfplayer_event_cb_t)(dfplayer_t *dev, uint8_t e, unsigned p);
 
 /**
  * @brief   Static device configuration parameters
@@ -151,97 +152,266 @@ typedef struct {
  * @brief   Device descriptor definition
  */
 struct dfplayer {
-    uart_t uart;                    /**< UART device used */
-    mutex_t lock;                   /**< mutex for synchronizing API calls */
-    uint8_t rx_pos;                 /**< write pointer into RX buffer */
-    uint8_t rx_buf[DFPLAYER_PKTLEN];      /**< receive command buffer */
-    uint16_t rx_data;               /**< parameter received with reply */
-    uint8_t exp_code;               /**< expected response code */
-    dfplayer_event_t async_event;   /**< event used for notifications */
-
-
-    thread_t *waiter;
-    xtimer_t to_timer;
-
-
-    uint32_t time;
+    uart_t uart;                        /**< UART device used */
+    mutex_t lock;                       /**< mutex for synchronizing API calls */
+    uint8_t rx_pos;                     /**< write pointer into RX buffer */
+    uint8_t rx_buf[DFPLAYER_PKTLEN];    /**< receive command buffer */
+    uint16_t rx_data;                   /**< parameter received with reply */
+    uint8_t exp_code;                   /**< expected response code */
+    thread_t *waiter;                   /**< waiter during ongoing operation */
+    xtimer_t to_timer;                  /**< timeout timer */
+    dfplayer_event_cb_t event_cb;       /**< function called on async events */
 };
 
-/* ok */
+/**
+ * @brief   Initialize the given DFPlayer device
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     params    device configuration parameters
+ *
+ * @return  DFPLAYER_OK on success
+ * @return  DFPLAYER_ERR_UART if driver fails to initialize UART peripheral
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_init(dfplayer_t *dev, const dfplayer_params_t *params);
 
-/* ok */
+/**
+ * @brief   Set the active event callback
+ *
+ * @param[in,out] dev       DFplayer mini device
+ * @param[in]     cb        event callback function, NULL for removing the
+ *                          possibly existing entry
+ */
+void dfplayer_set_event_cb(dfplayer_t *dev, dfplayer_event_cb_t cb);
+
+/**
+ * @brief   Reset the given device
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  DFPLAYER_OK on success
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_reset(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Put the given device into standby mode
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_standby(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Wakeup the given device from standby
+ *
+ * @note    There seem to be a number of DFPlayer Mini modules on the market
+ *          that do not wake up from standby properly...
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_wakeup(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Get the version number of the given device
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  version number of the given device
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_ver(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Get the current device status
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  status of the given device
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_status(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Set the volume level ([0-30])
+ *
+ * Setting the volume level to any value to anything larger than 30 will just
+ * set it to 30.
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     level     new volume level ([0-30])
+ */
 void dfplayer_vol_set(dfplayer_t *dev, unsigned level);
 
-/* ok */
+/**
+ * @brief   Increase volume level by 1
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_vol_up(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Decrease volume level by 1
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_vol_down(dfplayer_t *dev);
 
-/* ok */
+/**
+ * @brief   Get the currently set volume level
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  currently set volume level ([0-30])
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_vol_get(dfplayer_t *dev);
 
-
+/**
+ * @brief   Apply a new equalizer setting
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     eq        equalizer setting to use
+ */
 void dfplayer_eq_set(dfplayer_t *dev, dfplayer_eq_t eq);
 
+/**
+ * @brief   Get the current equalizer setting
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  current equalizer setting
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_eq_get(dfplayer_t *dev);
 
+/**
+ * @brief   Get the currently active playback mode
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  currently active playback mode (value from dfplayer_mode_t)
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_mode_get(dfplayer_t *dev);
 
-void dfplayer_resume(dfplayer_t *dev);
-
+/**
+ * @brief   Play the given track (using its global track number)
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     track     track to play
+ */
 void dfplayer_play_track(dfplayer_t *dev, unsigned track);
 
 /**
- * @brief      { function_description }
+ * @brief   Play a track from the given folder
  *
- * Will simply return and do nothing on invalid parameters
- *
- * @param      dev     The development
- * @param[in]  folder  The folder
- * @param[in]  track   The track
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     folder    folder to play from [1-99]
+ * @param[in]     track     track number to play [1-255]
  */
 void dfplayer_play_folder(dfplayer_t *dev, unsigned folder, unsigned track);
 
+/**
+ * @brief   Play the given track in an endless loop (global track number)
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     track     global track number of track to loop
+ */
 void dfplayer_loop_track(dfplayer_t *dev, unsigned track);
 
+/**
+ * @brief   Start to play tracks in random sequence
+ *
+ * Using this command will always play the first available track. But any
+ * subsequent track will be chosen randomly.
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_play_random(dfplayer_t *dev);
 
+/**
+ * @brief   Pause playback
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_pause(dfplayer_t *dev);
 
+/**
+ * @brief   Resume playback
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
+void dfplayer_resume(dfplayer_t *dev);
+
+/**
+ * @brief   Stop playback
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_stop(dfplayer_t *dev);
 
+/**
+ * @brief   Play next track in list (depending on active playback mode)
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_next(dfplayer_t *dev);
 
+/**
+ * @brief   Play previous track
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_prev(dfplayer_t *dev);
 
+/**
+ * @brief   Play an advertisement track, interrupting the current playback
+ *
+ * Advertisement tracks are selected from the `/advert/` sub-folder of the SD
+ * card.
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     track     track number to play
+ */
 void dfplayer_adv_play(dfplayer_t *dev, unsigned track);
 
+/**
+ * @brief   Stop playback of advertisement track
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ */
 void dfplayer_adv_stop(dfplayer_t *dev);
 
+/**
+ * @brief   Count the number of files in the given folder
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  the global track number of the current track
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_current_track(dfplayer_t *dev);
 
+/**
+ * @brief   Count the overall number of available tracks
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ *
+ * @return  number of tracks in @p folder
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_count_files(dfplayer_t *dev);
 
+/**
+ * @brief   Count the number of files in the given folder
+ *
+ * @param[in,out] dev       DFPlayer mini device
+ * @param[in]     folder    folder to play from [1-99]
+ *
+ * @return  number of tracks in @p folder
+ * @return  DFPLAYER_ERR_TIMEOUT on timeout waiting for reply
+ */
 int dfplayer_count_files_in_folder(dfplayer_t *dev, unsigned folder);
-
-
 
 #ifdef __cplusplus
 }

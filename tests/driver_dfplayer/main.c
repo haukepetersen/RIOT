@@ -28,6 +28,25 @@
 
 static dfplayer_t _dev;
 
+static void _on_event(dfplayer_t *dev, uint8_t e, unsigned p) {
+    (void)dev;
+
+    switch (e) {
+        case DFPLAYER_ON_MEM_INSERTED:
+            puts("EVENT: memory card was inserted");
+            break;
+        case DFPLAYER_ON_MEM_EJECTED:
+            puts("EVENT: memory card was removed");
+            break;
+        case DFPLAYER_ON_TRACK_FINISH:
+            printf("EVENT: track %u has finished playing\n", p);
+            break;
+        default:
+            puts("unknown event");
+            break;
+    }
+}
+
 static int _cmd_cur(int argc, char **argv)
 {
     (void)argc;
@@ -342,6 +361,9 @@ int main(void)
         puts("error: unable to intialize device\n");
         return 1;
     }
+
+    /* register our event callback */
+    dfplayer_set_event_cb(&_dev, _on_event);
 
     /* run the shell */
     char line_buf[SHELL_DEFAULT_BUFSIZE];

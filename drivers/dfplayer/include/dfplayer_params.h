@@ -11,7 +11,7 @@
  *
  * @{
  * @file
- * @brief       Default configuration for DFPlayer devices
+ * @brief       Default configuration for DFPlayer Mini devices
  *
  * @author      Hauke Petersen <devel@haukepetersen.de>
  */
