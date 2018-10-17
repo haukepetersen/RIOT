@@ -65,7 +65,11 @@ typedef struct {
  * @brief   Device descriptor for W5100 devices
  */
 typedef struct {
+#ifdef MODULE_NETDEV3
+    netdev3_t netdev3;
+#else
     netdev_t nd;            /**< extends the netdev structure */
+#endif
     w5100_params_t p;       /**< device configuration parameters */
 } w5100_t;
 

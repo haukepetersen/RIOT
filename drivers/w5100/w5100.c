@@ -323,6 +323,23 @@ static int get(netdev_t *netdev, netopt_t opt, void *value, size_t max_len)
     return res;
 }
 
+#ifdef MODULE_NETDEV3
+
+static const rdev_base_t w5100_rdev_base = {
+    .type = (RDEV_NET_WIRED_ETHERNET | W5100_RDEV); /* TODO: how/where to manage type numbers */
+    .init = w5100_init;
+    .cmd = _cmd;    /* wraps get() and set() */
+}
+
+static const netdev3_driver_t w5100_netdev3_driver = {
+    .send = send,
+    .recv = recv,
+    .init = init,
+    .isr = isr,
+}
+
+#else
+
 static const netdev_driver_t netdev_driver_w5100 = {
     .send = send,
     .recv = recv,
@@ -331,3 +348,5 @@ static const netdev_driver_t netdev_driver_w5100 = {
     .get = get,
     .set = netdev_eth_set,
 };
+
+#endif /* MODULE_NETDEV3 */
