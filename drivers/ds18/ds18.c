@@ -27,7 +27,7 @@
 #include "periph/gpio.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 static void ds18_low(const ds18_t *dev)
@@ -56,7 +56,7 @@ static void ds18_write_bit(const ds18_t *dev, uint8_t bit)
     /* Wait for slot to end */
     xtimer_usleep(DS18_DELAY_SLOT);
     ds18_release(dev);
-    xtimer_usleep(1);
+  //  xtimer_usleep(1);
 }
 
 static int ds18_read_bit(const ds18_t *dev, uint8_t *bit)
