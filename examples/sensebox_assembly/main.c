@@ -144,22 +144,9 @@ int main(void)
     gpio_init(GPIO_PIN(PB,2), GPIO_OUT);
     gpio_set(GPIO_PIN(PB, 2));
 
-   /* valve 1 */ 
-    gpio_init(GPIO_PIN(PA, 7), GPIO_OUT);
-    gpio_init(GPIO_PIN(PA, 5), GPIO_OUT);
-    while(1){
-        xtimer_sleep(3);
-        puts("pin clear");
-        gpio_clear(GPIO_PIN(PA, 5));
-        gpio_clear(GPIO_PIN(PA, 7));
-        xtimer_sleep(3);
-        puts("pin set");
-        gpio_set(GPIO_PIN(PA, 5));
-        gpio_set(GPIO_PIN(PA, 7));
-    }
     for (unsigned i = 0; i < 5; i = i + 2) {
         if (adc_init(ADC_LINE(i)) < 0) {
-            printf("ADC %u initialization failed\n", i);
+            printf("ADC %u inihialization failed\n", i);
         }
         else {
             int sample = adc_sample(ADC_LINE(i), RES);
@@ -171,6 +158,41 @@ int main(void)
         }
     }
         
+   /* valve 1 */ 
+//    gpio_init(GPIO_PIN(PA, 7), GPIO_OUT);
+//    gpio_init(GPIO_PIN(PA, 5), GPIO_OUT);
+    gpio_init(GPIO_PIN(PB, 8), GPIO_OUT);
+   //     .rx_pin = GPIO_PIN(PB, 9),
+    while(1){
+        xtimer_sleep(3);
+        puts("pin clear");
+//        gpio_clear(GPIO_PIN(PA, 5));
+//        gpio_clear(GPIO_PIN(PA, 7));
+        gpio_clear(GPIO_PIN(PB, 8));
+        xtimer_sleep(3);
+        for (unsigned i = 0; i < 5; i = i + 2) {
+            int sample = adc_sample(ADC_LINE(i), RES);
+            if (sample < 0) {
+                printf("ADC_LINE(%u): 10-bit resolution not applicable\n", i);
+            } else {
+                printf("ADC_LINE(%u): %i\n", i, sample);
+            }
+        }
+        xtimer_sleep(3);
+        puts("pin set");
+//        gpio_set(GPIO_PIN(PA, 5));
+//        gpio_set(GPIO_PIN(PA, 7));
+        gpio_set(GPIO_PIN(PB, 8));
+        xtimer_sleep(3);
+        for (unsigned i = 0; i < 5; i = i + 2) {
+            int sample = adc_sample(ADC_LINE(i), RES);
+            if (sample < 0) {
+                printf("ADC_LINE(%u): 10-bit resolution not applicable\n", i);
+            } else {
+                printf("ADC_LINE(%u): %i\n", i, sample);
+            }
+        }
+    }
     
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(NULL, line_buf, SHELL_DEFAULT_BUFSIZE);
