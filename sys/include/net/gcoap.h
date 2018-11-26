@@ -442,7 +442,6 @@ typedef struct gcoap_listener {
 
 /**
  * @brief   Forward declaration of the request memo type
- *
  */
 typedef struct gcoap_request_memo gcoap_request_memo_t;
 
@@ -451,6 +450,12 @@ typedef struct gcoap_request_memo gcoap_request_memo_t;
  *          originating request
  *
  * If request timed out, the packet header is for the request.
+ *
+ * Parameters:
+ * - memo    Tracks request for timeout and response generation (read only);
+ *           public members: state, send_limit, remote_ep, context
+ * - pdu     Incoming response
+ * - remote  Origin of response (read only)
  */
 typedef void (*gcoap_resp_handler_t)(const gcoap_request_memo_t *memo,
                                      coap_pkt_t* pdu,
