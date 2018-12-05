@@ -44,8 +44,8 @@
 ////        gpio_clear(GPIO_PIN(PA, 5));
 ////        gpio_clear(GPIO_PIN(PA, 7));
 
-/* Messages are sent every 20s to respect the duty cycle on each channel */
-#define PERIOD              (20U)
+/* Messages are sent every 5min to respect the duty cycle on each channel */
+#define PERIOD              (300U)
  #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 static kernel_pid_t sender_pid;
 static char sender_stack[THREAD_STACKSIZE_MAIN / 2];

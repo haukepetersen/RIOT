@@ -28,6 +28,12 @@ extern "C" {
 
 /**
  * @brief   Set default configuration parameters for the ds18
+ *          Note that the data pin is used alternately for input and output.
+ *          The input setting is deducted from the output setting: if the
+ *          setting here is to use internal pull up resistors during output, then
+ *          they will be used for input, too (even if output resistors are not
+ *          actually supported by the hardware). See ds18_init code for further
+ *          details.
  * @{
  */
 #ifndef DS18_PARAM_PIN
