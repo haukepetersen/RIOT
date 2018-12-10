@@ -106,7 +106,10 @@ static void _send_message(void)
     /* Soil moisture levels */
 
     gpio_set(GPIO_PIN(PB, 8));
-    xtimer_sleep(1);
+    /* Sleep for 10s - the electrolysis effect means that it takes ~5-6s for
+     * the reading to settle down
+     */
+    xtimer_sleep(10);
     int sample;
     sample = adc_sample(ADC_LINE(0), RES);
     printf("ADC_LINE(%u): %i\n", 0, sample);
@@ -114,8 +117,8 @@ static void _send_message(void)
     sample = adc_sample(ADC_LINE(2), RES);
     printf("ADC_LINE(%u): %i\n", 2, sample);
     lora_serialization_write_uint16(&serialization, sample);
-    sample = adc_sample(ADC_LINE(4), RES);
-    printf("ADC_LINE(%u): %i\n", 4, sample);
+    sample = adc_sample(ADC_LINE(5), RES);
+    printf("ADC_LINE(%u): %i\n", 5, sample);
     lora_serialization_write_uint16(&serialization, sample);
     gpio_clear(GPIO_PIN(PB, 8));
 
