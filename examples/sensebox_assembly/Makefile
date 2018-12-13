@@ -1,8 +1,8 @@
 # name of your application
-APPLICATION = saul_example
+APPLICATION = sensebox_assembly
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= native
+BOARD ?= sensebox_samd21
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
@@ -10,7 +10,7 @@ RIOTBASE ?= $(CURDIR)/../..
 BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-uno
 
 # we want to use SAUL:
-USEMODULE += saul_default
+#USEMODULE += saul_default
 # include the shell:
 USEMODULE += shell
 USEMODULE += shell_commands
@@ -19,7 +19,8 @@ USEMODULE += ps
 #USEMODULE += xtimer
 USEMODULE += tsl4531x
 USEMODULE += hdc1000
-#USEMODULE += ds18
+USEMODULE += ds18
+
 FEATURES_REQUIRED = periph_adc
 
 DEVEUI ?= 00FA3F26B4128C7D
