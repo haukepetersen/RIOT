@@ -73,11 +73,11 @@ uint16_t plant_2_watering_level;
 #define PERIOD              (300U)   /* messages sent every 5 mins */
 
 #define MOISTURE_SENSOR_1_PIN      ADC_LINE(0)
-#define MOISTURE_SENSOR_2_PIN      ADC_LINE(2)
-#define MOISTURE_SENSOR_3_PIN      ADC_LINE(5)
+#define MOISTURE_SENSOR_2_PIN      ADC_LINE(1)
+#define MOISTURE_SENSOR_3_PIN      ADC_LINE(3)
 
-#define VALVE_CONTROL_1_PIN        GPIO_PIN(PA, 5) 
-#define VALVE_CONTROL_2_PIN        GPIO_PIN(PA, 7) 
+#define VALVE_CONTROL_1_PIN        GPIO_PIN(PA, 2) 
+//#define VALVE_CONTROL_2_PIN        GPIO_PIN(PA, 7) 
 #define VALVE_WATERING_TIME        (3)                /* seconds */
 #define VALVE_WATERING_TYPE        WATERING_INDIVIDUAL
 
@@ -216,12 +216,12 @@ static void _hardware_test(void)
         gpio_clear(VALVE_CONTROL_1_PIN);
         xtimer_sleep(1);
     }
-    for (int i = 0; i < 3; i++) {
-        gpio_set(VALVE_CONTROL_2_PIN);
-        xtimer_sleep(1);
-        gpio_clear(VALVE_CONTROL_2_PIN);
-        xtimer_sleep(1);
-    }
+ //   for (int i = 0; i < 3; i++) {
+ //       gpio_set(VALVE_CONTROL_2_PIN);
+ //       xtimer_sleep(1);
+ //       gpio_clear(VALVE_CONTROL_2_PIN);
+ //       xtimer_sleep(1);
+ //   }
 
     /* Test the soil temp, air temp/humidity, and light sensors */
     puts("Testing the soil temp, air temp/humidity, and light sensors. Check the readings are sensible.");
@@ -229,23 +229,26 @@ static void _hardware_test(void)
     float val;
     hdc1000_read_cached((const hdc1000_t *)&hdc1000_dev, &res, NULL);
     val = (float)res/100;
-    printf("Air temperature is %5.2fC.\n", val);
+    (void)val;
+    printf("Air temperature is %d.\n", res);
 
     hdc1000_read_cached((const hdc1000_t *)&hdc1000_dev, NULL, &res);
     val = (float)res/100;
-    printf("Air humidity is %5.2f%%.\n", val);
+    printf("Air humidity is %d.\n", res);
 
     /* Visible light intensity - tsl4531x */
     res = tsl4531x_simple_read(&tsl4531x_dev);
     printf("Light intensity is %d\n", res);
 
     /* Soil temperature - ds18 */
+    gpio_set(SENSOR_POWER_PIN);
+    xtimer_sleep(1);
     if (ds18_get_temperature(&ds18_dev, &res) < 0) {
         puts("Soil temp collection failed");
         res = 0;
     }
     val = (float)res/100;
-    printf("Soil temperature is %5.2fC.\n", val);
+    printf("Soil temperature is %d.\n", res);
 
     /* Test the power line for the moisture sensors */
     puts("Testing moisture sensor power. Light on control board should be blinking on and off.");
@@ -267,7 +270,10 @@ static void _hardware_test(void)
     printf("Plant 1 moisture level is %d.\n", sample);
     sample = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
     printf("Plant 2 moisture level is %d.\n", sample);
+    sample = adc_sample(MOISTURE_SENSOR_3_PIN, RES);
+    printf("Plant 3 moisture level is %d.\n", sample);
     gpio_clear(SENSOR_POWER_PIN);
+
 
 }
 
@@ -345,7 +351,7 @@ static void *sender(void *arg)
 
     /* Initialise the valve control lines */
     gpio_init(VALVE_CONTROL_1_PIN, GPIO_OUT);
-    gpio_init(VALVE_CONTROL_2_PIN, GPIO_OUT);
+    //gpio_init(VALVE_CONTROL_2_PIN, GPIO_OUT);
 
 #ifdef HARDWARE_TEST_ON
     _hardware_test();
