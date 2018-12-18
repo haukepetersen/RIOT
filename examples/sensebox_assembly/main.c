@@ -34,6 +34,9 @@
 #include "fmt.h"
 #include "net/loramac.h"
 
+#define ENABLE_DEBUG        (0)
+#include "debug.h"
+
 #include "semtech_loramac.h"
 #include "lora_serialization.h"
 
@@ -43,6 +46,12 @@
 #include "tsl4531x_params.h"
 #include "ds18.h"
 #include "ds18_params.h"
+
+typedef struct {
+    uint16_t watering_level;
+    bool low_disable;
+    bool high_disable;
+} valve_t;
 
 #define RES             ADC_RES_10BIT
 // Valves
@@ -62,15 +71,15 @@ static uint8_t deveui[LORAMAC_DEVEUI_LEN];
 static uint8_t appeui[LORAMAC_APPEUI_LEN];
 static uint8_t appkey[LORAMAC_APPKEY_LEN];
 
-uint16_t plant_1_watering_level;
-uint16_t plant_2_watering_level;
 
 /*********** Configurations ******************/
-//#define VALVE_WATERING_ON
-#define HARDWARE_TEST_ON
+#define VALVE_WATERING_ON
+//#define HARDWARE_TEST_ON
 #define LORA_DATA_SEND_ON
 
-#define PERIOD              (300U)   /* messages sent every 5 mins */
+#define PERIOD              (1200U)   /* messages sent every 20 mins */
+#define SAFETY_LOWER        (100)
+#define SAFETY_UPPER        (300)
 
 #define MOISTURE_SENSOR_1_PIN      ADC_LINE(0)
 #define MOISTURE_SENSOR_2_PIN      ADC_LINE(2)
@@ -80,6 +89,9 @@ uint16_t plant_2_watering_level;
 #define VALVE_CONTROL_2_PIN        GPIO_PIN(PA, 7) 
 #define VALVE_WATERING_TIME        (3)                /* seconds */
 #define VALVE_WATERING_TYPE        WATERING_INDIVIDUAL
+#define VALVE_NUMBER               (2)
+#define VALVE_1                    (0)
+#define VALVE_2                    (1)
 
 #define SENSOR_POWER_PIN           GPIO_PIN(PB, 8)
 
@@ -115,6 +127,8 @@ static hdc1000_t hdc1000_dev;
 static tsl4531x_t tsl4531x_dev;
 static ds18_t ds18_dev;
 
+valve_t valves[VALVE_NUMBER];
+
 static void rtc_cb(void *arg)
 {
     (void) arg;
@@ -133,9 +147,37 @@ static void _prepare_next_alarm(void)
     rtc_set_alarm(&time, rtc_cb, NULL);
 }
 
+#ifdef VALVE_WATERING_ON
+static bool _safety_test(int sample, uint8_t valve_no)
+{
+    if (sample < (valves[valve_no].watering_level - SAFETY_LOWER)){
+        valves[valve_no].low_disable = true;
+    }
+
+    if (sample > (valves[valve_no].watering_level)) {
+        valves[valve_no].low_disable = false;
+    }
+
+    if (sample > (valves[valve_no].watering_level + SAFETY_UPPER)){
+        valves[valve_no].high_disable = true;
+    }
+
+    DEBUG_PRINT("valve - %4d, watering level - %4d, sample value - %4d,",
+            valve_no, valves[valve_no].watering_level, sample);
+    DEBUG_PRINT("low disable - %1d, high disable - %1d\n",
+            valves[valve_no].low_disable, valves[valve_no].high_disable);
+
+    if (valves[valve_no].low_disable || valves[valve_no].high_disable) {
+        return false;
+    }
+
+    return true;
+}
+#endif
+
 static void _send_message(void)
 {
-    printf("Sending data\n");
+    printf("Collecting data\n");
 
      /* Reset serialization descriptor */
     lora_serialization_reset(&serialization);
@@ -179,7 +221,7 @@ static void _send_message(void)
     sample = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
     lora_serialization_write_uint16(&serialization, sample);
 #ifdef VALVE_WATERING_ON
-    if (sample > plant_1_watering_level) {
+    if (_safety_test(sample, VALVE_1) && (sample > valves[VALVE_1].watering_level)) {
         gpio_set(VALVE_CONTROL_1_PIN);
         xtimer_sleep(VALVE_WATERING_TIME);
         gpio_clear(VALVE_CONTROL_1_PIN);
@@ -189,7 +231,7 @@ static void _send_message(void)
     sample = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
     lora_serialization_write_uint16(&serialization, sample);
 #ifdef VALVE_WATERING_ON
-    if (sample > plant_2_watering_level) {
+    if (_safety_test(sample, VALVE_2) && (sample > valves[VALVE_2].watering_level)) {
         gpio_set(VALVE_CONTROL_2_PIN);
         xtimer_sleep(VALVE_WATERING_TIME);
         gpio_clear(VALVE_CONTROL_2_PIN);
@@ -375,10 +417,10 @@ static void *sender(void *arg)
      * the reading to settle down
      */
     xtimer_sleep(10);
-    plant_1_watering_level = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
-    printf("Plant 1 watering level is %d.\n", plant_1_watering_level);
-    plant_2_watering_level = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
-    printf("Plant 2 watering level is %d.\n", plant_2_watering_level);
+    valves[VALVE_1].watering_level = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
+    printf("Plant 1 watering level is %d.\n", valves[VALVE_1].watering_level);
+    valves[VALVE_2].watering_level = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
+    printf("Plant 2 watering level is %d.\n", valves[VALVE_2].watering_level);
     gpio_clear(SENSOR_POWER_PIN);
 #endif
 
