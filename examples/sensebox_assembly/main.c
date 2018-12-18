@@ -68,16 +68,16 @@ uint16_t plant_2_watering_level;
 /*********** Configurations ******************/
 //#define VALVE_WATERING_ON
 #define HARDWARE_TEST_ON
-//#define LORA_DATA_SEND_ON
+#define LORA_DATA_SEND_ON
 
 #define PERIOD              (300U)   /* messages sent every 5 mins */
 
 #define MOISTURE_SENSOR_1_PIN      ADC_LINE(0)
-#define MOISTURE_SENSOR_2_PIN      ADC_LINE(1)
-#define MOISTURE_SENSOR_3_PIN      ADC_LINE(3)
+#define MOISTURE_SENSOR_2_PIN      ADC_LINE(2)
+#define MOISTURE_SENSOR_3_PIN      ADC_LINE(5)
 
-#define VALVE_CONTROL_1_PIN        GPIO_PIN(PA, 2) 
-//#define VALVE_CONTROL_2_PIN        GPIO_PIN(PA, 7) 
+#define VALVE_CONTROL_1_PIN        GPIO_PIN(PA, 5) 
+#define VALVE_CONTROL_2_PIN        GPIO_PIN(PA, 7) 
 #define VALVE_WATERING_TIME        (3)                /* seconds */
 #define VALVE_WATERING_TYPE        WATERING_INDIVIDUAL
 
@@ -89,6 +89,11 @@ uint16_t plant_2_watering_level;
 /*TODO: try this from here, rather than in ds18/include/ds18_params.h */
 //#define DS18_PARAM_PIN             (GPIO_PIN(PB, 9))
 //#define DS18_PARAM_PULL            (GPIO_OD_PU)
+
+/*TODO: the sensor switching is different on the two setups. On mine, it
+ * switches the valves too but not soil temp sensor, and vice versa for 
+ * Stefan's. Could this be handled in config too?
+ */
 
 /* light (tsl4531x) and temp/humidity (hdc1000) drivers currently need:
  *
@@ -206,22 +211,25 @@ static void _send_message(void)
 
 }
 
+#ifdef HARDWARE_TEST_ON
 static void _hardware_test(void)
 {
     /* Test the valves */
     puts("Testing the valves. Valves should click on and off three times each.");
+    gpio_set(SENSOR_POWER_PIN);
+    xtimer_sleep(1);
     for (int i = 0; i < 3; i++) {
         gpio_set(VALVE_CONTROL_1_PIN);
         xtimer_sleep(1);
         gpio_clear(VALVE_CONTROL_1_PIN);
         xtimer_sleep(1);
     }
- //   for (int i = 0; i < 3; i++) {
- //       gpio_set(VALVE_CONTROL_2_PIN);
- //       xtimer_sleep(1);
- //       gpio_clear(VALVE_CONTROL_2_PIN);
- //       xtimer_sleep(1);
- //   }
+    for (int i = 0; i < 3; i++) {
+        gpio_set(VALVE_CONTROL_2_PIN);
+        xtimer_sleep(1);
+        gpio_clear(VALVE_CONTROL_2_PIN);
+        xtimer_sleep(1);
+    }
 
     /* Test the soil temp, air temp/humidity, and light sensors */
     puts("Testing the soil temp, air temp/humidity, and light sensors. Check the readings are sensible.");
@@ -229,6 +237,8 @@ static void _hardware_test(void)
     float val;
     hdc1000_read_cached((const hdc1000_t *)&hdc1000_dev, &res, NULL);
     val = (float)res/100;
+    /* TODO: this won't print val, for some reason. Get it printing... maybe it
+     * needs a double format specifier?*/
     (void)val;
     printf("Air temperature is %d.\n", res);
 
@@ -276,6 +286,7 @@ static void _hardware_test(void)
 
 
 }
+#endif
 
 static void *sender(void *arg)
 {
@@ -351,7 +362,7 @@ static void *sender(void *arg)
 
     /* Initialise the valve control lines */
     gpio_init(VALVE_CONTROL_1_PIN, GPIO_OUT);
-    //gpio_init(VALVE_CONTROL_2_PIN, GPIO_OUT);
+    gpio_init(VALVE_CONTROL_2_PIN, GPIO_OUT);
 
 #ifdef HARDWARE_TEST_ON
     _hardware_test();
