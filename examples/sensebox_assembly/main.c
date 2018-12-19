@@ -92,8 +92,8 @@ static uint8_t appkey[LORAMAC_APPKEY_LEN];
 #define VALVE_NUMBER               (2)
 #define VALVE_1                    (0)
 #define VALVE_2                    (1)
-#define VALVE_1_WATERING_LEVEL_INIT  (500)
-#define VALVE_2_WATERING_LEVEL_INIT  (500)
+#define VALVE_1_WATERING_LEVEL_INIT  (700)
+#define VALVE_2_WATERING_LEVEL_INIT  (700)
 
 #define SENSOR_POWER_PIN           GPIO_PIN(PB, 8)
 
