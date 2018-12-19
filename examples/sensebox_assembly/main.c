@@ -92,6 +92,8 @@ static uint8_t appkey[LORAMAC_APPKEY_LEN];
 #define VALVE_NUMBER               (2)
 #define VALVE_1                    (0)
 #define VALVE_2                    (1)
+#define VALVE_1_WATERING_LEVEL_INIT  (500)
+#define VALVE_2_WATERING_LEVEL_INIT  (500)
 
 #define SENSOR_POWER_PIN           GPIO_PIN(PB, 8)
 
@@ -417,9 +419,11 @@ static void *sender(void *arg)
      * the reading to settle down
      */
     xtimer_sleep(10);
-    valves[VALVE_1].watering_level = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
+    //valves[VALVE_1].watering_level = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
+    valves[VALVE_1].watering_level = VALVE_1_WATERING_LEVEL_INIT;
     printf("Plant 1 watering level is %d.\n", valves[VALVE_1].watering_level);
-    valves[VALVE_2].watering_level = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
+    //valves[VALVE_2].watering_level = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
+    valves[VALVE_2].watering_level = VALVE_2_WATERING_LEVEL_INIT;
     printf("Plant 2 watering level is %d.\n", valves[VALVE_2].watering_level);
     gpio_clear(SENSOR_POWER_PIN);
 #endif
