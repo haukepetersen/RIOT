@@ -77,7 +77,7 @@ static uint8_t appkey[LORAMAC_APPKEY_LEN];
 //#define HARDWARE_TEST_ON
 #define LORA_DATA_SEND_ON
 
-#define PERIOD              (1200U)   /* messages sent every 20 mins */
+#define PERIOD              (7200U)   /* messages sent every 20 mins */
 #define SAFETY_LOWER        (100)
 #define SAFETY_UPPER        (300)
 
@@ -348,18 +348,16 @@ static void *sender(void *arg)
      /* this should never be reached */
     return NULL;
 }
- int main(void)
+
+#ifdef LORA_DATA_SEND_ON
+static uint8_t _lora_join(void)
 {
-    puts("LoRaWAN Class A low-power application");
-    puts("=====================================");
-    puts("Integration with TTN and openSenseMap");
-    puts("=====================================");
-     /* Convert identifiers and application key */
+
+    /* Convert identifiers and application key */
     fmt_hex_bytes(deveui, DEVEUI); fmt_hex_bytes(appeui, APPEUI);
     fmt_hex_bytes(appkey, APPKEY);
 
-#ifdef LORA_DATA_SEND_ON
-     /* Initialize the loramac stack */
+    /* Initialize the loramac stack */
     semtech_loramac_init(&loramac);
     semtech_loramac_set_deveui(&loramac, deveui);
     semtech_loramac_set_appeui(&loramac, appeui);
@@ -376,6 +374,21 @@ static void *sender(void *arg)
         return 1;
     }
     puts("Join procedure succeeded");
+
+    return 0;
+
+}
+#endif
+
+int main(void)
+{
+    puts("LoRaWAN Class A low-power application");
+    puts("=====================================");
+    puts("Integration with TTN and openSenseMap");
+    puts("=====================================");
+
+#ifdef LORA_DATA_SEND_ON
+    while(_lora_join());
 #endif
 
     /* Enable the UART 5V lines */
