@@ -134,6 +134,96 @@ static ds18_t ds18_dev;
 valve_t valves[VALVE_NUMBER];
 
 
+static void rtc_cb(void *arg)
+{
+    (void) arg;
+    msg_t msg;
+    msg_send(&msg, sender_pid);
+}
+
+static void _prepare_next_alarm(void)
+{
+    struct tm time;
+    rtc_get_time(&time);
+
+    /* set initial alarm */
+    time.tm_sec += PERIOD;
+    mktime(&time);
+    rtc_set_alarm(&time, rtc_cb, NULL);
+}
+#ifdef VALVE_WATERING_ON
+bool _safety_test(int sample, uint8_t valve_no)
+{
+    if (sample < (valves[valve_no].watering_level - SAFETY_LOWER)){
+        valves[valve_no].low_disable = true;
+    }
+
+    if (sample > (valves[valve_no].watering_level)) {
+        valves[valve_no].low_disable = false;
+    }
+
+    if (sample > (valves[valve_no].watering_level + SAFETY_UPPER)){
+        valves[valve_no].high_disable = true;
+    }
+
+    DEBUG_PRINT("valve - %4d, watering level - %4d, sample value - %4d,",
+            valve_no, valves[valve_no].watering_level, sample);
+    DEBUG_PRINT("low disable - %1d, high disable - %1d\n",
+            valves[valve_no].low_disable, valves[valve_no].high_disable);
+
+    if (valves[valve_no].low_disable || valves[valve_no].high_disable) {
+        return false;
+    }
+
+    return true;
+}
+#endif
+
+void _configure_application(void){
+
+#ifdef VALVE_WATERING_ON
+    /* Set the watering level */
+    valves[VALVE_1].watering_level = VALVE_1_WATERING_LEVEL_INIT;
+    printf("Plant 1 watering level is %d.\n", valves[VALVE_1].watering_level);
+    valves[VALVE_2].watering_level = VALVE_2_WATERING_LEVEL_INIT;
+    printf("Plant 2 watering level is %d.\n", valves[VALVE_2].watering_level);
+    gpio_clear(SENSOR_POWER_PIN);
+#endif
+}
+
+static void *_sender(void *arg)
+{
+    (void)arg;
+     msg_t msg;
+    msg_t msg_queue[8];
+    msg_init_queue(msg_queue, 8);
+     while (1) {
+        msg_receive(&msg);
+
+        /* TODO: another way to wake a thread up periodically? there's no msg
+         * being sent.
+         * use xtimer_periodic_wakeup().
+         */
+
+     /* Write data to serialization. Replace with your sensors measurements.
+     * Keep in mind that the order in which the data is written into the
+     * serialization needs to match the decoders order.
+     */
+
+        /* Collect data from sensors */
+        /* for all sensors, s_and_a_read() */
+
+        /* If _safety_test(), s_and_a_water(valve_t, time) */
+         _safety_test(moisture_level, VALVE_1)
+#ifdef LORA_DATA_SEND_ON
+        lora_send_data(&serialization);
+
+         /* Schedule the next wake-up alarm */
+        _prepare_next_alarm();
+    }
+     /* this should never be reached */
+    return NULL;
+}
 
 int main(void)
 {
@@ -143,130 +233,25 @@ int main(void)
     puts("=====================================");
 
 #ifdef LORA_DATA_SEND_ON
-    while(_lora_join());
+    while(lora_join());
 #endif
 
-    /* Enable the UART 5V lines */
-    /* TODO: I don't actually need this for Stefan's setup. But a PR should be
-     * raised
-     */
-    gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
-    gpio_set(GPIO_PIN(PB, 2));
-
-    /* Initialise the sensors */
-    hdc1000_init(&hdc1000_dev, &hdc1000_params[0]);
-    tsl4531x_init(&tsl4531x_dev, &tsl4531x_params[0]);
-    ds18_init(&ds18_dev, &ds18_params[0]);
-
-    /* Initialise the ADCs */
-    if (adc_init(MOISTURE_SENSOR_1_PIN) < 0) {
-        printf("Moisture sensor 1 ADC initialization failed\n");
+    if (s_and_a_init(void) < 0){
+        puts("Sensor and actuator initialisation failed");
     }
-    if (adc_init(MOISTURE_SENSOR_2_PIN) < 0) {
-        printf("Moisture sensor 2 ADC initialization failed\n");
-    }
-    if (adc_init(MOISTURE_SENSOR_3_PIN) < 0) {
-        printf("Moisture sensor 3 ADC initialization failed\n");
-    }
-
-    /* Initialise the hygrometer power control line */
-    gpio_init(SENSOR_POWER_PIN, GPIO_OUT);
-
-    /* Initialise the valve control lines */
-    gpio_init(VALVE_CONTROL_1_PIN, GPIO_OUT);
-    gpio_init(VALVE_CONTROL_2_PIN, GPIO_OUT);
 
 #ifdef HARDWARE_TEST_ON
     hardware_test();
 #endif
 
-#ifdef VALVE_WATERING_ON
-    /* Set the watering level */
-    gpio_set(SENSOR_POWER_PIN);
-    /* Sleep for 10s - the electrolytic effect means that it takes ~5-6s for
-     * the reading to settle down
-     */
-    xtimer_sleep(10);
-    //valves[VALVE_1].watering_level = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
-    valves[VALVE_1].watering_level = VALVE_1_WATERING_LEVEL_INIT;
-    printf("Plant 1 watering level is %d.\n", valves[VALVE_1].watering_level);
-    //valves[VALVE_2].watering_level = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
-    valves[VALVE_2].watering_level = VALVE_2_WATERING_LEVEL_INIT;
-    printf("Plant 2 watering level is %d.\n", valves[VALVE_2].watering_level);
-    gpio_clear(SENSOR_POWER_PIN);
-#endif
 
-    /* start the sender thread */
+    /* start the main thread */
     sender_pid = thread_create(sender_stack, sizeof(sender_stack),
-                               SENDER_PRIO, 0, sender, NULL, "sender");
+                               SENDER_PRIO, 0, _sender, NULL, "sender");
 
      /* trigger the first send */
     msg_t msg;
     msg_send(&msg, sender_pid);
+
     return 0;
 }
-
-//int main(void)
-//{
-//    puts("Welcome to RIOT!\n");
-//    puts("Type `help` for help, type `saul` to see all SAUL devices\n");
-//
-//    /* Enables the UART 5V lines */
-//    gpio_init(GPIO_PIN(PB,2), GPIO_OUT);
-//    gpio_set(GPIO_PIN(PB, 2));
-//
-//    for (unsigned i = 0; i < 5; i = i + 2) {
-//        if (adc_init(ADC_LINE(i)) < 0) {
-//            printf("ADC %u inihialization failed\n", i);
-//        }
-//        else {
-//            int sample = adc_sample(ADC_LINE(i), RES);
-//            if (sample < 0) {
-//                printf("ADC_LINE(%u): 10-bit resolution not applicable\n", i);
-//            } else {
-//                printf("ADC_LINE(%u): %i\n", i, sample);
-//            }
-//        }
-//    }
-//        
-//   /* valve 1 */ 
-////    gpio_init(GPIO_PIN(PA, 7), GPIO_OUT);
-////    gpio_init(GPIO_PIN(PA, 5), GPIO_OUT);
-//    gpio_init(GPIO_PIN(PB, 8), GPIO_OUT);
-//   //     .rx_pin = GPIO_PIN(PB, 9),
-//    while(1){
-//        xtimer_sleep(3);
-//        puts("pin clear");
-////        gpio_clear(GPIO_PIN(PA, 5));
-////        gpio_clear(GPIO_PIN(PA, 7));
-//        gpio_clear(GPIO_PIN(PB, 8));
-//        xtimer_sleep(3);
-//        for (unsigned i = 0; i < 5; i = i + 2) {
-//            int sample = adc_sample(ADC_LINE(i), RES);
-//            if (sample < 0) {
-//                printf("ADC_LINE(%u): 10-bit resolution not applicable\n", i);
-//            } else {
-//                printf("ADC_LINE(%u): %i\n", i, sample);
-//            }
-//        }
-//        xtimer_sleep(3);
-//        puts("pin set");
-////        gpio_set(GPIO_PIN(PA, 5));
-////        gpio_set(GPIO_PIN(PA, 7));
-//        gpio_set(GPIO_PIN(PB, 8));
-//        xtimer_sleep(3);
-//        for (unsigned i = 0; i < 5; i = i + 2) {
-//            int sample = adc_sample(ADC_LINE(i), RES);
-//            if (sample < 0) {
-//                printf("ADC_LINE(%u): 10-bit resolution not applicable\n", i);
-//            } else {
-//                printf("ADC_LINE(%u): %i\n", i, sample);
-//            }
-//        }
-//    }
-//    
-//    char line_buf[SHELL_DEFAULT_BUFSIZE];
-//    shell_run(NULL, line_buf, SHELL_DEFAULT_BUFSIZE);
-//
-//    return 0;
-//}
