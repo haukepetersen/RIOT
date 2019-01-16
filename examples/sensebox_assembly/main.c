@@ -32,26 +32,19 @@
 #include "msg.h"
 #include "thread.h"
 #include "fmt.h"
-#include "net/loramac.h"
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
-
-#include "semtech_loramac.h"
-#include "lora_serialization.h"
-
-#include "hdc1000.h"
-#include "hdc1000_params.h"
-#include "tsl4531x.h"
-#include "tsl4531x_params.h"
-#include "ds18.h"
-#include "ds18_params.h"
-
 
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 
 static kernel_pid_t collect_and_send_pid;
 static char collect_and_send_stack[THREAD_STACKSIZE_MAIN / 2];
+
+typedef struct data_t {
+    .raw
+    .type
+};
 
 /*********** Configurations ******************/
 #define VALVE_WATERING_ON
@@ -63,6 +56,12 @@ static char collect_and_send_stack[THREAD_STACKSIZE_MAIN / 2];
 #define SAFETY_UPPER        (300)
 #define WATERING_TIME       (3)
 /***********************************************/
+
+/* TODO: go through and make sure that everything is encapsulated:
+ * modules only know about things they need to know about. eg the main module
+ * doesn't need to know details of the hardware; neither does LoRa (it only
+ * needs to know the data)
+ */
 
 extern void hardware_test(void);
 extern void lora_join(void);
@@ -99,20 +98,10 @@ static void *_collect_and_send(void *arg)
 
         msg_receive(&msg);
 
-        /* Collect data from sensors */
-        /* for all sensors, s_and_a_read() */
-        for (int i = 0; i < SENSOR_NUMOF; i++) {
-            s_and_a_update(sensors[i]);
-        }
-
-#ifdef WATERING_ON
-        for (int i = 0; i < VALVE_NUMOF; i++) {
-            s_and_a_water(valves[i]);
-        }
-#endif
+        s_and_a_update_all(&data, len);
 
 #ifdef LORA_DATA_SEND_ON
-        lora_send_data(&sensors);
+        lora_send_data(&data, len);
 #endif
 
         /* Schedule the next wake-up alarm */

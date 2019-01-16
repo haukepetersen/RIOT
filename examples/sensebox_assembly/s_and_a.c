@@ -1,19 +1,9 @@
-typedef struct {
-    uint16_t watering_level;
-    bool low_disable;
-    bool high_disable;
-} valve_t;
-
-static const valve_t valves[] = 
-{
-    /* valve config here */
-}
-
-static const sensor_t sensors[] =
-{
-    /* sensor config here */
-}
-
+#include "hdc1000.h"
+#include "hdc1000_params.h"
+#include "tsl4531x.h"
+#include "tsl4531x_params.h"
+#include "ds18.h"
+#include "ds18_params.h"
 
 #define RES             ADC_RES_10BIT
 
@@ -32,6 +22,118 @@ static const sensor_t sensors[] =
 #define VALVE_2_WATERING_LEVEL_INIT  (700)
 
 #define SENSOR_POWER_PIN           GPIO_PIN(PB, 8)
+
+typedef enum {
+    SENSOR_T_HDC1000_TEMP,
+    SENSOR_T_HDC1000_HUM,
+    SENSOR_T_TSL4531X,
+    SENSOR_T_DS18,
+    SENSOR_T_HYGROMETER
+} sensor_type_te;
+
+typedef enum {
+    SENSOR_DATA_T_TEMP,
+    SENSOR_DATA_T_HUM,
+    SENSOR_DATA_T_UINT16
+} data_type_te;
+
+typedef struct {
+    /* TODO: deduplicate raw_data. maybe a pointer to a data_t? */
+    uint16_t raw_data;
+    data_type_te data_type;
+    sensor_type_te sensor_type;
+    void* dev;
+} sensor_t;
+
+typedef struct {
+    uint8_t watering_time;
+    uint16_t watering_level;
+    uint16_t safety_margin_lower;
+    uint16_t safety_margin_upper;
+    bool low_disable;
+    bool high_disable;
+    gpio_t control_pin;
+    sensor_t* control_sensor;
+} valve_t;
+
+static hdc1000_t hdc1000_dev;
+static tsl4531x_t tsl4531x_dev;
+static ds18_t ds18_dev;
+static hygrometer_t hygrometer_1_dev;
+static hygrometer_t hygrometer_2_dev;
+static hygrometer_t hygrometer_3_dev;
+
+static const sensor_t sensors[] =
+{
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_TEMP,
+        .sensor_type = SENSOR_T_HDC1000_TEMP,
+        .dev = &hdc1000_dev
+    },
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_HUM,
+        .sensor_type = SENSOR_T_HDC1000_HUM,
+        .dev = &hdc1000_dev
+    },
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_UINT16,
+        .sensor_type = SENSOR_T_TSL4531X,
+        .dev = &tsl4531x_dev
+    },
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_TEMP,
+        .sensor_type = SENSOR_T_DS18
+        .dev = &hdc1000_dev
+    },
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_UINT16,
+        .sensor_type = SENSOR_T_HYGROMETER,
+        .dev = &hygrometer_1_dev
+    },
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_UINT16,
+        .sensor_type = SENSOR_T_HYGROMETER,
+        .dev = &hygrometer_2_dev
+    },
+    {
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_UINT16,
+        .sensor_type = SENSOR_T_HYGROMETER,
+        .dev = &hygrometer_3_dev
+    }
+}
+
+#define SENSOR_NUMOF           sizeof(sensors) / sizeof(sensors[0])
+
+static const valve_t valves[] = 
+{
+    {
+        .watering_time =  VALVE_WATERING_TIME,
+        .watering_level = VALVE_1_WATERING_LEVEL_INIT,
+        .safety_margin_lower = SAFETY_LOWER,
+        .safety_margin_upper = SAFETY_UPPER,
+        .low_disable = false,
+        .high_disable = false,
+        .control_sensor = &sensors[0]
+    },
+    {
+        .watering_time =  VALVE_WATERING_TIME,
+        .watering_level = VALVE_2_WATERING_LEVEL_INIT,
+        .safety_margin_lower = SAFETY_LOWER,
+        .safety_margin_upper = SAFETY_UPPER,
+        .low_disable = false,
+        .high_disable = false,
+        .control_sensor = &sensors[1]
+    }
+};
+
+#define VALVE_NUMOF           sizeof(valves) / sizeof(valves[0])
 
 /* TODO: try this from here, rather than in sensebox/include/periph_conf.h */
 //#define ADC_0_REF_DEFAULT                  ADC_REFCTRL_REFSEL_AREFA
@@ -61,25 +163,11 @@ static const sensor_t sensors[] =
  */
 
 /* Sensor device descriptors */
-static hdc1000_t hdc1000_dev;
-static tsl4531x_t tsl4531x_dev;
-static ds18_t ds18_dev;
-static hygrometer_t hygrometer_dev;
 
 #ifdef VALVE_WATERING_ON
 bool _valve_safety_test(valve_t valve)
 {
-    /* TODO: figure out how the safety/control of the valves will look,
-     * so that each valve can operate based on either individual sensor
-     * readings or an average. (Or other arbitrary function, if that's
-     * possible).
-     * Maybe this would look something like:
-    int comparison_val = valve.determine_comparison_value(sensors);
-     * but I need to think about whether the idea of storing a "comparison
-     * value" is really what I want
-    */
-
-    if (sample < (valve.watering_level - SAFETY_LOWER)){
+    if (sample < (valve.watering_level - valve.safety_margin_lower)){
         valve.low_disable = true;
     }
 
@@ -87,7 +175,7 @@ bool _valve_safety_test(valve_t valve)
         valve.low_disable = false;
     }
 
-    if (sample > (valve.watering_level + SAFETY_UPPER)){
+    if (sample > (valve.watering_level + valve.safety_margin_upper)){
         valve.high_disable = true;
     }
 
@@ -128,6 +216,18 @@ int hygrometer_init(hygrometer_t* dev)
 }
 
 void s_and_a_water(valve_t valve){
+
+    int moisture_level = 0;
+
+    if (!valve.control_sensor) {
+        for (int i = 0; i < SENSOR_NUMOF; i++) {
+            moisture_level += sensors[i];
+        }
+        moisture_level = moisture_level / SENSOR_NUMOF;
+    }
+    else {
+        moisture_level = valve.control_sensor->val;
+    }
 
     if ((moisture_level > valve.watering_level) &&
          _valve_safety_test(valve)) {
@@ -209,6 +309,23 @@ int s_and_a_sensor_init(sensor_t sensor)
         default:	
             break;
     } 
+}
+
+void s_and_a_update_all(void)
+{
+    /* Collect data from sensors */
+    for (int i = 0; i < SENSOR_NUMOF; i++) {
+        data[i] = s_and_a_sensor_update(sensors[i]);
+/* TODO: make sure there's a compile time check that data[] and sensors[] are
+ * the same size, eg by using the same variable to declare
+ */
+    }
+
+#ifdef WATERING_ON
+    for (int i = 0; i < VALVE_NUMOF; i++) {
+        s_and_a_water(valves[i]);
+    }
+#endif
 }
 
 void s_and_a_init_all(void)
