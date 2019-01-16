@@ -47,30 +47,11 @@
 #include "ds18.h"
 #include "ds18_params.h"
 
-typedef struct {
-    uint16_t watering_level;
-    bool low_disable;
-    bool high_disable;
-} valve_t;
-
-#define RES             ADC_RES_10BIT
-// Valves
-////    gpio_init(GPIO_PIN(PA, 7), GPIO_OUT);
-////    gpio_init(GPIO_PIN(PA, 5), GPIO_OUT);
-////        gpio_clear(GPIO_PIN(PA, 5));
-////        gpio_clear(GPIO_PIN(PA, 7));
 
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 
-static kernel_pid_t sender_pid;
-static char sender_stack[THREAD_STACKSIZE_MAIN / 2];
-semtech_loramac_t loramac;
-lora_serialization_t serialization;
-
-static uint8_t deveui[LORAMAC_DEVEUI_LEN];
-static uint8_t appeui[LORAMAC_APPEUI_LEN];
-static uint8_t appkey[LORAMAC_APPKEY_LEN];
-
+static kernel_pid_t collect_and_send_pid;
+static char collect_and_send_stack[THREAD_STACKSIZE_MAIN / 2];
 
 /*********** Configurations ******************/
 #define VALVE_WATERING_ON
@@ -80,65 +61,20 @@ static uint8_t appkey[LORAMAC_APPKEY_LEN];
 #define PERIOD              (7200U)   /* messages sent every 20 mins */
 #define SAFETY_LOWER        (100)
 #define SAFETY_UPPER        (300)
-
-#define MOISTURE_SENSOR_1_PIN      ADC_LINE(0)
-#define MOISTURE_SENSOR_2_PIN      ADC_LINE(2)
-#define MOISTURE_SENSOR_3_PIN      ADC_LINE(5)
-
-#define VALVE_CONTROL_1_PIN        GPIO_PIN(PA, 5) 
-#define VALVE_CONTROL_2_PIN        GPIO_PIN(PA, 7) 
-#define VALVE_WATERING_TIME        (3)                /* seconds */
-#define VALVE_WATERING_TYPE        WATERING_INDIVIDUAL
-#define VALVE_NUMBER               (2)
-#define VALVE_1                    (0)
-#define VALVE_2                    (1)
-#define VALVE_1_WATERING_LEVEL_INIT  (700)
-#define VALVE_2_WATERING_LEVEL_INIT  (700)
-
-#define SENSOR_POWER_PIN           GPIO_PIN(PB, 8)
-
-/* TODO: try this from here, rather than in sensebox/include/periph_conf.h */
-//#define ADC_0_REF_DEFAULT                  ADC_REFCTRL_REFSEL_AREFA
-
-/*TODO: try this from here, rather than in ds18/include/ds18_params.h */
-//#define DS18_PARAM_PIN             (GPIO_PIN(PB, 9))
-//#define DS18_PARAM_PULL            (GPIO_OD_PU)
-
-/*TODO: the sensor switching is different on the two setups. On mine, it
- * switches the valves too but not soil temp sensor, and vice versa for 
- * Stefan's. Could this be handled in config too?
- */
-
-/* light (tsl4531x) and temp/humidity (hdc1000) drivers currently need:
- *
- * - USEMODULE += [name] in makefile
- * - a device descriptor declared here
- * - initialization by calling the required device_init function
- * - collection of data by calling the relevant functions
- * - sending data by calling lora_serialization_write
- * - handling of data in opensensemap
- *
- *   these are the same between the two setups so will remain the same in the
- *   code for the time being.
- *
- *   TODO: make this configurable too
- */
+#define WATERING_TIME       (3)
+/***********************************************/
 
 extern void hardware_test(void);
-
-/* Sensor device descriptors */
-static hdc1000_t hdc1000_dev;
-static tsl4531x_t tsl4531x_dev;
-static ds18_t ds18_dev;
-
-valve_t valves[VALVE_NUMBER];
-
+extern void lora_join(void);
+extern int s_and_a_init(void); 
+extern void s_and_a_update(sensor_t sensors);
+extern void s_and_a_water(valve_t valves);
 
 static void rtc_cb(void *arg)
 {
     (void) arg;
     msg_t msg;
-    msg_send(&msg, sender_pid);
+    msg_send(&msg, collect_and_send_pid);
 }
 
 static void _prepare_next_alarm(void)
@@ -151,77 +87,53 @@ static void _prepare_next_alarm(void)
     mktime(&time);
     rtc_set_alarm(&time, rtc_cb, NULL);
 }
-#ifdef VALVE_WATERING_ON
-bool _safety_test(int sample, uint8_t valve_no)
-{
-    if (sample < (valves[valve_no].watering_level - SAFETY_LOWER)){
-        valves[valve_no].low_disable = true;
-    }
 
-    if (sample > (valves[valve_no].watering_level)) {
-        valves[valve_no].low_disable = false;
-    }
-
-    if (sample > (valves[valve_no].watering_level + SAFETY_UPPER)){
-        valves[valve_no].high_disable = true;
-    }
-
-    DEBUG_PRINT("valve - %4d, watering level - %4d, sample value - %4d,",
-            valve_no, valves[valve_no].watering_level, sample);
-    DEBUG_PRINT("low disable - %1d, high disable - %1d\n",
-            valves[valve_no].low_disable, valves[valve_no].high_disable);
-
-    if (valves[valve_no].low_disable || valves[valve_no].high_disable) {
-        return false;
-    }
-
-    return true;
-}
-#endif
-
-void _configure_application(void){
-
-#ifdef VALVE_WATERING_ON
-    /* Set the watering level */
-    valves[VALVE_1].watering_level = VALVE_1_WATERING_LEVEL_INIT;
-    printf("Plant 1 watering level is %d.\n", valves[VALVE_1].watering_level);
-    valves[VALVE_2].watering_level = VALVE_2_WATERING_LEVEL_INIT;
-    printf("Plant 2 watering level is %d.\n", valves[VALVE_2].watering_level);
-    gpio_clear(SENSOR_POWER_PIN);
-#endif
-}
-
-static void *_sender(void *arg)
+static void *_collect_and_send(void *arg)
 {
     (void)arg;
-     msg_t msg;
+    msg_t msg;
     msg_t msg_queue[8];
     msg_init_queue(msg_queue, 8);
-     while (1) {
+
+    while (1) {
+
         msg_receive(&msg);
-
-        /* TODO: another way to wake a thread up periodically? there's no msg
-         * being sent.
-         * use xtimer_periodic_wakeup().
-         */
-
-     /* Write data to serialization. Replace with your sensors measurements.
-     * Keep in mind that the order in which the data is written into the
-     * serialization needs to match the decoders order.
-     */
 
         /* Collect data from sensors */
         /* for all sensors, s_and_a_read() */
+        for (int i = 0; i < SENSOR_NUMOF; i++) {
+            s_and_a_update(sensors[i]);
+        }
 
-        /* If _safety_test(), s_and_a_water(valve_t, time) */
-         _safety_test(moisture_level, VALVE_1)
+#ifdef WATERING_ON
+        for (int i = 0; i < VALVE_NUMOF; i++) {
+            s_and_a_water(valves[i]);
+        }
+#endif
+
 #ifdef LORA_DATA_SEND_ON
-        lora_send_data(&serialization);
+        lora_send_data(&sensors);
+#endif
 
-         /* Schedule the next wake-up alarm */
+        /* Schedule the next wake-up alarm */
         _prepare_next_alarm();
+
+        /* TODO: Try this for memory usage, replacing "rtt" with "rtc"
+         * and removing all the msg stuff
+         *
+         * rtt_set_alarm(sleepDuration + startTime, rttCallback, NULL);
+         * thread_sleep();
+         *
+         * then wake with a callback:
+         *void rttCallback(void *arg) {
+             thread_wakeup(MainPid);
+             }
+         *
+         * because it involves less lines of code
+         */
+
     }
-     /* this should never be reached */
+    /* this should never be reached */
     return NULL;
 }
 
@@ -233,25 +145,31 @@ int main(void)
     puts("=====================================");
 
 #ifdef LORA_DATA_SEND_ON
-    while(lora_join());
+    if (lora_join() < 0) {
+        puts("LoRa OTA activation failed");
+    }
 #endif
 
-    if (s_and_a_init(void) < 0){
-        puts("Sensor and actuator initialisation failed");
-    }
+    /* Enable the UART 5V lines */
+    /* TODO: I don't actually need this for Stefan's setup. But I do for mine.
+     * Move to sensebox config and raise a PR.
+     */
+    gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
+    gpio_set(GPIO_PIN(PB, 2));
+
+    s_and_a_init_all();
 
 #ifdef HARDWARE_TEST_ON
     hardware_test();
 #endif
 
-
     /* start the main thread */
-    sender_pid = thread_create(sender_stack, sizeof(sender_stack),
-                               SENDER_PRIO, 0, _sender, NULL, "sender");
+    collect_and_send_pid = thread_create(collect_and_send_stack, sizeof(collect_and_send_stack),
+                               SENDER_PRIO, 0, _collect_and_send, NULL, "Data collect and send");
 
      /* trigger the first send */
     msg_t msg;
-    msg_send(&msg, sender_pid);
+    msg_send(&msg, collect_and_send_pid);
 
     return 0;
 }

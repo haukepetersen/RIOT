@@ -1,25 +1,49 @@
+semtech_loramac_t loramac;
+lora_serialization_t serialization;
 
-static void rtc_cb(void *arg)
+static uint8_t deveui[LORAMAC_DEVEUI_LEN];
+static uint8_t appeui[LORAMAC_APPEUI_LEN];
+static uint8_t appkey[LORAMAC_APPKEY_LEN];
+
+static void _lora_serialize_data(sensor_data_t data, lora_serialization_t* serialzation)
 {
-    (void) arg;
-    msg_t msg;
-    msg_send(&msg, sender_pid);
+     /* Reset serialization descriptor */
+    lora_serialization_reset(&serialization);
+     /* Write data to serialization. Replace with your sensors measurements.
+     * Keep in mind that the order in which the data is written into the
+     * serialization needs to match the decoders order.
+     */
+    /* for all records in sensor_data_t
+     * switch-case statement filling serialization depending on type of
+     * vairable
+     */
+    /* Air temperature - HDC1000 */
+    int16_t res;
+    float val;
+
+    val = (float)res/100;
+    lora_serialization_write_temperature(&serialization, val);
+
+    /* Air humidity - HDC1000 */
+    val = (float)res/100;
+
+    lora_serialization_write_humidity(&serialization, val);
+
+    /* Visible light intensity - tsl4531x */
+
+    lora_serialization_write_uint16(&serialization, res);
+
+    /* Soil temperature - ds18 */
+    val = (float)res/100;
+    lora_serialization_write_temperature(&serialization, val);
+
+    /* Soil moisture levels */
+    lora_serialization_write_uint16(&serialization, sample);
 }
 
-static void _prepare_next_alarm(void)
-{
-    struct tm time;
-    rtc_get_time(&time);
-
-    /* set initial alarm */
-    time.tm_sec += PERIOD;
-    mktime(&time);
-    rtc_set_alarm(&time, rtc_cb, NULL);
-}
 #ifdef LORA_DATA_SEND_ON
-static uint8_t _lora_join(void)
+static uint8_t lora_join(void)
 {
-
     /* Convert identifiers and application key */
     fmt_hex_bytes(deveui, DEVEUI); fmt_hex_bytes(appeui, APPEUI);
     fmt_hex_bytes(appkey, APPKEY);
@@ -36,27 +60,21 @@ static uint8_t _lora_join(void)
      * keys.
      */
     puts("Starting join procedure");
-    if (semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA) != SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
-        puts("Join procedure failed");
-        return 1;
+    uint8_t retries = 0;
+    while (semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA) != SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
+        puts("Join procedure failed. Trying again");
+        retries++;
+
+        if (retries > 2) {
+            puts("Retries exceeded. LoRaWAN not joined.");
+            return 1;
+        }
     }
     puts("Join procedure succeeded");
 
     return 0;
-
 }
 #endif
-
-static void _lora_serialize_data(sensor_data_t data, lora_serialization_t* serialzation)
-{
-     /* Reset serialization descriptor */
-    lora_serialization_reset(&serialization);
-    /* for all records in sensor_data_t
-     * switch-case statement filling serialization depending on type of
-     * vairable
-     */
-}
-
 
 static void lora_send_data(sensor_data_t *data)
 {
@@ -72,5 +90,3 @@ static void lora_send_data(sensor_data_t *data)
     semtech_loramac_recv(&loramac);
 
 }
-
-
