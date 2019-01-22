@@ -4,6 +4,9 @@
 #include "lora_serialization.h"
 #include "fmt.h"
 
+#define ENABLE_DEBUG (1)
+#include "debug.h"
+
 typedef enum {
     SENSOR_DATA_T_TEMP,
     SENSOR_DATA_T_HUM,
@@ -11,7 +14,7 @@ typedef enum {
 } data_type_te;
 
 typedef struct {
-    int raw;
+    uint16_t raw;
     data_type_te type;
 } data_t;
 
@@ -20,9 +23,15 @@ lora_serialization_t serialization;
 
 static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_t* serialization)
 {
+    assert(data);
+
     lora_serialization_reset(serialization);
+    DEBUG_PRINT("LoRa serialization reset.\n");
 
     for (int i = 0; i < data_len; i++) {
+
+        DEBUG_PRINT("Data point %d, data type %d, raw data %d\n", i, data->type, data->raw);
+        fflush(stdout);
 
         float cents = (float)data->raw/100;
         switch ( data->type ) {
@@ -48,15 +57,23 @@ static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_
 
 void lora_send_data(data_t *data, int len)
 {
+    DEBUG_PRINT("Sending data.\n");
+
     lora_serialization_t serialization;
 
     _lora_serialize_data(data, len, &serialization);
+
+    DEBUG_PRINT("Data serialized.\n");
     
     /* The send call blocks until done */
     semtech_loramac_send(&loramac, serialization.buffer, serialization.cursor);
 
+    DEBUG_PRINT("Data sent.\n");
+
     /* Wait until the send cycle has completed */
     semtech_loramac_recv(&loramac);
+
+    DEBUG_PRINT("Data confirmation received.\n");
 
 }
 

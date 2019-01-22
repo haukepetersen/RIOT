@@ -20,6 +20,7 @@ USEMODULE += ps
 USEMODULE += tsl4531x
 USEMODULE += hdc1000
 USEMODULE += ds18
+USEMODULE += printf_float
 
 FEATURES_REQUIRED = periph_adc
 

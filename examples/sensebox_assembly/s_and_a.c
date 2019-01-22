@@ -7,7 +7,6 @@
 #include "tsl4531x_params.h"
 #include "ds18.h"
 #include "ds18_params.h"
-#include "debug.h"
 
 typedef enum {
     SENSOR_DATA_T_TEMP,
@@ -27,6 +26,7 @@ typedef struct {
 #define GLOBAL_STARTUP_TIME (10)
 
 #define ENABLE_DEBUG        (0)
+#include "debug.h"
 
 /* TODO: put into hygrometer.h */
 typedef struct {
@@ -71,7 +71,7 @@ typedef struct {
      * Remember the encapsulation
      * within s_and_a.c, though. Maybe I need an s_and_a_read() function or the
      * like. */
-    uint8_t name[12];
+    const char* name;
     int16_t raw_data;
     data_type_te data_type;
     sensor_type_te sensor_type;
@@ -357,10 +357,10 @@ void s_and_a_hardware_test(void)
         switch ( sensors[i].data_type ) {
             case SENSOR_DATA_T_TEMP:
             case SENSOR_DATA_T_HUM:
-                printf("%s: %f", sensors[i].name, cents);
+                printf("%s: %.2f\n", sensors[i].name, cents);
                 break;
             case SENSOR_DATA_T_UINT16:
-                printf("%s: %d", sensors[i].name, sensors[i].raw_data);
+                printf("%s: %d\n", sensors[i].name, sensors[i].raw_data);
                 break;
 
             default:
@@ -369,6 +369,8 @@ void s_and_a_hardware_test(void)
     }
 
     gpio_clear(GLOBAL_POWER_PIN);
+
+    puts("Hardware test complete.");
 }
 
 int s_and_a_valve_init(valve_t* valve)
@@ -396,6 +398,7 @@ int s_and_a_sensor_init(sensor_t* sensor, data_t* data)
              * how to make this application extensible to any possible sensor
              * (that's supported in RIOT), without the user having to touch the
              * code.
+             *
              */
 
         case SENSOR_T_HDC1000_HUM:

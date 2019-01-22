@@ -30,6 +30,9 @@
 #include "msg.h"
 #include "thread.h"
 
+#define ENABLE_DEBUG (1)
+#include "debug.h"
+
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 
 static kernel_pid_t collect_and_send_pid;
@@ -48,13 +51,10 @@ typedef struct {
 
 /*********** Configurations ******************/
 #define WATERING_ON
-#define HARDWARE_TEST_ON
+//#define HARDWARE_TEST_ON
 #define LORA_DATA_SEND_ON
 
-#define PERIOD              (7200U)   /* messages sent every 20 mins */
-#define SAFETY_LOWER        (100)
-#define SAFETY_UPPER        (300)
-#define WATERING_TIME       (3)
+#define PERIOD              (5U)   /* messages sent every 20 mins */
 /***********************************************/
 
 /* TODO: go through and make sure that everything is encapsulated:
@@ -103,6 +103,8 @@ static void *_collect_and_send(void *arg)
     msg_t msg;
     msg_t msg_queue[8];
     msg_init_queue(msg_queue, 8);
+
+    DEBUG_PRINT("Data thread started.\n");
 
     while (1) {
 
