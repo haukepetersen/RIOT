@@ -22,14 +22,14 @@ typedef struct {
 } data_t;
 
 /*TODO: this depends on the hardware. any way to remove it from here? */
-#define RES             ADC_RES_10BIT
+#define RES                 ADC_RES_10BIT
+#define GLOBAL_POWER_PIN    GPIO_PIN(PB, 8)
+#define GLOBAL_STARTUP_TIME (10)
 
 #define ENABLE_DEBUG        (0)
 
 /* TODO: put into hygrometer.h */
 typedef struct {
-    gpio_t power_pin;
-    uint16_t startup_time;
     adc_t read_pin;
 } hygrometer_params_t;
 
@@ -38,31 +38,20 @@ typedef struct {
 } hygrometer_t;
 
 /* TODO: put into hygrometer_params.h */
-#define HYGROMETER_1_POWER_PIN     GPIO_PIN(PB, 8)
-#define HYGROMETER_1_STARTUP_TIME  (10)
+/* TODO: implement one 10s startup time for all sensors */
 #define HYGROMETER_1_READ_PIN      ADC_LINE(0)
-#define HYGROMETER_2_POWER_PIN     GPIO_PIN(PB, 8)
-#define HYGROMETER_2_STARTUP_TIME  (10)
 #define HYGROMETER_2_READ_PIN      ADC_LINE(2)
-#define HYGROMETER_3_POWER_PIN     GPIO_PIN(PB, 8)
-#define HYGROMETER_3_STARTUP_TIME  (10)
 #define HYGROMETER_3_READ_PIN      ADC_LINE(5)
 
 static const hygrometer_params_t hygrometer_params[] = 
 {
     {
-        .power_pin = HYGROMETER_1_POWER_PIN,
-        .startup_time = HYGROMETER_1_STARTUP_TIME,
         .read_pin = HYGROMETER_1_READ_PIN
     },
     {
-        .power_pin = HYGROMETER_2_POWER_PIN,
-        .startup_time = HYGROMETER_2_STARTUP_TIME,
         .read_pin = HYGROMETER_2_READ_PIN
     },
     {
-        .power_pin = HYGROMETER_3_POWER_PIN,
-        .startup_time = HYGROMETER_3_STARTUP_TIME,
         .read_pin = HYGROMETER_3_READ_PIN
     }
 };
@@ -82,6 +71,7 @@ typedef struct {
      * Remember the encapsulation
      * within s_and_a.c, though. Maybe I need an s_and_a_read() function or the
      * like. */
+    uint8_t name[12];
     int16_t raw_data;
     data_type_te data_type;
     sensor_type_te sensor_type;
@@ -128,6 +118,7 @@ static hygrometer_t hygrometer_3_dev;
 static sensor_t sensors[] =
 {
     {
+        .name = "hdc1000 temp",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_TEMP,
         .sensor_type = SENSOR_T_HDC1000_TEMP,
@@ -135,6 +126,7 @@ static sensor_t sensors[] =
         .dev = &hdc1000_dev
     },
     {
+        .name = "hdc1000 hum",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_HUM,
         .sensor_type = SENSOR_T_HDC1000_HUM,
@@ -142,6 +134,7 @@ static sensor_t sensors[] =
         .dev = &hdc1000_dev
     },
     {
+        .name = "tsl4531x",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_UINT16,
         .sensor_type = SENSOR_T_TSL4531X,
@@ -149,6 +142,7 @@ static sensor_t sensors[] =
         .dev = &tsl4531x_dev
     },
     {
+        .name = "ds18",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_TEMP,
         .sensor_type = SENSOR_T_DS18,
@@ -156,6 +150,7 @@ static sensor_t sensors[] =
         .dev = &ds18_dev
     },
     {
+        .name = "hygrometer 1",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_UINT16,
         .sensor_type = SENSOR_T_HYGROMETER,
@@ -163,6 +158,7 @@ static sensor_t sensors[] =
         .dev = &hygrometer_1_dev
     },
     {
+        .name = "hygrometer 2",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_UINT16,
         .sensor_type = SENSOR_T_HYGROMETER,
@@ -170,6 +166,7 @@ static sensor_t sensors[] =
         .dev = &hygrometer_2_dev
     },
     {
+        .name = "hygrometer 3",
         .raw_data = 0,
         .data_type = SENSOR_DATA_T_UINT16,
         .sensor_type = SENSOR_T_HYGROMETER,
@@ -251,19 +248,12 @@ bool _valve_safety_test(valve_t* valve, int sample)
 
 void hygrometer_read(hygrometer_t* dev, int16_t* val)
 {
-    gpio_set(dev->params->power_pin);
-    xtimer_sleep(dev->params->startup_time);
     *val = adc_sample(dev->params->read_pin, RES);
-    gpio_clear(dev->params->power_pin);
 }
 
 int hygrometer_init(hygrometer_t* dev, const hygrometer_params_t* params)
 {
     int ret;
-
-    if ((ret = gpio_init(params->power_pin, GPIO_OUT)) < 0) {
-        return ret;
-    }
 
     if ((ret = adc_init(params->read_pin)) < 0) {
         return ret;
@@ -335,76 +325,50 @@ void s_and_a_sensor_update(sensor_t* sensor)
 
 void s_and_a_hardware_test(void)
 {
+    /* Test the power line for the moisture sensors */
+    puts("Testing moisture sensor power lines. Light on control boards should be blinking on and off.");
+    for (int i = 0; i < 5; i++) {
+        gpio_set(GLOBAL_POWER_PIN);
+        xtimer_sleep(1);
+        gpio_clear(GLOBAL_POWER_PIN);
+        xtimer_sleep(1);
+    }
+
+    /* Leave the power on for the rest of the test. */
+    gpio_set(GLOBAL_POWER_PIN);
+
     /* Test the valves */
     puts("Testing the valves. Valves should click on and off three times each.");
-    gpio_set(SENSOR_POWER_PIN);
-    xtimer_sleep(1);
-    for (int i = 0; i < 3; i++) {
-        gpio_set(VALVE_CONTROL_1_PIN);
-        xtimer_sleep(1);
-        gpio_clear(VALVE_CONTROL_1_PIN);
-        xtimer_sleep(1);
-    }
-    for (int i = 0; i < 3; i++) {
-        gpio_set(VALVE_CONTROL_2_PIN);
-        xtimer_sleep(1);
-        gpio_clear(VALVE_CONTROL_2_PIN);
-        xtimer_sleep(1);
+    for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
+        for (int j = 0; j < 3; j++) {
+            gpio_set(valves[i].control_pin);
+            xtimer_sleep(1);
+            gpio_clear(valves[i].control_pin);
+            xtimer_sleep(1);
+        }
     }
 
-    /* Test the soil temp, air temp/humidity, and light sensors */
-    puts("Testing the soil temp, air temp/humidity, and light sensors. Check the readings are sensible.");
-    int16_t res;
-    float val;
-    hdc1000_read_cached((const hdc1000_t *)&hdc1000_dev, &res, NULL);
-    val = (float)res/100;
-    /* TODO: this won't print val, for some reason. Get it printing... maybe it
-     * needs a double format specifier?*/
-    (void)val;
-    printf("Air temperature is %d.\n", res);
+    /* Test the sensors */
+    puts("Testing the sensors. Check the readings are sensible.");
+    for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
+        s_and_a_sensor_update(&sensors[i]);
 
-    hdc1000_read_cached((const hdc1000_t *)&hdc1000_dev, NULL, &res);
-    val = (float)res/100;
-    printf("Air humidity is %d.\n", res);
+        float cents = (float)sensors[i].raw_data/100;
+        switch ( sensors[i].data_type ) {
+            case SENSOR_DATA_T_TEMP:
+            case SENSOR_DATA_T_HUM:
+                printf("%s: %f", sensors[i].name, cents);
+                break;
+            case SENSOR_DATA_T_UINT16:
+                printf("%s: %d", sensors[i].name, sensors[i].raw_data);
+                break;
 
-    /* Visible light intensity - tsl4531x */
-    res = tsl4531x_simple_read(&tsl4531x_dev);
-    printf("Light intensity is %d\n", res);
-
-    /* Soil temperature - ds18 */
-    gpio_set(SENSOR_POWER_PIN);
-    xtimer_sleep(1);
-    if (ds18_get_temperature(&ds18_dev, &res) < 0) {
-        puts("Soil temp collection failed");
-        res = 0;
-    }
-    val = (float)res/100;
-    printf("Soil temperature is %d.\n", res);
-
-    /* Test the power line for the moisture sensors */
-    puts("Testing moisture sensor power. Light on control board should be blinking on and off.");
-    for (int i = 0; i < 3; i++) {
-        gpio_set(SENSOR_POWER_PIN);
-        xtimer_sleep(1);
-        gpio_clear(SENSOR_POWER_PIN);
-        xtimer_sleep(1);
+            default:
+                break;
+        }
     }
 
-    /* Test the moisture sensors */
-    puts("Testing moisture sensors. Check the readings are sensible.");
-    gpio_set(SENSOR_POWER_PIN);
-    /* Sleep for 10s - the electrolytic effect means that it takes ~5-6s for
-     * the reading to settle down
-     */
-    xtimer_sleep(10);
-    int sample = adc_sample(MOISTURE_SENSOR_1_PIN, RES);
-    printf("Plant 1 moisture level is %d.\n", sample);
-    sample = adc_sample(MOISTURE_SENSOR_2_PIN, RES);
-    printf("Plant 2 moisture level is %d.\n", sample);
-    sample = adc_sample(MOISTURE_SENSOR_3_PIN, RES);
-    printf("Plant 3 moisture level is %d.\n", sample);
-    gpio_clear(SENSOR_POWER_PIN);
-
+    gpio_clear(GLOBAL_POWER_PIN);
 }
 
 int s_and_a_valve_init(valve_t* valve)
@@ -462,6 +426,9 @@ int s_and_a_sensor_init(sensor_t* sensor, data_t* data)
 
 void s_and_a_update_all(data_t* data)
 {
+    gpio_set(GLOBAL_POWER_PIN);
+    xtimer_sleep(GLOBAL_STARTUP_TIME);
+
     /* Collect data from sensors */
     for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
         assert(data + i);
@@ -480,11 +447,17 @@ void s_and_a_update_all(data_t* data)
         s_and_a_water(&valves[i]);
     }
 #endif
+
+    gpio_clear(GLOBAL_POWER_PIN);
 }
 
 void s_and_a_init_all(data_t* data)
 {
     int ret;
+
+    if ((ret = gpio_init(GLOBAL_POWER_PIN, GPIO_OUT)) < 0) {
+        printf("Couldn't initialise global power pin: %d\n", ret);
+    }
 
     for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
         if ((ret = s_and_a_sensor_init(&sensors[i], data + i)) < 0) {
