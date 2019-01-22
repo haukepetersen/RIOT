@@ -24,31 +24,31 @@
 #include <time.h>
 
 #include "periph/gpio.h"
-#include "periph/adc.h"
 #include "periph/rtc.h"
 
 #include "shell.h"
-#include "xtimer.h"
 #include "msg.h"
 #include "thread.h"
-#include "fmt.h"
-
-#define ENABLE_DEBUG        (0)
-#include "debug.h"
 
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 
 static kernel_pid_t collect_and_send_pid;
 static char collect_and_send_stack[THREAD_STACKSIZE_MAIN / 2];
 
-typedef struct data_t {
-    .raw
-    .type
-};
+typedef enum {
+    SENSOR_DATA_T_TEMP,
+    SENSOR_DATA_T_HUM,
+    SENSOR_DATA_T_UINT16
+} data_type_te;
+
+typedef struct {
+    uint16_t raw;
+    data_type_te type;
+} data_t;
 
 /*********** Configurations ******************/
-#define VALVE_WATERING_ON
-//#define HARDWARE_TEST_ON
+#define WATERING_ON
+#define HARDWARE_TEST_ON
 #define LORA_DATA_SEND_ON
 
 #define PERIOD              (7200U)   /* messages sent every 20 mins */
@@ -63,11 +63,21 @@ typedef struct data_t {
  * needs to know the data)
  */
 
+/* TODO: make it so that everything that needs changing between the two setups
+ * is in header files only: one for mine, one for stefan's.
+ */
+
 extern void hardware_test(void);
-extern void lora_join(void);
-extern int s_and_a_init(void); 
-extern void s_and_a_update(sensor_t sensors);
-extern void s_and_a_water(valve_t valves);
+extern uint8_t lora_join(void);
+extern void lora_send_data(data_t* data, int len);
+extern int s_and_a_init_all(data_t* data); 
+extern void s_and_a_update_all(data_t* data);
+extern void s_and_a_hardware_test(void);
+
+/* TODO: this means the size of data[] needs to be the same as
+ * the number of sensors, manually. Make it so it's easier to change */
+data_t data[7];
+#define DATA_NUMOF      sizeof(data) / sizeof(data[0])
 
 static void rtc_cb(void *arg)
 {
@@ -98,10 +108,10 @@ static void *_collect_and_send(void *arg)
 
         msg_receive(&msg);
 
-        s_and_a_update_all(&data, len);
+        s_and_a_update_all(data);
 
 #ifdef LORA_DATA_SEND_ON
-        lora_send_data(&data, len);
+        lora_send_data(data, DATA_NUMOF);
 #endif
 
         /* Schedule the next wake-up alarm */
@@ -134,7 +144,7 @@ int main(void)
     puts("=====================================");
 
 #ifdef LORA_DATA_SEND_ON
-    if (lora_join() < 0) {
+    if (lora_join() > 0) {
         puts("LoRa OTA activation failed");
     }
 #endif
@@ -146,10 +156,10 @@ int main(void)
     gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
     gpio_set(GPIO_PIN(PB, 2));
 
-    s_and_a_init_all();
+    s_and_a_init_all(data);
 
 #ifdef HARDWARE_TEST_ON
-    hardware_test();
+    s_and_a_hardware_test();
 #endif
 
     /* start the main thread */

@@ -2,6 +2,18 @@
 #include "net/loramac.h"
 #include "semtech_loramac.h"
 #include "lora_serialization.h"
+#include "fmt.h"
+
+typedef enum {
+    SENSOR_DATA_T_TEMP,
+    SENSOR_DATA_T_HUM,
+    SENSOR_DATA_T_UINT16
+} data_type_te;
+
+typedef struct {
+    int raw;
+    data_type_te type;
+} data_t;
 
 semtech_loramac_t loramac;
 lora_serialization_t serialization;
@@ -55,7 +67,8 @@ uint8_t lora_join(void)
     uint8_t appkey[LORAMAC_APPKEY_LEN];
 
     /* Convert identifiers and application key */
-    fmt_hex_bytes(deveui, DEVEUI); fmt_hex_bytes(appeui, APPEUI);
+    fmt_hex_bytes(deveui, DEVEUI);
+    fmt_hex_bytes(appeui, APPEUI);
     fmt_hex_bytes(appkey, APPKEY);
 
     /* Initialize the loramac stack */
