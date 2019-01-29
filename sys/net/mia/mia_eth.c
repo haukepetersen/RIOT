@@ -21,14 +21,16 @@ uint8_t mia_mac[ETHERNET_ADDR_LEN];
 
 static void eth_flush(uint16_t len)
 {
-    struct iovec data;
+    iolist_t data = {
+        .iol_next = NULL,
+        .iol_base = (void *)mia_buf,
+        .iol_len = (size_t)len + MIA_ETH_HDR_LEN
+    };
 
-    data.iov_base = (void *)mia_buf;
-    data.iov_len = (size_t)len + MIA_ETH_HDR_LEN;
 #if ENABLE_DEBUG
     mia_print_pkt("OUT   ");
 #endif
-    mia_dev->driver->send(mia_dev, &data, 1);
+    mia_dev->driver->send(mia_dev, &data);
 }
 
 void mia_eth_process(void)

@@ -21,7 +21,7 @@
 
 
 
-netdev2_t *mia_dev;
+netdev_t *mia_dev;
 mutex_t mia_mutex;
 uint8_t mia_buf[MIA_BUFSIZE];
 
@@ -30,16 +30,16 @@ const uint8_t mia_bcast[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 static msg_t msg_queue[MIA_MSG_QUEUESIZE];
 static kernel_pid_t mia_pid;
 
-static void on_evt(netdev2_t *dev, netdev2_event_t evt)
+static void on_evt(netdev_t *dev, netdev_event_t evt)
 {
     msg_t msg;
 
     switch (evt) {
-        case NETDEV2_EVENT_ISR:
+        case NETDEV_EVENT_ISR:
             msg.type = MIA_MSG_ISR;
             msg_send(&msg, mia_pid);
             break;
-        case NETDEV2_EVENT_RX_COMPLETE:
+        case NETDEV_EVENT_RX_COMPLETE:
             mia_lock();
             dev->driver->recv(dev, (char *)mia_buf, MIA_BUFSIZE, NULL);
             mia_eth_process();
@@ -51,7 +51,7 @@ static void on_evt(netdev2_t *dev, netdev2_event_t evt)
     }
 }
 
-int mia_run(netdev2_t *netdev)
+int mia_run(netdev_t *netdev)
 {
     uint16_t type;
     msg_t msg;
@@ -65,7 +65,7 @@ int mia_run(netdev2_t *netdev)
     }
     /* so far we can only handle Ethernet */
     mia_dev->driver->get(mia_dev, NETOPT_DEVICE_TYPE, (void *)&type, 2);
-    if (type != NETDEV2_TYPE_ETHERNET) {
+    if (type != NETDEV_TYPE_ETHERNET) {
         return -ENOTSUP;
     }
 
@@ -100,4 +100,11 @@ int mia_run(netdev2_t *netdev)
 
     /* we should not end up here... */
     return 0;
+}
+
+int mia_init(void)
+{
+
+
+    return MIA_OK;
 }

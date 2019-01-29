@@ -55,8 +55,8 @@ static enc28j60_t dev;
 #include "w5100_params.h"
 static w5100_t dev;
 #elif defined(MODULE_NETDEV2_TAP)
-#include "netdev2_tap.h"
-extern netdev2_tap_t netdev2_tap;
+#include "netdev_tap.h"
+extern netdev_tap_t netdev_tap;
 static const uint8_t native_addr[] = { 0x0a, 0x0a, 0x0a, 0x17 };
 static const uint8_t native_bcast[] = { 0x0a, 0x0a, 0x0a, 0xff };
 static const uint8_t native_gateway[] = { 0x0a, 0x0a, 0x0a, 0x01 };
@@ -76,9 +76,9 @@ static void *run_mia_run(void *arg)
 
     puts("MIA: starting the stack now");
 #ifdef MODULE_NETDEV2_TAP
-    mia_run((netdev2_t *)&netdev2_tap);
+    mia_run((netdev_t *)&netdev_tap);
 #else
-    mia_run((netdev2_t *)&dev);
+    mia_run((netdev_t *)&dev);
 #endif
     return NULL;
 }
@@ -92,7 +92,7 @@ static void dump_time(uint32_t dt)
 
 static void ping_cb(void)
 {
-    uint32_t now = xtimer_now();
+    uint32_t now = xtimer_now_usec();
     uint32_t then;
     memcpy(&then, mia_ptr(MIA_ICMP_ECHO_DATA), 4);
 

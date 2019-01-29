@@ -23,7 +23,7 @@ int mia_udp_bind(mia_bind_t *ctx)
         }
     }
 
-    DEBUG("[mia] udp: adding ep, port %i, cb %p\n", (int)ctx->port, ctx->cb);
+    DEBUG("[mia] udp: adding ep, port %i\n", (int)ctx->port);
     ctx->next = endpoints;
     endpoints = ctx;
 

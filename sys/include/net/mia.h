@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Freie Universität Berlin
+ * Copyright (C) 2016-2019 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,14 +7,15 @@
  */
 
 /**
- * @defgroup    sys_mia Minimalistic IP Application Stack
+ * @defgroup    sys_mia MIA
  * @ingroup     mia
  * @brief       MIA - a minimal IPv4 network stack
  *
- * This is MIA. It can do Ethernet, IPv4, and UDP only.
+ * This is MIA. It can do Ethernet, IPv4, and UDP.
  *
  * Restrictions:
  * - only a single instance (network interface)
+ * - Ethernet only
  *
  * @{
  * @file
@@ -30,7 +31,7 @@
 #include <string.h>
 
 #include "mutex.h"
-#include "net/netdev2.h"
+#include "net/netdev.h"
 
 #include "net/mia/print.h"
 
@@ -78,25 +79,21 @@ extern "C" {
 #define MIA_IP_ADDR_LEN         (4U)
 
 /**
- * @brief   Custom MIA error codes
- * @{
+ * @brief   Mia error and return codes
  */
-#define MIA_ERR_NO_ROUTE        (-50)
-#define MIA_ERR_OVERFLOW        (-51)
-/** @} */
-
 enum {
-    MIA_OK      = 0,
-    MIA_NOPORT  = -1
+    MIA_OK           =  0,
+    MIA_ERR_NO_PORT  = -1,
+    MIA_ERR_NO_ROUTE = -2,
+    MIA_ERR_OVERFLOW = -3,
 };
 
 extern uint8_t mia_buf[];
 extern mutex_t mia_mutex;
 
-extern netdev2_t *mia_dev;
+extern netdev_t *mia_dev;
 
 extern uint8_t mia_mac[];
-
 
 extern const uint8_t mia_bcast[];
 
@@ -110,10 +107,7 @@ typedef struct mia_bind_t {
 } mia_bind_t;
 
 
-int mia_run(netdev2_t *dev);
-
-int mia_ping(uint8_t *addr, mia_cb_t cb);
-
+int mia_run(netdev_t *dev);
 
 static inline uint8_t *mia_ptr(const int pos)
 {

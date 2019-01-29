@@ -46,7 +46,7 @@ void mia_icmp_process(void)
 int mia_icmp_ping(uint8_t *addr, mia_cb_t cb)
 {
     int res = 0;
-    uint32_t now = xtimer_now();
+    uint32_t now = xtimer_now_usec();
 
     mia_lock();
 
