@@ -23,9 +23,9 @@ typedef struct {
 /*TODO: this depends on the hardware. any way to remove it from here? */
 #define RES                 ADC_RES_10BIT
 #define GLOBAL_POWER_PIN    GPIO_PIN(PB, 8)
-#define GLOBAL_STARTUP_TIME (10)
+#define GLOBAL_STARTUP_TIME (5)
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
 
 /* TODO: put into hygrometer.h */
@@ -92,16 +92,16 @@ typedef struct {
 
 /* TODO: put into s_and_a_params.h */
 #define VALVE_1_CONTROL_PIN        GPIO_PIN(PA, 5)
-#define VALVE_1_WATERING_LEVEL     (700)
+#define VALVE_1_WATERING_LEVEL     (800)
 #define VALVE_1_WATERING_TIME      (3)                /* seconds */
 #define VALVE_1_SAFETY_LOWER       (100)
-#define VALVE_1_SAFETY_UPPER       (200)
+#define VALVE_1_SAFETY_UPPER       (400)
 
 #define VALVE_2_CONTROL_PIN        GPIO_PIN(PA, 7)
-#define VALVE_2_WATERING_LEVEL     (700)
+#define VALVE_2_WATERING_LEVEL     (800)
 #define VALVE_2_WATERING_TIME      (3)                /* seconds */
 #define VALVE_2_SAFETY_LOWER       (100)
-#define VALVE_2_SAFETY_UPPER       (200)
+#define VALVE_2_SAFETY_UPPER       (400)
 
 /* TODO: separate out a sensor_conf and a valve_conf, following
  * the style of periph_conf.h. Change the init function accordingly,
@@ -187,7 +187,7 @@ static valve_t valves[] =
         .low_disable = false,
         .high_disable = false,
         .control_pin = VALVE_1_CONTROL_PIN,
-        .control_sensor = &sensors[0]
+        .control_sensor = &sensors[4]
     },
     {
         .watering_time =  VALVE_2_WATERING_TIME,
@@ -197,7 +197,7 @@ static valve_t valves[] =
         .low_disable = false,
         .high_disable = false,
         .control_pin = VALVE_2_CONTROL_PIN,
-        .control_sensor = &sensors[1]
+        .control_sensor = &sensors[5]
     }
 };
 
@@ -437,19 +437,18 @@ void s_and_a_update_all(data_t* data)
         assert(data + i);
         s_and_a_sensor_update(&sensors[i]);
         (data + i)->raw = sensors[i].raw_data;
+        DEBUG_PRINT("Sensor %d, raw data %d\n", i, (data + i)->raw);
     }
 /* TODO: make sure there's a compile time check that data[] and sensors[] are
  * the same size, eg by using the same variable to declare
  */
 
-#ifdef WATERING_ON
     for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
         /* TODO: why am I passing around &valves when it's defined in module
          * level? Get the architecture clear.
          */
         s_and_a_water(&valves[i]);
     }
-#endif
 
     gpio_clear(GLOBAL_POWER_PIN);
 }

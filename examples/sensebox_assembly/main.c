@@ -35,8 +35,10 @@
 
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 
-static kernel_pid_t collect_and_send_pid;
-static char collect_and_send_stack[THREAD_STACKSIZE_MAIN / 2];
+static kernel_pid_t send_pid;
+static char send_stack[THREAD_STACKSIZE_MAIN / 2];
+static kernel_pid_t watering_pid;
+static char watering_stack[THREAD_STACKSIZE_MAIN / 2];
 
 typedef enum {
     SENSOR_DATA_T_TEMP,
@@ -50,11 +52,12 @@ typedef struct {
 } data_t;
 
 /*********** Configurations ******************/
-#define WATERING_ON
+#define WATERING_THREAD_ON
 //#define HARDWARE_TEST_ON
 #define LORA_DATA_SEND_ON
 
-#define PERIOD              (5U)   /* messages sent every 20 mins */
+#define WATERING_THREAD_PERIOD              (5U)      /* watering done every 5 secs */
+#define MSG_THREAD_PERIOD                   (7200U)   /* messages sent every 2 hours */
 /***********************************************/
 
 /* TODO: go through and make sure that everything is encapsulated:
@@ -77,13 +80,69 @@ extern void s_and_a_hardware_test(void);
 /* TODO: this means the size of data[] needs to be the same as
  * the number of sensors, manually. Make it so it's easier to change */
 data_t data[7];
+
 #define DATA_NUMOF      sizeof(data) / sizeof(data[0])
+
+static void rtc_cb_watering(void *arg)
+{
+    (void) arg;
+    msg_t msg;
+    msg_send(&msg, watering_pid);
+}
+
+static void _prepare_next_alarm_watering(void)
+{
+    struct tm time;
+    rtc_get_time(&time);
+
+    /* set initial alarm */
+    time.tm_sec += WATERING_THREAD_PERIOD;
+    mktime(&time);
+    rtc_set_alarm(&time, rtc_cb_watering, NULL);
+}
+
+static void *_watering(void *arg)
+{
+    (void)arg;
+    msg_t msg;
+    msg_t msg_queue[8];
+    msg_init_queue(msg_queue, 8);
+
+    DEBUG_PRINT("Watering thread started.\n");
+
+    while (1) {
+
+        msg_receive(&msg);
+
+        s_and_a_update_all(data);
+
+        /* Schedule the next wake-up alarm */
+        _prepare_next_alarm_watering();
+
+        /* TODO: Try this for memory usage, replacing "rtt" with "rtc"
+         * and removing all the msg stuff
+         *
+         * rtt_set_alarm(sleepDuration + startTime, rttCallback, NULL);
+         * thread_sleep();
+         *
+         * then wake with a callback:
+         *void rttCallback(void *arg) {
+             thread_wakeup(MainPid);
+             }
+         *
+         * because it involves less lines of code
+         */
+
+    }
+    /* this should never be reached */
+    return NULL;
+}
 
 static void rtc_cb(void *arg)
 {
     (void) arg;
     msg_t msg;
-    msg_send(&msg, collect_and_send_pid);
+    msg_send(&msg, send_pid);
 }
 
 static void _prepare_next_alarm(void)
@@ -92,12 +151,12 @@ static void _prepare_next_alarm(void)
     rtc_get_time(&time);
 
     /* set initial alarm */
-    time.tm_sec += PERIOD;
+    time.tm_sec += MSG_THREAD_PERIOD;
     mktime(&time);
     rtc_set_alarm(&time, rtc_cb, NULL);
 }
 
-static void *_collect_and_send(void *arg)
+static void *_send(void *arg)
 {
     (void)arg;
     msg_t msg;
@@ -164,13 +223,19 @@ int main(void)
     s_and_a_hardware_test();
 #endif
 
-    /* start the main thread */
-    collect_and_send_pid = thread_create(collect_and_send_stack, sizeof(collect_and_send_stack),
-                               SENDER_PRIO, 0, _collect_and_send, NULL, "Data collect and send");
+    /* start the threads */
+#ifdef WATERING_THREAD_ON
+    watering_pid = thread_create(watering_stack, sizeof(watering_stack),
+                               SENDER_PRIO, 0, _watering, NULL, "Watering");
+#endif
+    send_pid = thread_create(send_stack, sizeof(send_stack),
+                               SENDER_PRIO, 0, _send, NULL, "Data collect and send");
 
      /* trigger the first send */
-    msg_t msg;
-    msg_send(&msg, collect_and_send_pid);
+    msg_t msg_datasend;
+    msg_send(&msg_datasend, send_pid);
+    msg_t msg_watering;
+    msg_send(&msg_watering, watering_pid);
 
     return 0;
 }
