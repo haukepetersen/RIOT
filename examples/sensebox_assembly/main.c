@@ -29,16 +29,20 @@
 #include "shell.h"
 #include "msg.h"
 #include "thread.h"
+#include "xtimer.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
+#define WATERING_PRIO         (THREAD_PRIORITY_MAIN - 2)
 
 static kernel_pid_t send_pid;
 static char send_stack[THREAD_STACKSIZE_MAIN / 2];
 static kernel_pid_t watering_pid;
 static char watering_stack[THREAD_STACKSIZE_MAIN / 2];
+
+int data_collected;
 
 typedef enum {
     SENSOR_DATA_T_TEMP,
@@ -53,7 +57,7 @@ typedef struct {
 
 /*********** Configurations ******************/
 #define WATERING_THREAD_ON
-//#define HARDWARE_TEST_ON
+#define HARDWARE_TEST_ON
 #define LORA_DATA_SEND_ON
 
 #define WATERING_THREAD_PERIOD              (5U)      /* watering done every 5 secs */
@@ -112,6 +116,7 @@ static void *_watering(void *arg)
 
     while (1) {
 
+        DEBUG_PRINT("Watering thread.\n");
         msg_receive(&msg);
 
         s_and_a_update_all(data);
@@ -163,13 +168,13 @@ static void *_send(void *arg)
     msg_t msg_queue[8];
     msg_init_queue(msg_queue, 8);
 
-    DEBUG_PRINT("Data thread started.\n");
+    DEBUG_PRINT("Data send thread started.\n");
 
     while (1) {
 
-        msg_receive(&msg);
+        DEBUG_PRINT("Data send thread.\n");
 
-        s_and_a_update_all(data);
+        msg_receive(&msg);
 
 #ifdef LORA_DATA_SEND_ON
         lora_send_data(data, DATA_NUMOF);
@@ -222,11 +227,13 @@ int main(void)
 #ifdef HARDWARE_TEST_ON
     s_and_a_hardware_test();
 #endif
+    /* Initial update */
+    s_and_a_update_all(data);
 
     /* start the threads */
 #ifdef WATERING_THREAD_ON
     watering_pid = thread_create(watering_stack, sizeof(watering_stack),
-                               SENDER_PRIO, 0, _watering, NULL, "Watering");
+                               WATERING_PRIO, 0, _watering, NULL, "Watering");
 #endif
     send_pid = thread_create(send_stack, sizeof(send_stack),
                                SENDER_PRIO, 0, _send, NULL, "Data collect and send");
