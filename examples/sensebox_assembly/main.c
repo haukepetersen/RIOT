@@ -30,6 +30,7 @@
 #include "msg.h"
 #include "thread.h"
 #include "xtimer.h"
+#include "mutex.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -42,7 +43,7 @@ static char send_stack[THREAD_STACKSIZE_MAIN / 2];
 static kernel_pid_t watering_pid;
 static char watering_stack[THREAD_STACKSIZE_MAIN / 2];
 
-int data_collected;
+mutex_t mutex;
 
 typedef enum {
     SENSOR_DATA_T_TEMP,
@@ -115,14 +116,18 @@ static void *_watering(void *arg)
     DEBUG_PRINT("Watering thread started.\n");
 
     while (1) {
+        
 
         DEBUG_PRINT("Watering thread.\n");
         msg_receive(&msg);
+        mutex_lock(&mutex);
+
 
         s_and_a_update_all(data);
 
         /* Schedule the next wake-up alarm */
         _prepare_next_alarm_watering();
+        mutex_unlock(&mutex);
 
         /* TODO: Try this for memory usage, replacing "rtt" with "rtc"
          * and removing all the msg stuff
@@ -172,9 +177,11 @@ static void *_send(void *arg)
 
     while (1) {
 
+
         DEBUG_PRINT("Data send thread.\n");
 
         msg_receive(&msg);
+        mutex_lock(&mutex);
 
 #ifdef LORA_DATA_SEND_ON
         lora_send_data(data, DATA_NUMOF);
@@ -196,6 +203,7 @@ static void *_send(void *arg)
          *
          * because it involves less lines of code
          */
+        mutex_unlock(&mutex);
 
     }
     /* this should never be reached */
@@ -221,6 +229,8 @@ int main(void)
      */
     gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
     gpio_set(GPIO_PIN(PB, 2));
+    
+    mutex_init(&mutex);
 
     s_and_a_init_all(data);
 
