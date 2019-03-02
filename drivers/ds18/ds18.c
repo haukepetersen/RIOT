@@ -27,7 +27,7 @@
 #include "periph/gpio.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 static void ds18_low(const ds18_t *dev)
@@ -78,17 +78,21 @@ static int ds18_read_bit(const ds18_t *dev, uint8_t *bit)
     while (!gpio_read(dev->params.pin) && measurement < DS18_DELAY_SLOT) {
         measurement = xtimer_now_usec() - start;
     }
+    DEBUG("5");
 
     /* If there was a timeout return error */
     if (measurement >= DS18_DELAY_SLOT) {
         return DS18_ERROR;
     }
+    DEBUG("6");
 
     /* When gpio was low for less than the sample time, bit is high*/
     *bit = measurement < DS18_SAMPLE_TIME;
+    DEBUG("7");
 
     /* Wait for slot to end */
     xtimer_usleep(DS18_DELAY_SLOT - measurement);
+    DEBUG("8\n");
 
     return DS18_OK;
 #endif
@@ -100,7 +104,9 @@ static int ds18_read_byte(const ds18_t *dev, uint8_t *byte)
     *byte = 0;
 
     for (int i = 0; i < 8; i++) {
+        DEBUG("[DS18] reading bit: %d\n", i);
         if (ds18_read_bit(dev, &bit) == DS18_OK) {
+            DEBUG("[DS18] bit read\n");
             *byte |= (bit << i);
         }
         else {

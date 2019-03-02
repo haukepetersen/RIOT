@@ -311,6 +311,8 @@ void s_and_a_sensor_update(sensor_t* sensor)
             break;
 
         case SENSOR_T_DS18:
+
+            DEBUG_PRINT("2.1\n");
             ds18_get_temperature(sensor->dev, &(sensor->raw_data));
             break;
 
@@ -434,8 +436,11 @@ void s_and_a_update_all(data_t* data)
 
     /* Collect data from sensors */
     for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
+        DEBUG_PRINT("1\n");
         assert(data + i);
+        DEBUG_PRINT("2\n");
         s_and_a_sensor_update(&sensors[i]);
+        DEBUG_PRINT("3\n");
         (data + i)->raw = sensors[i].raw_data;
         DEBUG_PRINT("Sensor %d, raw data %d\n", i, (data + i)->raw);
     }
