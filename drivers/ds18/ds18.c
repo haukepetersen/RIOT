@@ -61,9 +61,11 @@ static void ds18_write_bit(const ds18_t *dev, uint8_t bit)
 
 static int ds18_read_bit(const ds18_t *dev, uint8_t *bit)
 {
+    DEBUG("1");
     /* Initiate read slot */
     ds18_low(dev);
     ds18_release(dev);
+    DEBUG("2");
 
 #if defined(MODULE_DS18_OPTIMIZED)
     xtimer_usleep(DS18_SAMPLE_TIME);
