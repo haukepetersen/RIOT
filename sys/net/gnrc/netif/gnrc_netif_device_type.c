@@ -31,7 +31,7 @@ netopt_t gnrc_netif_get_l2addr_opt(const gnrc_netif_t *netif)
 
     switch (netif->device_type) {
 #if defined(MODULE_NETDEV_IEEE802154) || defined(MODULE_XBEE) || \
-    defined(MODULE_NORDIC_SOFTDEVICE_BLE)
+    defined(MODULE_NORDIC_SOFTDEVICE_BLE) || defined(MODULE_NIMBLE_NETIF)
         case NETDEV_TYPE_IEEE802154:
         case NETDEV_TYPE_BLE: {
                 netdev_t *dev = netif->dev;
@@ -75,7 +75,7 @@ int gnrc_netif_eui64_from_addr(const gnrc_netif_t *netif,
     if (netif->flags & GNRC_NETIF_FLAGS_HAS_L2ADDR) {
         switch (netif->device_type) {
 #if defined(MODULE_NETDEV_ETH) || defined(MODULE_ESP_NOW) || \
-    defined(MODULE_NORDIC_SOFTDEVICE_BLE)
+    defined(MODULE_NORDIC_SOFTDEVICE_BLE) || defined(MODULE_NIMBLE_NETIF)
             case NETDEV_TYPE_ETHERNET:
             case NETDEV_TYPE_ESP_NOW:
             case NETDEV_TYPE_BLE:
@@ -171,7 +171,7 @@ void gnrc_netif_ipv6_init_mtu(gnrc_netif_t *netif)
 #endif
             break;
 #endif
-#ifdef MODULE_NORDIC_SOFTDEVICE_BLE
+#if defined(MODULE_NORDIC_SOFTDEVICE_BLE) || defined(MODULE_NIMBLE_NETIF)
         case NETDEV_TYPE_BLE:
             netif->ipv6.mtu = IPV6_MIN_MTU;
 #ifdef MODULE_GNRC_SIXLOWPAN_IPHC
@@ -312,7 +312,7 @@ int gnrc_netif_ndp_addr_len_from_l2ao(gnrc_netif_t *netif,
             return sizeof(uint8_t);
 #endif  /* MODULE_CC110X */
 #if defined(MODULE_NETDEV_ETH) || defined(MODULE_ESP_NOW) || \
-    defined(MODULE_NORDIC_SOFTDEVICE_BLE)
+    defined(MODULE_NORDIC_SOFTDEVICE_BLE) || defined(MODULE_NIMBLE_NETIF)
         case NETDEV_TYPE_ETHERNET:
         case NETDEV_TYPE_ESP_NOW:
         case NETDEV_TYPE_BLE:

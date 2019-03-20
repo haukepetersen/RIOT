@@ -175,7 +175,7 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
 {
     if (conn->coc == NULL) {
         printf("    [] (%p) err: L2CAP not connected (yet)\n", conn);
-        return NIMBLE_NETIF_OK;
+        return NIMBLE_NETIF_DEVERR;
     }
 
     struct os_mbuf *sdu = _pkt2mbuf(&_mbuf_pool, pkt);
@@ -247,6 +247,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         else {
             // DEBUG("    [] err: could not find connection to target addr\n");
             // ret =  NIMBLE_NETIF_NOTCONN;
+            assert(0);
         }
     }
 
