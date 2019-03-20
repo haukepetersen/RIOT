@@ -13,7 +13,7 @@
 #include "host/ble_gap.h"
 
 
-#define ENABLE_DEBUG        (1)
+#define ENABLE_DEBUG        (0)
 #include "debug.h"
 
 #define CCNL_UUID           (0x2342)
@@ -204,7 +204,7 @@ static void *_run(void *arg)
         /* scan first, advertise later :-) */
 
         /* skip event if we are trying to connect to something */
-        printf("[autoconn] SCAN");
+        DEBUG("[autoconn] SCAN");
         if (_connecting_conn == NULL) {
             DEBUG(" -> go\n");
 
