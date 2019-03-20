@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Freie Universität Berlin
+ * Copyright (C) 2018,2019 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -366,9 +366,6 @@ static netdev_t _nimble_netdev_dummy = {
 };
 
 
-
-
-
 static int _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
 {
     int ret = 0;
@@ -378,21 +375,24 @@ static int _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     // DEBUG("    [] (%p) ON_DATA: received %u bytes\n", conn, rx_len);
 
     /* allocate netif header */
-    gnrc_pktsnip_t *netif_hdr = gnrc_netif_hdr_build(conn->addr, BLE_ADDR_LEN,
+    gnrc_pktsnip_t *if_snip = gnrc_netif_hdr_build(conn->addr, BLE_ADDR_LEN,
                                                      _nimble_netif->l2addr,
                                                      BLE_ADDR_LEN);
-
-    if (netif_hdr == NULL) {
+    if (if_snip == NULL) {
         DEBUG("    [] (%p) err: unable to allocate netif hdr\n", conn);
         ret = NIMBLE_NETIF_NOMEM;
         goto end;
     }
 
+    /* we need to add the device PID to the netif header */
+    gnrc_netif_hdr_t *netif_hdr = (gnrc_netif_hdr_t *)if_snip->data;
+    netif_hdr->if_pid = _nimble_netif->pid;
+
     /* allocate space in the pktbuf to store the packet */
-    gnrc_pktsnip_t *payload = gnrc_pktbuf_add(netif_hdr, NULL, rx_len, _nettype);
+    gnrc_pktsnip_t *payload = gnrc_pktbuf_add(if_snip, NULL, rx_len, _nettype);
     if (payload == NULL) {
         DEBUG("    [] (%p) err: unable to allocate payload in pktbuf\n", conn);
-        gnrc_pktbuf_release(netif_hdr);
+        gnrc_pktbuf_release(if_snip);
         ret = NIMBLE_NETIF_NOMEM;
         goto end;
     }
