@@ -17,6 +17,7 @@
 static os_membuf_t _coc_mem[OS_MEMPOOL_SIZE(MBUFCNT, MBUFSIZE)];
 static struct os_mempool _coc_mempool;
 static struct os_mbuf_pool _coc_mbuf_pool;
+static uint32_t _rxbuf[TEST_MTU / 4];
 
 /* safe AD fields */
 static uint8_t _ad_buf[BLE_HS_ADV_MAX_SZ];
@@ -42,9 +43,12 @@ static void _on_data(struct ble_l2cap_event *event)
 
     rxd = event->receive.sdu_rx;
     assert(rxd != NULL);
-    int rx_len =  (int)OS_MBUF_PKTLEN(rxd);
-    printf("# Received %i bytes\n", rx_len);
+    int rx_len = (int)OS_MBUF_PKTLEN(rxd);
     assert(rx_len <= (int)TEST_MTU);
+
+    res = os_mbuf_copydata(rxd, 0, rx_len, _rxbuf);
+    assert(res == 0);
+    printf("# Received: len %05i, seq %5u\n", rx_len, (unsigned)_rxbuf[0]);
 
     /* take received data and send it back */
     res = ble_l2cap_send(_coc, rxd);

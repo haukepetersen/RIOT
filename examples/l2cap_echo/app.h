@@ -12,6 +12,10 @@ extern "C" {
 #define TEST_MTU            (5000U)     /* up to 5K of payload */
 #endif
 
+#ifndef TEST_REPEAT
+#define TEST_REPEAT         (1U)        /* send 5 packets of each size */
+#endif
+
 
 /* local configuration */
 #define NODE_NAME           "riot_l2cap_echo_server"
