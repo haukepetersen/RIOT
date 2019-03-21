@@ -59,6 +59,17 @@ int bluetil_ad_find(const bluetil_ad_t *ad, uint8_t type,
     return BLUETIL_AD_NOTFOUND;
 }
 
+int bluetil_ad_find_and_cmp(const bluetil_ad_t *ad, uint8_t type,
+                            const void *val, size_t val_len)
+{
+    bluetil_ad_data_t field;
+
+    if (bluetil_ad_find(ad, type, &field) == BLUETIL_AD_OK) {
+        return ((field.len == val_len) && memcmp(val, field.data, val_len) == 0);
+    }
+    return 0;
+}
+
 int bluetil_ad_find_str(const bluetil_ad_t *ad, uint8_t type,
                         char *str, size_t str_len)
 {
