@@ -48,7 +48,7 @@ static void _on_data(struct ble_l2cap_event *event)
 
     res = os_mbuf_copydata(rxd, 0, rx_len, _rxbuf);
     assert(res == 0);
-    printf("# Received: len %05i, seq %5u\n", rx_len, (unsigned)_rxbuf[0]);
+    printf("# Received: len %5i, seq %5u\n", rx_len, (unsigned)_rxbuf[0]);
 
     /* take received data and send it back */
     res = ble_l2cap_send(_coc, rxd);
@@ -85,6 +85,8 @@ static int _on_l2cap_evt(struct ble_l2cap_event *event, void *arg)
         case BLE_L2CAP_EVENT_COC_CONNECTED:
             _coc = event->connect.chan;
             puts("# L2CAP: CONNECTED");
+            printf("# MTUs: our %i, remote %i\n",
+                   ble_l2cap_get_our_mtu(_coc), ble_l2cap_get_peer_mtu(_coc));
             break;
         case BLE_L2CAP_EVENT_COC_DISCONNECTED:
             _coc = NULL;

@@ -6,6 +6,7 @@
 #include "host/ble_l2cap.h"
 
 #include "assert.h"
+#include "xtimer.h"
 #include "thread_flags.h"
 #include "net/bluetil/ad.h"
 
@@ -120,7 +121,6 @@ static void _filter_and_connect(struct ble_gap_disc_desc *disc)
 
     bluetil_ad_init(&ad, disc->data,
                     (size_t)disc->length_data, (size_t)disc->length_data);
-    printf("# test one, sizeof name is %u\n", sizeof(NODE_NAME));
     res = bluetil_ad_find_and_cmp(&ad, BLE_GAP_AD_NAME,
                                   NODE_NAME, (sizeof(NODE_NAME) - 1));
     if (res) {
@@ -201,15 +201,19 @@ void client_run(void)
     /* wait until we are connected to the test server */
     thread_flags_wait_all(FLAG_UP);
     puts("# Connection established, running test suite now");
+    printf("# MTUs: our %i, remote %i\n",
+           ble_l2cap_get_our_mtu(_coc), ble_l2cap_get_peer_mtu(_coc));
 
     /* start running the tests */
     uint32_t seq = 0;
     memset(_txbuf, 0, sizeof(_txbuf));
 
-    for (size_t len = 4; len <= TEST_MTU; len++) {
+    uint32_t start = xtimer_now_usec();
+    for (size_t len = 4; len <= TEST_MTU; len+= 10) {
         /* send each size packet a number of times */
         for (unsigned repeat = 0; repeat < TEST_REPEAT; repeat++) {
             _send(len, ++seq);
+            puts("# Wait for reply");
             thread_flags_wait_all(FLAG_SYNC);
             if (_seq_ack != seq) {
                 printf("# ERROR: unexpected sequence number received (%u)\n",
@@ -218,6 +222,8 @@ void client_run(void)
             }
         }
     }
+    uint32_t duration = xtimer_now_usec() - start;
+    printf("# Duration: %u ms\n", (unsigned)(duration / 1000));
 
     puts("# TEST COMPLETE");
 
