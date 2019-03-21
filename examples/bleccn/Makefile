@@ -1,0 +1,42 @@
+APPLICATION = bleccn
+
+# If no BOARD is found in the environment, use this default:
+BOARD ?= nrf52dk
+
+BOARD_WHITELIST := nrf52dk nrf52840dk ruuvitag
+
+
+# This has to be the absolute path to the RIOT base directory:
+RIOTBASE ?= $(CURDIR)/../..
+
+# Comment this out to disable code in RIOT that does safety checking
+# which is not needed in a production environment but helps in the
+# development process:
+DEVELHELP ?= 1
+
+CFLAGS += -DUSE_LINKLAYER
+CFLAGS += -DUSE_RONR
+CFLAGS += -DCCNL_UAPI_H_
+CFLAGS += -DUSE_SUITE_NDNTLV
+CFLAGS += -DNEEDS_PREFIX_MATCHING
+CFLAGS += -DNEEDS_PACKET_CRAFTING
+
+# Change this to 0 show compiler invocation lines by default:
+QUIET ?= 1
+
+USEMODULE += ps
+USEMODULE += fmt
+USEMODULE += shell
+USEMODULE += shell_commands
+
+USEMODULE += adproc
+USEPKG += nimble
+
+CFLAGS += -DMYNEWT_VAL_BLE_L2CAP_COC_MAX_NUM=1
+CFLAGS += -DMYNEWT_VAL_BLE_MAX_CONNECTIONS=10
+
+
+
+# USEPKG += ccn-lite
+
+include $(RIOTBASE)/Makefile.include

@@ -72,6 +72,9 @@ endif
 ifneq (,$(filter cord_ep,$(USEMODULE)))
   SRC += sc_cord_ep.c
 endif
+ifneq (,$(filter nimble_netif_autoconn,$(USEMODULE)))
+  SRC += sc_nimble_netif.c
+endif
 
 ifneq (,$(filter periph_rtc,$(USEMODULE)))
   SRC += sc_rtc.c

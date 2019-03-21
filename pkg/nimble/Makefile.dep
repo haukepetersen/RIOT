@@ -30,3 +30,11 @@ ifneq (,$(filter nimble_controller,$(USEMODULE)))
     USEMODULE += nimble_drivers_nrf52
   endif
 endif
+
+ifneq (,$(filter nimble_netif_autoconn_%,$(USEMODULE)))
+  USEMODULE += nimble_netif_autoconn
+endif
+
+ifneq (,$(filter nimble_netif_autoconn,$(USEMODULE)))
+  USEMODULE += nimble_netif
+endif

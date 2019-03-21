@@ -25,12 +25,25 @@
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 
+#ifdef MODULE_NIMBLE_SVC_GAP
 #include "services/gap/ble_svc_gap.h"
+#endif
+#ifdef MODULE_NIMBLE_SVC_GATT
 #include "services/gatt/ble_svc_gatt.h"
+#endif
 
 #ifdef MODULE_NIMBLE_CONTROLLER
 #ifdef CPU_FAM_NRF52
 #include "nrf_clock.h"
+#endif
+
+#ifdef MODULE_TLSF
+#include "tlsf-malloc.h"
+#endif
+
+#ifdef MODULE_NIMBLE_NETIF_AUTOCONN
+#include "nimble_netif_autoconn.h"
+#include "nimble_netif_autoconn_params.h"
 #endif
 
 static char _stack_controller[NIMBLE_CONTROLLER_STACKSIZE];
@@ -40,6 +53,12 @@ static char _stack_controller[NIMBLE_CONTROLLER_STACKSIZE];
 static char _stack_host[NIMBLE_HOST_STACKSIZE];
 
 uint8_t nimble_riot_own_addr_type;
+
+// XXX
+#ifdef MODULE_TLSF
+#define TLSF_BUFFER     (10240 / sizeof(uint32_t))
+static uint32_t _tlsf_heap[TLSF_BUFFER];
+#endif
 
 static void *_host_thread(void *arg)
 {
@@ -73,6 +92,11 @@ static void *_host_thread(void *arg)
 
 void nimble_riot_init(void)
 {
+    // XXX
+#ifdef PKG_TLSF
+    tlsf_add_global_pool(_tlsf_heap, sizeof(_tlsf_heap));
+#endif
+
     /* and finally initialize and run the host */
     thread_create(_stack_host, sizeof(_stack_host),
                   NIMBLE_HOST_PRIO,
@@ -92,6 +116,16 @@ void nimble_riot_init(void)
     assert(res == 0);
     (void)res;
 
+#ifdef MODULE_NIMBLE_NETIF
+    extern void nimble_netif_init(void);
+    nimble_netif_init();
+#endif
+
+#ifdef MODULE_NIMBLE_NETIF_AUTOCONN
+    res = nimble_netif_autoconn_init(&nimble_netif_autoconn_params);
+    assert(res == NIMBLE_NETIF_AUTOCONN_OK);
+#endif
+
     /* initialize the configured, build-in services */
 #ifdef MODULE_NIMBLE_SVC_GAP
     ble_svc_gap_init();
@@ -99,4 +133,7 @@ void nimble_riot_init(void)
 #ifdef MODULE_NIMBLE_SVC_GATT
     ble_svc_gatt_init();
 #endif
+
+    /* suppress warning on unused variable if DEVELHELP:=0 */
+    (void)res;
 }

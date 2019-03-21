@@ -68,3 +68,17 @@ endif
 ifneq (,$(filter nimble_svc_tps,$(USEMODULE)))
   INCLUDES += $(NIMIBASE)/nimble/host/services/tps/include
 endif
+
+# include additional headers for RIOT specific NimBLE submodules
+ifneq (,$(filter nimble_netif,$(USEMODULE)))
+  INCLUDES += -I$(RIOTPKG)/nimble/netif/include
+endif
+ifneq (,$(filter nimble_netif_autoconn,$(USEMODULE)))
+  INCLUDES += -I$(RIOTPKG)/nimble/netif_autoconn/include
+endif
+ifneq (,$(filter nimble_scanner,$(USEMODULE)))
+  INCLUDES += -I$(RIOTPKG)/nimble/scanner/include
+endif
+ifneq (,$(filter nimble_addr,$(USEMODULE)))
+  INCLUDES += -I$(RIOTPKG)/nimble/addr/include
+endif

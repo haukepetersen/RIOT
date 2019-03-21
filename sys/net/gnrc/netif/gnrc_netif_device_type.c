@@ -205,6 +205,19 @@ int gnrc_netif_ipv6_iid_from_addr(const gnrc_netif_t *netif,
 #if GNRC_NETIF_L2ADDR_MAXLEN > 0
     if (netif->flags & GNRC_NETIF_FLAGS_HAS_L2ADDR) {
         switch (netif->device_type) {
+#if defined(MODULE_NETDEV_ETH) || defined(MODULE_ESP_NOW) || \
+    defined(MODULE_NORDIC_SOFTDEVICE_BLE) || defined(MODULE_NIMBLE_NETIF)
+            case NETDEV_TYPE_ETHERNET:
+            case NETDEV_TYPE_ESP_NOW:
+            case NETDEV_TYPE_BLE:
+                if (addr_len == sizeof(eui48_t)) {
+                    eui48_to_ipv6_iid(iid, (const eui48_t *)addr);
+                    return sizeof(eui64_t);
+                }
+                else {
+                    return -EINVAL;
+                }
+#endif  /* defined(MODULE_NETDEV_ETH) || defined(MODULE_ESP_NOW) */
 #if defined(MODULE_NETDEV_IEEE802154) || defined(MODULE_XBEE)
             case NETDEV_TYPE_IEEE802154:
                 if (ieee802154_get_iid(iid, addr, addr_len) != NULL) {
@@ -249,7 +262,7 @@ int gnrc_netif_ipv6_iid_to_addr(const gnrc_netif_t *netif, const eui64_t *iid,
     assert(netif->flags & GNRC_NETIF_FLAGS_HAS_L2ADDR);
     switch (netif->device_type) {
 #if defined(MODULE_NETDEV_ETH) || defined(MODULE_ESP_NOW) || \
-    defined(MODULE_NORDIC_SOFTDEVICE_BLE)
+    defined(MODULE_NORDIC_SOFTDEVICE_BLE) || defined(MODULE_NIMBLE_NETIF)
         case NETDEV_TYPE_ETHERNET:
         case NETDEV_TYPE_ESP_NOW:
         case NETDEV_TYPE_BLE:
