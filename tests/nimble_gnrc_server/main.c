@@ -19,117 +19,48 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-
-#include "nimble_riot.h"
-#include "host/ble_hs.h"
-#include "host/ble_gap.h"
-#include "host/util/util.h"
 
 #include "assert.h"
+#include "nimble_netif.h"
 #include "net/bluetil/ad.h"
 
-#include "nimble_l2cap_test_conf.h"
-
-/* BLE connection state */
-static uint16_t _handle = 0;
-static struct ble_l2cap_chan *_coc = NULL;
-
-/* buffer allocation */
-static uint32_t _rxbuf[APP_MTU / 4];
+#include "nimble_gnrc_test_conf.h"
+#include "app_udp_server.h"
 
 /* safe AD fields */
+static nimble_netif_conn_t _conn;
 static uint8_t _ad_buf[BLE_HS_ADV_MAX_SZ];
 static bluetil_ad_t _ad;
 static struct ble_gap_adv_params _adv_params = { 0 };
 
-/* UDP server state */
-
-static void _advertise_now(void);
-
-static void _on_data(struct ble_l2cap_event *event)
+static void _advertise_now(void)
 {
-    int res;
-    struct os_mbuf *rxd;
-
-    rxd = event->receive.sdu_rx;
-    assert(rxd != NULL);
-    int rx_len = (int)OS_MBUF_PKTLEN(rxd);
-    assert(rx_len <= (int)APP_MTU);
-
-    res = os_mbuf_copydata(rxd, 0, rx_len, _rxbuf);
-    assert(res == 0);
-    printf("# Received: len %5i, seq %5u\n", rx_len, (unsigned)_rxbuf[POS_SEQ]);
-
-    res = ble_l2cap_send(_coc, rxd);
-    assert(res == 0);
-
-    /* allocate new mbuf for receiving new data */
-    rxd = os_mbuf_get_pkthdr(&_coc_mbuf_pool, 0);
-    assert(rxd != NULL);
-    res = ble_l2cap_recv_ready(_coc, rxd);
-    assert(res == 0);
+    int res = nimble_netif_accept(&_conn, _ad.buf, _ad.pos, &_adv_params);
+    (void)res;
+    assert(res == NIMBLE_NETIF_OK);
+    puts("# now advertising");
 }
 
-static int _on_gap_evt(struct ble_gap_event *event, void *arg)
+static void _on_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
 {
-    (void)arg;
-    printf("# GAP event %i\n", (int)event->type);
+    assert(conn == &_conn);
 
-    switch (event->type) {
-        case BLE_GAP_EVENT_CONNECT:
-            _handle = event->connect.conn_handle;
+    switch (event) {
+        case NIMBLE_NETIF_CONNECTED:
+            puts("# NIMBLE_NETIF: CONNECTED");
             break;
-        case BLE_GAP_EVENT_DISCONNECT:
-            _coc = NULL;
-            _handle = 0;
+        case NIMBLE_NETIF_DISCONNECTED:
+            puts("# NIMBLE_NETIF: DISCONNECTED");
             _advertise_now();
             break;
-        case BLE_GAP_EVENT_CONN_UPDATE:
-        case BLE_GAP_EVENT_CONN_UPDATE_REQ:
-        default:
+        case NIMBLE_NETIF_ABORT:
             break;
-    }
-    return 0;
-}
-
-static int _on_l2cap_evt(struct ble_l2cap_event *event, void *arg)
-{
-    (void)arg;
-
-    switch (event->type) {
-        case BLE_L2CAP_EVENT_COC_CONNECTED:
-            _coc = event->connect.chan;
-            puts("# L2CAP: CONNECTED");
-            printf("# MTUs: our %i, remote %i\n",
-                   ble_l2cap_get_our_mtu(_coc), ble_l2cap_get_peer_mtu(_coc));
-            break;
-        case BLE_L2CAP_EVENT_COC_DISCONNECTED:
-            _coc = NULL;
-            puts("# L2CAP: DISCONNECTED");
-            break;
-        case BLE_L2CAP_EVENT_COC_ACCEPT: {
-            struct os_mbuf *sdu_rx = os_mbuf_get_pkthdr(&_coc_mbuf_pool, 0);
-            assert(sdu_rx != NULL);
-            ble_l2cap_recv_ready(event->accept.chan, sdu_rx);
-            break;
-        }
-        case BLE_L2CAP_EVENT_COC_DATA_RECEIVED:
-            _on_data(event);
+        case NIMBLE_NETIF_CONN_UPDATED:
             break;
         default:
             assert(0);
             break;
     }
-
-    return 0;
-}
-
-static void _advertise_now(void)
-{
-    int res = ble_gap_adv_start(nimble_riot_own_addr_type, NULL, BLE_HS_FOREVER,
-                                &_adv_params, _on_gap_evt, NULL);
-    assert(res == 0);
 }
 
 int main(void)
@@ -139,7 +70,11 @@ int main(void)
     puts("NimBLE GNRC test server");
 
     /* start UDP server */
-    thread_create(...)
+    app_udp_server_run();
+
+    /* setup the NimBLE netif submodule */
+    memset(&_conn, 0, sizeof(nimble_netif_conn_t));
+    nimble_netif_eventcb(_on_evt);
 
     /* initialize advertising data and parameters */
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
@@ -149,12 +84,9 @@ int main(void)
     bluetil_ad_add_name(&_ad, APP_NODENAME);
     uint16_t ipss = BLE_SVC_IPSS;
     bluetil_ad_add(&_ad, BLE_GAP_AD_UUID16_COMP, &ipss, sizeof(ipss));
-    res = ble_gap_adv_set_data(_ad.buf, (int)_ad.pos);
-    assert(res == 0);
 
     /* start advertising the test server */
     _advertise_now();
-    puts("# now advertising");
 
     /* nothing else to be done in the main thread */
     return 0;

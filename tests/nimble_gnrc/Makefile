@@ -13,7 +13,7 @@ USEMODULE += ps
 USEMODULE += bluetil_ad
 
 # Get the shared NimBLE and test configuration from the backend server
-include $(CURDIR)/../nimble_gnrc_server/nimble.inc.mk
+include $(CURDIR)/../nimble_gnrc_server/nimble_gnrc.inc.mk
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
