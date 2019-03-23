@@ -145,7 +145,7 @@ extern int _cord_ep_handler(int argc, char **argv);
 extern int _app_metadata_handler(int argc, char **argv);
 #endif
 
-#ifdef MODULE_NIMBLE_NETIF
+#ifdef MODULE_NIMBLE_NETIF_AUTOCONN
 extern int _nimble_netif_handler(int argc, char **argv);
 #endif
 
@@ -242,7 +242,7 @@ const shell_command_t _shell_command_list[] = {
 #ifdef MODULE_APP_METADATA
     {"app_metadata", "Returns application metadata", _app_metadata_handler },
 #endif
-#ifdef MODULE_NIMBLE_NETIF
+#ifdef MODULE_NIMBLE_NETIF_AUTOCONN
     {"nimble_netif", "BLE status information", _nimble_netif_handler },
 #endif
     {NULL, NULL, NULL}

@@ -73,7 +73,7 @@ typedef void(*nimble_netif_eventcb_t)(nimble_netif_conn_t *conn,
 void nimble_netif_init(void);
 
 /**
- * @brief   Register a global event callback, servicing all NimBLE Imps
+ * @brief   Register a global event callback, servicing all NimBLE connections
  *
  * @warning     This function **must** be called before and other action
  *
