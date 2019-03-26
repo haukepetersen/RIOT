@@ -97,6 +97,9 @@ void bluetil_ad_init(bluetil_ad_t *ad, void *buf, size_t pos, size_t size);
 int bluetil_ad_find(const bluetil_ad_t *ad,
                     uint8_t type, bluetil_ad_data_t *data);
 
+int bluetil_ad_find_and_cmp(const bluetil_ad_t *ad, uint8_t type,
+                            const void *val, size_t val_len);
+
 /**
  * @brief   Find a specific field and compare its value against the given data
  *

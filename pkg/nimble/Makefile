@@ -18,7 +18,8 @@ else
   CFLAGS += -Wno-unused-but-set-variable
 endif
 
-SUBMODS := $(filter nimble_%,$(USEMODULE))
+FILTERED := $(filter-out nimble_netif_autoconn_%,$(USEMODULE))
+SUBMODS := $(filter nimble_%,$(FILTERED))
 
 .PHONY: all
 
@@ -68,10 +69,20 @@ nimble_drivers_nrf52:
 nimble_addr:
 	"$(MAKE)" -C $(TDIR)/addr/
 
+nimble_netif:
+	"$(MAKE)" -C $(TDIR)/netif/
+
+nimble_netif_autoconn:
+	"$(MAKE)" -C $(TDIR)/netif_autoconn/
+
+nimble_netif_rpble:
+	"$(MAKE)" -C $(TDIR)/netif_rpble/
+
 nimble_scanlist:
 	"$(MAKE)" -C $(TDIR)/scanlist
 
 nimble_scanner:
 	"$(MAKE)" -C $(TDIR)/scanner
+
 
 include $(RIOTBASE)/pkg/pkg.mk

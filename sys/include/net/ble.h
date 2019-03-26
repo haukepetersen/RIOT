@@ -86,6 +86,19 @@ extern "C" {
 /** @} */
 
 /**
+ * @name    16-bit service identifiers for services defined by the BT SIG
+ *
+ * @see https://www.bluetooth.com/specifications/gatt/services
+ * @{
+ */
+#define BLE_SVC_GAP                         (0x1800)
+#define BLE_SVC_GATT                        (0x1801)
+#define BLE_SVC_ENVSS                       (0x181a)
+#define BLE_SVC_IPSS                        (0x1820)
+/* add more on demand */
+/** @} */
+
+/**
  * @name    Characteristic format types (8-bit)
  *
  * @see https://www.bluetooth.com/specifications/assigned-numbers/format-types
@@ -246,6 +259,18 @@ extern "C" {
 #define BLE_UNIT_LUX_HOUR                   (0x27c0)    /**< luminous_exposure [lux_hour] */
 #define BLE_UNIT_GRAM_PER_SECOND            (0x27c1)    /**< mass_flow [gram_per_second] */
 #define BLE_UNIT_LITRE_PER_SECOND           (0x27c2)    /**< volume_flow [litre_per_second] */
+/** @} */
+
+/**
+ * @brief   Channel identifiers defined for L2CAP LE-U link layers
+ * @{
+ */
+// #define BLE_L2CAP_CID_ATT                   (0x0004)
+// #define BLE_L2CAP_CID_LE_SIGNAL             (0x0005)
+// #define BLE_L2CAP_CID_SM                    (0x0006)
+#define BLE_L2CAP_CID_IPSP                  (0x0023)
+#define BLE_L2CAP_CID_CB_MIN                (0x0040)
+#define BLE_L2CAP_CID_CB_MAX                (0x007f)
 /** @} */
 
 /**

@@ -1,0 +1,49 @@
+# name of your application
+APPLICATION = nimble_ccnl
+
+# If no BOARD is found in the environment, use this default:
+BOARD ?= nrf52dk
+
+# So far, NimBLE only works on nRF52 based platforms
+BOARD_WHITELIST := nrf52dk nrf52840dk
+
+# This has to be the absolute path to the RIOT base directory:
+RIOTBASE ?= $(CURDIR)/../..
+
+# Comment this out to disable code in RIOT that does safety checking
+# which is not needed in a production environment but helps in the
+# development process:
+DEVELHELP ?= 1
+# Change this to 0 show compiler invocation lines by default:
+QUIET ?= 1
+
+USEMODULE += ps
+USEMODULE += shell
+USEMODULE += shell_commands
+# Include packages that pull up and auto-init the link layer.
+# NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
+USEMODULE += gnrc_netdev_default
+USEMODULE += auto_init_gnrc_netif
+# This application dumps received packets to STDIO using the pktdump module
+USEMODULE += gnrc_pktdump
+
+# configure CCN-lite
+USEPKG += ccn-lite
+
+CFLAGS += -DUSE_LINKLAYER
+CFLAGS += -DUSE_RONR
+CFLAGS += -DCCNL_UAPI_H_
+CFLAGS += -DUSE_SUITE_NDNTLV
+CFLAGS += -DNEEDS_PREFIX_MATCHING
+CFLAGS += -DNEEDS_PACKET_CRAFTING
+
+# configure NimBLE
+USEPKG += nimble
+CFLAGS += -DMYNEWT_VAL_BLE_L2CAP_COC_MAX_NUM=1
+CFLAGS += -DMYNEWT_VAL_BLE_MAX_CONNECTIONS=10
+
+USEMODULE += nimble_gnrc
+USEMODULE += bluetil_ad
+
+
+include $(RIOTBASE)/Makefile.include

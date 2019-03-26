@@ -14,6 +14,7 @@ RIOTBASE ?= $(CURDIR)/../..
 USEPKG += nimble
 USEMODULE += nimble_svc_gap
 USEMODULE += nimble_svc_gatt
+USEMODULE += nimble_scanlist
 
 # We also use the AD part of the BLE helper module
 USEMODULE += bluetil_ad

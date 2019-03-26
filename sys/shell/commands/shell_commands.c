@@ -149,6 +149,10 @@ extern int _app_metadata_handler(int argc, char **argv);
 extern int _i2c_scan(int argc, char **argv);
 #endif
 
+#ifdef MODULE_NIMBLE_NETIF_AUTOCONN
+extern int _nimble_netif_handler(int argc, char **argv);
+#endif
+
 const shell_command_t _shell_command_list[] = {
     {"reboot", "Reboot the node", _reboot_handler},
 #ifdef MODULE_CONFIG
@@ -244,6 +248,9 @@ const shell_command_t _shell_command_list[] = {
 #endif
 #ifdef MODULE_I2C_SCAN
     { "i2c_scan", "Performs an I2C bus scan", _i2c_scan },
+#endif
+#ifdef MODULE_NIMBLE_NETIF_AUTOCONN
+    {"nimble_netif", "BLE status information", _nimble_netif_handler },
 #endif
     {NULL, NULL, NULL}
 };
