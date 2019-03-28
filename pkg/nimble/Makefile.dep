@@ -36,6 +36,15 @@ ifneq (,$(filter nimble_addr,$(USEMODULE)))
   USEMODULE += bluetil_addr
 endif
 
+ifneq (,$(filter nimble_scanlist,$(USEMODULE)))
+  USEMODULE += nimble_addr
+  USEMODULE += bluetil_ad
+endif
+
+ifneq (,$(filter nimble_netif,$(USEMODULE)))
+  USEMODULE += l2util
+endif
+
 ifneq (,$(filter nimble_netif_autoconn_%,$(USEMODULE)))
   USEMODULE += nimble_netif_autoconn
   USEMODULE += nimble_netif
@@ -48,9 +57,4 @@ ifneq (,$(filter nimble_netif_rpble,$(USEMODULE)))
   USEMODULE += bluetil_ad
   USEMODULE += bluetil_addr
   USEMODULE += event_timeout
-endif
-
-ifneq (,$(filter nimble_scanlist,$(USEMODULE)))
-  USEMODULE += nimble_addr
-  USEMODULE += bluetil_ad
 endif

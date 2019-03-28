@@ -26,6 +26,8 @@ USEMODULE += gnrc_icmpv6_echo
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+# Misc RIOT system modules used
+USEMODULE += xtimer
 
 # configure and use Nimble
 USEPKG += nimble
@@ -33,7 +35,7 @@ USEMODULE += nimble_netif
 USEMODULE += nimble_scanner
 USEMODULE += nimble_scanlist
 # the number of concurrent connections that can be handled
-NIMBLE_MAX_CONNECTIONS := 3
+NIMBLE_MAX_CONN := 3
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

@@ -49,7 +49,8 @@ enum {
 typedef enum {
     NIMBLE_NETIF_CONNECTED,
     NIMBLE_NETIF_DISCONNECTED,
-    NIMBLE_NETIF_ABORT,
+    NIMBLE_NETIF_CONNECT_ABORT,
+    NIMBLE_NETIF_ACCEPT_ABORT,
     NIMBLE_NETIF_CONN_UPDATED,
 } nimble_netif_event_t;
 
@@ -92,6 +93,10 @@ int nimble_netif_connect(nimble_netif_conn_t *conn,
 int nimble_netif_accept(nimble_netif_conn_t *conn,
                         const uint8_t *ad, size_t ad_len,
                         const struct ble_gap_adv_params *adv_params);
+
+int nimble_netif_accept_pause(void);
+int nimble_netif_accept_resume(void);
+int nimble_netif_accept_stop(void);
 
 int nimble_netif_update(nimble_netif_conn_t,
                         struct ble_gap_conn_params *conn_params);

@@ -772,7 +772,7 @@ static int _conn_dump(clist_node_t *node, void *arg)
     printf("- (%c) ", roles[conn->role]);
     bluetil_addr_print(conn->addr);
     printf(" -> ");
-    bluetil_addr_print_ipv6_iid(conn->addr);
+    bluetil_addr_ipv6_l2ll_print(conn->addr);
     printf("\n");
     return 0;
 }
