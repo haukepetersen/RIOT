@@ -5,17 +5,21 @@
 #include "mutex.h"
 #include "xtimer.h"
 #include "nimble_netif.h"
+#include "net/bluetil/addr.h"
 
 #include "nimble_scanlist.h"
 #include "nimble_scanner.h"
 
 static nimble_netif_conn_t _conn_mem[NIMBLE_MAX_CONN];
 static clist_node_t _conn_pool;
+static clist_node_t _conn_active;
 static mutex_t _conn_lock = MUTEX_INIT;
 
 #define SCAN_DUR_DEFAULT        (500U)      /* 500ms */
+#define CONN_TIMEOUT            (500U)      /* 500ms */
 
-static nimble_netif_conn_t *_conn_next(clist_node_t list,
+
+static nimble_netif_conn_t *_conn_next(clist_node_t *list,
                                        nimble_netif_conn_t *conn)
 {
     if (conn == NULL) {
@@ -23,24 +27,25 @@ static nimble_netif_conn_t *_conn_next(clist_node_t list,
     }
     else {
         conn = (nimble_netif_conn_t *)conn->node.next;
-        (conn == (nimble_netif_conn_t *)list.next)
-            ? return NULL;    /* end of list */
-            : return conn;
+        if (conn == (nimble_netif_conn_t *)list->next) {
+            return NULL;    /* end of list */
+        }
     }
+    return conn;
 }
 
 static nimble_netif_conn_t *_conn_get(clist_node_t *list)
 {
     mutex_lock(&_conn_lock);
-    nimble_netif_conn_t *conn = (nimble_netif_conn_t *)clist_lpop(&_conn_pool);
+    nimble_netif_conn_t *conn = (nimble_netif_conn_t *)clist_lpop(list);
     mutex_unlock(&_conn_lock);
     return conn;
 }
 
-static void _conn_add(clist_node_t *list, nimble_netif_con_t *conn)
+static void _conn_add(clist_node_t *list, nimble_netif_conn_t *conn)
 {
     mutex_lock(&_conn_lock);
-    clist_rpush(&conn->node);
+    clist_rpush(list, &conn->node);
     mutex_unlock(&_conn_lock);
 }
 
@@ -76,11 +81,12 @@ static void _on_ble_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
             _conn_add(&_conn_pool, conn);
             break;
         case NIMBLE_NETIF_CONNECT_ABORT:
-
+            _conn_add(&_conn_pool, conn);
             break;
 
         case NIMBLE_NETIF_ACCEPT_ABORT:
-            puts("event: stopped advertising")
+            puts("event: stopped advertising");
+            _conn_add(&_conn_pool, conn);
             break;
         case NIMBLE_NETIF_CONN_UPDATED:
         default:
@@ -106,7 +112,7 @@ static void _cmd_adv(const char *name)
 
 static void _cmd_adv_stop(void)
 {
-    int res = nimble_netif_stop_accepting();
+    int res = nimble_netif_accept_stop();
     assert(res == NIMBLE_NETIF_OK);
     (void)res;
 }
@@ -127,7 +133,7 @@ static void _cmd_scan(unsigned duration)
 
 static void _cmd_connect(unsigned pos)
 {
-    nimble_scanlist_entry_t *sle = nimble_scanlist_get(pos);
+    nimble_scanlist_entry_t *sle = nimble_scanlist_get_by_pos(pos);
     if (sle == NULL) {
         puts("err: unable to find given offset in scanlist");
         return;
@@ -141,7 +147,8 @@ static void _cmd_connect(unsigned pos)
     int res = nimble_netif_accept_pause();
     assert(res == NIMBLE_NETIF_OK);
 
-    res = nimble_netif_connect(conn, sle->addr, _conn_params, _conn_timeout);
+    /* TODO: for now we use default parameters */
+    res = nimble_netif_connect(conn, &sle->addr, NULL, CONN_TIMEOUT);
     if (res != NIMBLE_NETIF_OK) {
         _conn_add(&_conn_pool, conn);
         printf("err: unable to trigger connection sequence (%i)\n", res);
@@ -160,7 +167,7 @@ static void _cmd_conn_list(void)
     mutex_lock(&_conn_lock);
     nimble_netif_conn_t *conn = _conn_next(&_conn_active, NULL);
     while (conn) {
-        printf("[%2u] ");
+        printf("[%2u] ", i++);
         bluetil_addr_print(conn->addr);
         puts("");
         conn = _conn_next(&_conn_active, conn);
@@ -170,12 +177,12 @@ static void _cmd_conn_list(void)
 
 static void _cmd_close(unsigned chan)
 {
-    nimble_netif_conn_t *conn = _conn_by_pos(chan);
+    nimble_netif_conn_t *conn = _conn_by_pos(&_conn_active, chan);
     if (conn == NULL) {
         puts("err: can't find connection handle");
         return;
     }
-    int res = nimble_netif_terminat(conn);
+    int res = nimble_netif_disconnect(conn);
     if (res != NIMBLE_NETIF_OK) {
         puts("err: unable to close given connection");
         return;
@@ -198,6 +205,9 @@ void app_ble_init(void)
     /* setup the scanning environment */
     nimble_scanlist_init();
     nimble_scanner_init(NULL, nimble_scanlist_update);
+
+    /* register event callback with the netif wrapper */
+    nimble_netif_eventcb(_on_ble_evt);
 }
 
 int app_ble_cmd(int argc, char **argv)

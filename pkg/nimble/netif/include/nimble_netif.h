@@ -89,29 +89,58 @@ int nimble_netif_connect(nimble_netif_conn_t *conn,
                          const struct ble_gap_conn_params *conn_params,
                          uint32_t connect_timeout);
 
+int nimble_netif_disconnect(nimble_netif_conn_t *conn);
+
 /* return: negative for fail */
 int nimble_netif_accept(nimble_netif_conn_t *conn,
                         const uint8_t *ad, size_t ad_len,
                         const struct ble_gap_adv_params *adv_params);
 
+/**
+ * @brief   Pause accepting incoming connections (stop sending advertisements)
+ *
+ * @return  NIMBLE_NETIF_OK on success
+ * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
+ */
 int nimble_netif_accept_pause(void);
+
+/**
+ * @brief   Resume accepting connections
+ *
+ * The context set by nimble_netif_accept() will be used.
+ *
+ * @return  NIMBLE_NETIF_OK on success
+ * @return  NIMBLE_NETIF_BUSY if we are already accepting connections
+ * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
+ */
 int nimble_netif_accept_resume(void);
+
+/**
+ * @brief   Stop accepting incoming connections (and stop advertising)
+ *
+ * If an advertising context was set, this function will trigger a
+ * NIMBLE_NETIF_ACCEPT_ABORT event.
+ *
+ * @return  NIMBLE_NETIF_OK on success
+ * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
+ */
 int nimble_netif_accept_stop(void);
+
 
 int nimble_netif_update(nimble_netif_conn_t,
                         struct ble_gap_conn_params *conn_params);
 
-int nimble_netif_terminate(nimble_netif_conn_t *conn);
-
 int nimble_netif_is_connected(nimble_netif_conn_t *conn);
 
-int nimble_netif_is_connected_addr(const ble_addr_t *addr);
-
+/**
+ * @brief   Get the connection context corresponding to the given address
+ *
+ * @return  connection context for the connection to the given address
+ * @return  NULL if not connected to the node with the given address
+ */
 nimble_netif_conn_t *nimble_netif_get_conn(const uint8_t *addr);
 
-nimble_netif_conn_t *nimble_netif_get_adv_ctx(void);
-
-void nimble_netif_print_conn_info(void);
+// void nimble_netif_print_conn_info(void);
 
 #ifdef __cplusplus
 }
