@@ -58,8 +58,8 @@ typedef struct {
 
 /*********** Configurations ******************/
 #define WATERING_THREAD_ON
-#define HARDWARE_TEST_ON
-#define LORA_DATA_SEND_ON
+//#define HARDWARE_TEST_ON
+//#define LORA_DATA_SEND_ON
 
 #define WATERING_THREAD_PERIOD              (5U)      /* watering done every 5 secs */
 #define MSG_THREAD_PERIOD                   (7200U)   /* messages sent every 2 hours */
