@@ -1,0 +1,16 @@
+TODO:
+-  [x] cleanup BLE doxygen grouping -> https://github.com/RIOT-OS/RIOT/pull/11268
+-  [x] PR bluetil addr module
+-  [x] Update NimBLE version
+-  [x] PR nimble_addr module (helper)
+-  [x] move bullshit modules from working commit
+-  [x] PR scanlist (depends on the above)
+-  [x] PR nimble_scanner
+-  [x] PR examples/nimble_scanner
+
+-  [x] implement and PR NimBLE IPSP service to nimble
+-  [x] PR IPSS support in RIOT
+-  [ ] add `nimble_gnrc` example (using scanlist and shell command(s))
+
+-  [ ] find out how to put events to NimBLEs event loop from our own code
+    -> export `extern struct ble_npl_eventq *ble_hs_evq_get(void);` from nimble_riot.h?
