@@ -5,15 +5,29 @@
 #include "mutex.h"
 #include "xtimer.h"
 #include "nimble_netif.h"
+#include "net/bluetil/ad.h"
 #include "net/bluetil/addr.h"
 
 #include "nimble_scanlist.h"
 #include "nimble_scanner.h"
 
+#include "app.h"
+
 static nimble_netif_conn_t _conn_mem[NIMBLE_MAX_CONN];
 static clist_node_t _conn_pool;
 static clist_node_t _conn_active;
+static nimble_netif_conn_t *_conn_adv = NULL;
 static mutex_t _conn_lock = MUTEX_INIT;
+
+/* save the advertising configuration statically */
+static uint8_t _adbuf[BLE_HS_ADV_MAX_SZ];
+static bluetil_ad_t _ad;
+static const struct ble_gap_adv_params _adv_params = {
+    .conn_mode = BLE_GAP_CONN_MODE_UND,
+    .disc_mode = BLE_GAP_DISC_MODE_LTD,
+    .itvl_min = APP_ADV_ITVL,
+    .itvl_max = APP_ADV_ITVL,
+};
 
 #define SCAN_DUR_DEFAULT        (500U)      /* 500ms */
 #define CONN_TIMEOUT            (500U)      /* 500ms */
@@ -67,12 +81,32 @@ static nimble_netif_conn_t *_conn_by_pos(clist_node_t *list, unsigned pos)
 static void _on_ble_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
 {
     switch (event) {
-        case NIMBLE_NETIF_CONNECTED:
+        case NIMBLE_NETIF_CONNECTED_MASTER: {
             printf("event: ");
             bluetil_addr_print(conn->addr);
-            puts(" -> CONNECTED");
+            puts(" -> CONNECTED as MASTER");
             _conn_add(&_conn_active, conn);
-            nimble_netif_accept_resume();
+            /* connection sequence is complete, so continue advertising (if
+             * applicable) */
+            mutex_lock(&_conn_lock);
+            if (_conn_adv) {
+                int res = nimble_netif_accept(_conn_adv, _ad.buf, _ad.pos,
+                                              &_adv_params);
+                assert(res == NIMBLE_NETIF_OK);
+                (void)res;
+            }
+            mutex_unlock(&_conn_lock);
+            break;
+        }
+        case NIMBLE_NETIF_CONNECTED_SLAVE:
+            printf("event: ");
+            bluetil_addr_print(conn->addr);
+            puts(" -> CONNECTED as SLAVE");
+            mutex_lock(&_conn_lock);
+            assert(conn == _conn_adv);
+            _conn_adv = NULL;
+            mutex_unlock(&_conn_lock);
+            _conn_add(&_conn_active, conn);
             break;
         case NIMBLE_NETIF_DISCONNECTED:
             printf("event: ");
@@ -83,9 +117,12 @@ static void _on_ble_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
         case NIMBLE_NETIF_CONNECT_ABORT:
             _conn_add(&_conn_pool, conn);
             break;
-
         case NIMBLE_NETIF_ACCEPT_ABORT:
             puts("event: stopped advertising");
+            mutex_lock(&_conn_lock);
+            assert(conn == _conn_adv);
+            _conn_adv = NULL;
+            mutex_unlock(&_conn_lock);
             _conn_add(&_conn_pool, conn);
             break;
         case NIMBLE_NETIF_CONN_UPDATED:
@@ -102,12 +139,41 @@ static void _cmd_info(void)
 
 static void _cmd_adv(const char *name)
 {
-    if (name) {
-        printf("ADVERTISING %s\n", name);
+    int res;
+
+    /* build advertising data */
+    res = bluetil_ad_init_with_flags(&_ad, _adbuf, BLE_HS_ADV_MAX_SZ,
+                                         BLUETIL_AD_FLAGS_DEFAULT);
+    assert(res == BLUETIL_AD_OK);
+    uint16_t ipss = BLE_SVC_IPSS;
+    res = bluetil_ad_add(&_ad, BLE_GAP_AD_UUID16_INCOMP, &ipss, sizeof(ipss));
+    assert(res == BLUETIL_AD_OK);
+    if (name == NULL) {
+        name = APP_ADV_NAME_DEFAULT;
+    }
+    res = bluetil_ad_add(&_ad, BLE_GAP_AD_NAME, name, strlen(name));
+    if (res != BLUETIL_AD_OK) {
+        puts("err: the given name is too long");
+        return;
+    }
+
+    /* get free connection context */
+    nimble_netif_conn_t *conn = _conn_get(&_conn_pool);
+    if (conn == NULL) {
+        puts("err: connection limit maxed out\n");
+        return;
+    }
+
+    /* start listening for incoming connections */
+    res = nimble_netif_accept(conn, _ad.buf, _ad.pos, &_adv_params);
+    if (res != NIMBLE_NETIF_OK) {
+        _conn_add(&_conn_pool, conn);
     }
     else {
-        puts("ADV default name");
+        _conn_adv = conn;
     }
+
+    printf("success: advertising this node: '%s'\n", name);
 }
 
 static void _cmd_adv_stop(void)
@@ -143,8 +209,8 @@ static void _cmd_connect(unsigned pos)
         puts("err: connection limit already maxed out\n");
         return;
     }
-    /* TODO: we need to stop accepting before connecting */
-    int res = nimble_netif_accept_pause();
+    /* we need to stop accepting before connecting */
+    int res = nimble_netif_accept_stop();
     assert(res == NIMBLE_NETIF_OK);
 
     /* TODO: for now we use default parameters */

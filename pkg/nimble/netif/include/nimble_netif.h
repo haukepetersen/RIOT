@@ -47,7 +47,8 @@ enum {
 };
 
 typedef enum {
-    NIMBLE_NETIF_CONNECTED,
+    NIMBLE_NETIF_CONNECTED_MASTER,
+    NIMBLE_NETIF_CONNECTED_SLAVE,
     NIMBLE_NETIF_DISCONNECTED,
     NIMBLE_NETIF_CONNECT_ABORT,
     NIMBLE_NETIF_ACCEPT_ABORT,
@@ -97,25 +98,6 @@ int nimble_netif_accept(nimble_netif_conn_t *conn,
                         const struct ble_gap_adv_params *adv_params);
 
 /**
- * @brief   Pause accepting incoming connections (stop sending advertisements)
- *
- * @return  NIMBLE_NETIF_OK on success
- * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
- */
-int nimble_netif_accept_pause(void);
-
-/**
- * @brief   Resume accepting connections
- *
- * The context set by nimble_netif_accept() will be used.
- *
- * @return  NIMBLE_NETIF_OK on success
- * @return  NIMBLE_NETIF_BUSY if we are already accepting connections
- * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
- */
-int nimble_netif_accept_resume(void);
-
-/**
  * @brief   Stop accepting incoming connections (and stop advertising)
  *
  * If an advertising context was set, this function will trigger a
@@ -126,11 +108,35 @@ int nimble_netif_accept_resume(void);
  */
 int nimble_netif_accept_stop(void);
 
+// /**
+//  * @brief   Pause accepting incoming connections (stop sending advertisements)
+//  *
+//  * @return  NIMBLE_NETIF_OK on success
+//  * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
+//  */
+// int nimble_netif_accept_pause(void);
 
-int nimble_netif_update(nimble_netif_conn_t,
+// *
+//  * @brief   Resume accepting connections
+//  *
+//  * The context set by nimble_netif_accept() will be used.
+//  *
+//  * @return  NIMBLE_NETIF_OK on success
+//  * @return  NIMBLE_NETIF_BUSY if we are already accepting connections
+//  * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
+
+// int nimble_netif_accept_resume(void);
+
+/**
+ * @brief   Update the connection parameters for the given connection
+ *
+ * @param t [description]
+ * @param ble_gap_conn_params [description]
+ *
+ * @return [description]
+ */
+int nimble_netif_update(nimble_netif_conn_t *conn,
                         struct ble_gap_conn_params *conn_params);
-
-int nimble_netif_is_connected(nimble_netif_conn_t *conn);
 
 /**
  * @brief   Get the connection context corresponding to the given address
@@ -140,6 +146,10 @@ int nimble_netif_is_connected(nimble_netif_conn_t *conn);
  */
 nimble_netif_conn_t *nimble_netif_get_conn(const uint8_t *addr);
 
+/* deprecated? */
+// int nimble_netif_is_connected(nimble_netif_conn_t *conn);
+
+/* deprecated? */
 // void nimble_netif_print_conn_info(void);
 
 #ifdef __cplusplus
