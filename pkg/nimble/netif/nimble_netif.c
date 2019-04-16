@@ -66,11 +66,6 @@
                                  sizeof(struct os_mbuf_pkthdr))
 #define MBUF_SIZE               (MBUF_OVHD + MTU_SIZE)
 
-enum {
-    MASTER,
-    SLAVE,
-};
-
 /* allocate a stack for the netif device */
 static char _stack[THREAD_STACKSIZE_DEFAULT];
 
@@ -438,11 +433,6 @@ end:
     return ret;
 }
 
-static void _l2cap_connected(nimble_netif_conn_t *conn,
-                             struct ble_l2cap_event *event) {
-    assert(conn->coc == NULL);
-}
-
 static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
 {
     nimble_netif_conn_t *conn = (nimble_netif_conn_t *)arg;
@@ -496,7 +486,6 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             mutex_unlock(&_lock);
             conn->coc = event->connect.chan;
             _conn_add(conn);
-            _l2cap_connected(conn, event);
             DEBUG("    [] (%p) l2cap-server connected\n", conn);
             _notify(conn, NIMBLE_NETIF_CONNECTED_SLAVE);
             break;
@@ -526,7 +515,6 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
         default:
             assert(0);
             break;
-
     }
 
     return 0;
@@ -581,19 +569,19 @@ static int _on_gap_master_evt(struct ble_gap_event *event, void *arg)
                 return 1;
             }
             _on_gap_connected(conn, event->connect.conn_handle);
-            conn->role = MASTER;
+            conn->role = NIMBLE_NETIF_MASTER;
 
             struct os_mbuf *sdu_rx = os_mbuf_get_pkthdr(&_mbuf_pool, 0);
             /* we should never run out of buffer space... */
             assert(sdu_rx != NULL);
 
-            DEBUG("    [] (%p) calling l2cap connect\n", conn);
+            printf("    [] (%p) calling l2cap connect\n", conn);
             res = ble_l2cap_connect(event->connect.conn_handle,
                                     NIMBLE_NETIF_CID, MTU_SIZE, sdu_rx,
                                     _on_l2cap_client_evt, conn);
             if (res != 0) {
                 os_mbuf_free_chain(sdu_rx);
-                DEBUG("    [] (%p) l2cap connect: FAIL (%i)\n", conn, res);
+                printf("    [] (%p) l2cap connect: FAIL (%i)\n", conn, res);
             }
             break;
         }
@@ -604,6 +592,10 @@ static int _on_gap_master_evt(struct ble_gap_event *event, void *arg)
             // bluetil_addr_print(event->disconnect.conn.peer_id_addr.val);
             DEBUG("\n");
             res = _on_gap_terminated(conn);
+            break;
+        case BLE_GAP_EVENT_MTU:
+            printf("[nimg] GAP MTU event, new MTU is %u\n",
+                   (unsigned)event->mtu.value);
             break;
         default:
             DEBUG("    [] (%p) ERROR: unknown GAP event!\n", conn);
@@ -629,7 +621,7 @@ static int _on_gap_slave_evt(struct ble_gap_event *event, void *arg)
                 return 1;
             }
             _on_gap_connected(conn, event->connect.conn_handle);
-            conn->role = SLAVE;
+            conn->role = NIMBLE_NETIF_SLAVE;
             break;
         }
         case BLE_GAP_EVENT_DISCONNECT:

@@ -63,6 +63,13 @@ static void _conn_add(clist_node_t *list, nimble_netif_conn_t *conn)
     mutex_unlock(&_conn_lock);
 }
 
+static void _conn_remove(clist_node_t *list, nimble_netif_conn_t *conn)
+{
+    mutex_lock(&_conn_lock);
+    clist_remove(list, &conn->node);
+    mutex_unlock(&_conn_lock);
+}
+
 static nimble_netif_conn_t *_conn_by_pos(clist_node_t *list, unsigned pos)
 {
     unsigned i = 0;
@@ -89,6 +96,7 @@ static void _on_ble_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
             /* connection sequence is complete, so continue advertising (if
              * applicable) */
             mutex_lock(&_conn_lock);
+
             if (_conn_adv) {
                 int res = nimble_netif_accept(_conn_adv, _ad.buf, _ad.pos,
                                               &_adv_params);
@@ -112,9 +120,11 @@ static void _on_ble_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
             printf("event: ");
             bluetil_addr_print(conn->addr);
             puts(" -> CONNECTION CLOSED");
+            _conn_remove(&_conn_active, conn);
             _conn_add(&_conn_pool, conn);
             break;
         case NIMBLE_NETIF_CONNECT_ABORT:
+            printf("event: CONNECTION ABORT\n");
             _conn_add(&_conn_pool, conn);
             break;
         case NIMBLE_NETIF_ACCEPT_ABORT:
@@ -131,15 +141,58 @@ static void _on_ble_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
             break;
     }
 }
+static void _conn_list(void)
+{
+    unsigned i = 0;
+    nimble_netif_conn_t *conn = _conn_next(&_conn_active, NULL);
+    const char roles[2] = { 'M', 'S' };
+
+    while (conn) {
+        printf("[%2u] ", i++);
+        bluetil_addr_print(conn->addr);
+        printf(" (%c) -> ", roles[conn->role]);
+        bluetil_addr_ipv6_l2ll_print(conn->addr);
+        puts("");
+        conn = _conn_next(&_conn_active, conn);
+    }
+}
 
 static void _cmd_info(void)
 {
-    puts("INFO");
+    puts("Connection status:");
+
+    mutex_lock(&_conn_lock);
+    unsigned free = (unsigned)clist_count(&_conn_pool);
+    unsigned active = (unsigned)clist_count(&_conn_active);
+
+    printf(" Free slots: %u/%u\n", free, NIMBLE_MAX_CONN);
+    printf("Advertising: ");
+    if (_conn_adv != NULL) {
+        puts("yes");
+    }
+    else {
+        puts("no");
+    }
+    if (active > 0) {
+        printf("%u established connections:\n", active);
+        _conn_list();
+    }
+    mutex_unlock(&_conn_lock);
+    puts("");
 }
 
 static void _cmd_adv(const char *name)
 {
     int res;
+
+    /* make sure no advertising is in progress */
+    mutex_lock(&_conn_lock);
+    int active = (_conn_adv != NULL);
+    mutex_unlock(&_conn_lock);
+    if (active) {
+        puts("err: advertising already in progress");
+        return;
+    }
 
     /* build advertising data */
     res = bluetil_ad_init_with_flags(&_ad, _adbuf, BLE_HS_ADV_MAX_SZ,
@@ -168,19 +221,23 @@ static void _cmd_adv(const char *name)
     res = nimble_netif_accept(conn, _ad.buf, _ad.pos, &_adv_params);
     if (res != NIMBLE_NETIF_OK) {
         _conn_add(&_conn_pool, conn);
+        printf("err: unable to start advertising (%i)\n", res);
     }
     else {
         _conn_adv = conn;
+        printf("success: advertising this node: '%s'\n", name);
     }
-
-    printf("success: advertising this node: '%s'\n", name);
 }
 
 static void _cmd_adv_stop(void)
 {
     int res = nimble_netif_accept_stop();
-    assert(res == NIMBLE_NETIF_OK);
-    (void)res;
+    if (res == NIMBLE_NETIF_OK) {
+        puts("canceled advertising");
+    }
+    else if (res == NIMBLE_NETIF_NOTADV) {
+        puts("err: no advertising in progress");
+    }
 }
 
 static void _cmd_scan(unsigned duration)
@@ -210,11 +267,10 @@ static void _cmd_connect(unsigned pos)
         return;
     }
     /* we need to stop accepting before connecting */
-    int res = nimble_netif_accept_stop();
-    assert(res == NIMBLE_NETIF_OK);
+    _cmd_adv_stop();
 
     /* TODO: for now we use default parameters */
-    res = nimble_netif_connect(conn, &sle->addr, NULL, CONN_TIMEOUT);
+    int res = nimble_netif_connect(conn, &sle->addr, NULL, CONN_TIMEOUT);
     if (res != NIMBLE_NETIF_OK) {
         _conn_add(&_conn_pool, conn);
         printf("err: unable to trigger connection sequence (%i)\n", res);
@@ -228,16 +284,8 @@ static void _cmd_connect(unsigned pos)
 
 static void _cmd_conn_list(void)
 {
-    unsigned i = 0;
-
     mutex_lock(&_conn_lock);
-    nimble_netif_conn_t *conn = _conn_next(&_conn_active, NULL);
-    while (conn) {
-        printf("[%2u] ", i++);
-        bluetil_addr_print(conn->addr);
-        puts("");
-        conn = _conn_next(&_conn_active, conn);
-    }
+    _conn_list();
     mutex_unlock(&_conn_lock);
 }
 
@@ -289,7 +337,7 @@ int app_ble_cmd(int argc, char **argv)
         char *name = NULL;
         if (argc > 2) {
             if (_ishelp(argv[2])) {
-                printf("usage: %s adv [help|stop|<name>]", argv[0]);
+                printf("usage: %s adv [help|stop|<name>]\n", argv[0]);
                 return 0;
             }
             if (memcmp(argv[2], "stop", 4) == 0) {
@@ -304,7 +352,7 @@ int app_ble_cmd(int argc, char **argv)
         uint32_t duration = SCAN_DUR_DEFAULT;
         if (argc > 2) {
             if (_ishelp(argv[2])) {
-                printf("usage: %s scan [help|list|<duration in ms>]", argv[0]);
+                printf("usage: %s scan [help|list|[duration in ms]]\n", argv[0]);
                 return 0;
             }
             if (memcmp(argv[2], "list", 4) == 0) {
@@ -317,7 +365,7 @@ int app_ble_cmd(int argc, char **argv)
     }
     else if ((memcmp(argv[1], "connect", 7) == 0)) {
         if ((argc < 3) || _ishelp(argv[2])) {
-            printf("usage: %s connect [help|list|<scanlist entry #>]", argv[0]);
+            printf("usage: %s connect [help|list|<scanlist entry #>]\n", argv[0]);
         }
         if (memcmp(argv[2], "list", 4) == 0) {
             _cmd_conn_list();
@@ -328,7 +376,11 @@ int app_ble_cmd(int argc, char **argv)
     }
     else if ((memcmp(argv[1], "close", 5) == 0)) {
         if ((argc < 3) || _ishelp(argv[2])) {
-            printf("usage: %s scan [help|<conn #>]", argv[0]);
+            printf("usage: %s close [help|list|<conn #>]\n", argv[0]);
+            return 0;
+        }
+        if (memcmp(argv[2], "list", 4) == 0) {
+            _cmd_conn_list();
             return 0;
         }
         unsigned chan = (unsigned)atoi(argv[2]);

@@ -55,6 +55,11 @@ typedef enum {
     NIMBLE_NETIF_CONN_UPDATED,
 } nimble_netif_event_t;
 
+enum {
+    NIMBLE_NETIF_MASTER = 0,
+    NIMBLE_NETIF_SLAVE  = 1,
+};
+
 
 /* connection states: DISCONNECTED, BUSY, ADVERTISING, CONNECTED
  * -> how do we know the state from the value of the fields of this struct? */
