@@ -120,21 +120,6 @@ int nimble_netif_accept_stop(void);
  */
 int nimble_netif_update(int handle, struct ble_gap_conn_params *conn_params);
 
-
-
-/**
- * @brief   Get the connection context corresponding to the given address
- *
- * @return  connection context for the connection to the given address
- * @return  NULL if not connected to the node with the given address
- */
-// nimble_netif_conn_t *nimble_netif_get_conn(const uint8_t *addr);
-/* deprecated? */
-// int nimble_netif_is_connected(nimble_netif_conn_t *conn);
-
-/* deprecated? */
-// void nimble_netif_print_conn_info(void);
-
 #ifdef __cplusplus
 }
 #endif

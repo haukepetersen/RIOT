@@ -356,15 +356,15 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
 {
     int handle = (int)arg;
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+    // printf("l2cap client: handle: %i, conn: %p\n", handle, conn);
+    // printf("l2cap slave client, state is 0x%04x\n", (int)conn->state);
     assert(conn && (conn->state & NIMBLE_NETIF_GAP_CONNECTED));
 
-    assert(conn->state == NIMBLE_NETIF_CONNECTING);
-
     // TODO: remove
-    if (event->type != BLE_L2CAP_EVENT_COC_DATA_RECEIVED) {
-        printf("[nimg] (%p) _on_l2cap_slave_evt: event %i\n",
-              conn, (int)event->type);
-    }
+    // if (event->type != BLE_L2CAP_EVENT_COC_DATA_RECEIVED) {
+    //     printf("[nimg] (%p) _on_l2cap_slave_evt: event %i\n",
+    //           conn, (int)event->type);
+    // }
 
     switch (event->type) {
         case BLE_L2CAP_EVENT_COC_CONNECTED:
@@ -400,9 +400,9 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
     nimble_netif_conn_t *conn;
 
     // TODO: remove
-    if (event->type != BLE_L2CAP_EVENT_COC_DATA_RECEIVED) {
-        printf("[nimg] _on_l2cap_server_evt: event %i\n", (int)event->type);
-    }
+    // if (event->type != BLE_L2CAP_EVENT_COC_DATA_RECEIVED) {
+    //     printf("[nimg] _on_l2cap_server_evt: event %i\n", (int)event->type);
+    // }
 
     switch (event->type) {
         case BLE_L2CAP_EVENT_COC_CONNECTED:
@@ -411,7 +411,7 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             assert(conn);
             conn->coc = event->connect.chan;
             conn->state |= NIMBLE_NETIF_L2CAP_SERVER;
-            conn->state &= ~NIMBLE_NETIF_CONNECTING;
+            conn->state &= ~(NIMBLE_NETIF_ADV | NIMBLE_NETIF_CONNECTING);
             _notify(handle, NIMBLE_NETIF_CONNECTED_SLAVE);
             break;
         case BLE_L2CAP_EVENT_COC_DISCONNECTED:
@@ -457,13 +457,15 @@ static int _on_gap_master_evt(struct ble_gap_event *event, void *arg)
     int res = 0;
     int handle = (int)arg;
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+    // printf("gap master: handle: %i, conn: %p\n", handle, conn);
     assert(conn);
 
-    printf("[nimg] (%p) _on_gap_master_evt: event %i\n", conn, (int)event->type);
+    // printf("[nimg] (%p) _on_gap_master_evt: event %i\n", conn, (int)event->type);
 
     switch (event->type) {
         case BLE_GAP_EVENT_CONNECT: {
             if (event->connect.status != 0) {
+                nimble_netif_conn_free(handle);
                 _notify(handle, NIMBLE_NETIF_CONNECT_ABORT);
                 return 0;
             }
@@ -475,7 +477,7 @@ static int _on_gap_master_evt(struct ble_gap_event *event, void *arg)
             assert(sdu_rx != NULL);
             res = ble_l2cap_connect(event->connect.conn_handle,
                                     NIMBLE_NETIF_CID, MTU_SIZE, sdu_rx,
-                                    _on_l2cap_client_evt, conn);
+                                    _on_l2cap_client_evt, (void *)handle);
             if (res != 0) {
                 os_mbuf_free_chain(sdu_rx);
                 printf("    [] (%p) l2cap connect: FAIL (%i)\n", conn, res);
@@ -503,19 +505,21 @@ static int _on_gap_slave_evt(struct ble_gap_event *event, void *arg)
 {
     int handle = (int)arg;
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+    // printf("gap slave: handle: %i, conn: %p\n", handle, conn);
     assert(conn);
 
-    printf("[nimg] (%p) _on_gap_slave_evt: event %i\n", conn, (int)event->type);
+    // printf("[nimg] (%p) _on_gap_slave_evt: event %i\n", conn, (int)event->type);
 
     switch (event->type) {
         case BLE_GAP_EVENT_CONNECT: {
             if (event->connect.status != 0) {
-                printf("[nimg] CONNECT error (%i)\n", (int)event->connect.status);
+                nimble_netif_conn_free(handle);
                 _notify(handle, NIMBLE_NETIF_CONNECT_ABORT);
                 break;
             }
             _on_gap_connected(conn, event->connect.conn_handle);
             conn->state |= NIMBLE_NETIF_GAP_SLAVE;
+            printf("[nimg] GAP connected, state 0x%04x\n", (int)conn->state);
             break;
         }
         case BLE_GAP_EVENT_DISCONNECT:
@@ -573,6 +577,9 @@ int nimble_netif_connect(const ble_addr_t *addr,
     if (nimble_netif_conn_connected(addr->val) != 0) {
         printf("    [] ERROR: already connected to that address\n");
         return NIMBLE_NETIF_ALREADY;
+    }
+    if (nimble_netif_conn_connecting()) {
+        return NIMBLE_NETIF_BUSY;
     }
 
     /* get empty connection context */
@@ -654,43 +661,3 @@ int nimble_netif_accept_stop(void)
 
     return NIMBLE_NETIF_OK;
 }
-
-
-
-
-
-// int nimble_netif_is_connected(nimble_netif_conn_t *conn)
-// {
-//     return _conn_find(conn) != NULL;
-// }
-
-// nimble_netif_conn_t *nimble_netif_get_conn(const uint8_t *addr)
-// {
-//     return _conn_get_by_addr(addr);
-// }
-
-// nimble_netif_conn_t *nimble_netif_get_adv_ctx(void)
-// {
-//     return _adv;
-// }
-
-
-// static int _conn_dump(clist_node_t *node, void *arg)
-// {
-//     (void)arg;
-//     char roles[2] = { 'M', 'S' };
-//     nimble_netif_conn_t *conn = (nimble_netif_conn_t *)node;
-//     printf("- (%c) ", roles[conn->role]);
-//     bluetil_addr_print(conn->addr);
-//     printf(" -> ");
-//     bluetil_addr_ipv6_l2ll_print(conn->addr);
-//     printf("\n");
-//     return 0;
-// }
-
-// void nimble_netif_print_conn_info(void)
-// {
-//     mutex_lock(&_lock);
-//     clist_foreach(&_connections, _conn_dump, NULL);
-//     mutex_unlock(&_lock);
-// }

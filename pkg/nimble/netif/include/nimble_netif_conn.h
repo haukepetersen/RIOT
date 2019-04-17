@@ -42,6 +42,8 @@ nimble_netif_conn_t *nimble_netif_conn_get(int handle);
 
 int nimble_netif_conn_get_adv(void);
 
+int nimble_netif_conn_get_connecting(void);
+
 int nimble_netif_conn_get_by_addr(const uint8_t *addr);
 
 int nimble_netif_conn_get_by_gaphandle(uint16_t gaphandle);
@@ -58,6 +60,11 @@ int nimble_netif_conn_start_adv(void);
 int nimble_netif_conn_start_connection(const uint8_t *addr);
 
 void nimble_netif_conn_free(int handle);
+
+static inline int nimble_netif_conn_connecting(void)
+{
+    return (nimble_netif_conn_get_connecting() != NIMBLE_NETIF_CONN_INVALID);
+}
 
 static inline int nimble_netif_conn_connected(const uint8_t *addr)
 {

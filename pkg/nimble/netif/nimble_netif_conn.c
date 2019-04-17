@@ -64,6 +64,15 @@ int nimble_netif_conn_get_adv(void)
     return handle;
 }
 
+int nimble_netif_conn_get_connecting(void)
+{
+    int handle;
+    mutex_lock(&_lock);
+    handle = _find_by_state(NIMBLE_NETIF_CONNECTING);
+    mutex_unlock(&_lock);
+    return handle;
+}
+
 int nimble_netif_conn_get_by_addr(const uint8_t *addr)
 {
     assert(addr);
@@ -138,7 +147,7 @@ int nimble_netif_conn_start_adv(void)
 
 void nimble_netif_conn_free(int handle)
 {
-    assert((handle > 0) && (handle < NIMBLE_NETIF_CONN_NUMOF));
+    assert((handle >= 0) && (handle < NIMBLE_NETIF_CONN_NUMOF));
 
     mutex_lock(&_lock);
     memset(&_conn[handle], 0, sizeof(nimble_netif_conn_t));

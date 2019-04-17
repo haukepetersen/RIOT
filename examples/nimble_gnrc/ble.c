@@ -14,61 +14,6 @@
 
 #include "app.h"
 
-#define SCAN_DUR_DEFAULT        (500U)      /* 500ms */
-#define CONN_TIMEOUT            (500U)      /* 500ms */
-
-// static nimble_netif_conn_t *_conn_next(clist_node_t *list,
-//                                        nimble_netif_conn_t *conn)
-// {
-//     if (conn == NULL) {
-//         return (nimble_netif_conn_t *)list->next;
-//     }
-//     else {
-//         conn = (nimble_netif_conn_t *)conn->node.next;
-//         if (conn == (nimble_netif_conn_t *)list->next) {
-//             return NULL;    /* end of list */
-//         }
-//     }
-//     return conn;
-// }
-
-// static nimble_netif_conn_t *_conn_get(clist_node_t *list)
-// {
-//     mutex_lock(&_conn_lock);
-//     nimble_netif_conn_t *conn = (nimble_netif_conn_t *)clist_lpop(list);
-//     mutex_unlock(&_conn_lock);
-//     return conn;
-// }
-
-// static void _conn_add(clist_node_t *list, nimble_netif_conn_t *conn)
-// {
-//     mutex_lock(&_conn_lock);
-//     clist_rpush(list, &conn->node);
-//     mutex_unlock(&_conn_lock);
-// }
-
-// static void _conn_remove(clist_node_t *list, nimble_netif_conn_t *conn)
-// {
-//     mutex_lock(&_conn_lock);
-//     clist_remove(list, &conn->node);
-//     mutex_unlock(&_conn_lock);
-// }
-
-// static nimble_netif_conn_t *_conn_by_pos(clist_node_t *list, unsigned pos)
-// {
-//     unsigned i = 0;
-//     nimble_netif_conn_t *conn = NULL;
-
-//     mutex_lock(&_conn_lock);
-//     do {
-//         conn = _conn_next(list, conn);
-//         i++;
-//     } while (conn && (i <= pos));
-//     mutex_unlock(&_conn_lock);
-
-//     return conn;
-// }
-
 static void _on_ble_evt(int handle, nimble_netif_event_t event)
 {
     switch (event) {
@@ -123,10 +68,8 @@ static void _cmd_info(void)
 
     unsigned free = nimble_netif_conn_count(NIMBLE_NETIF_UNUSED);
     unsigned active = nimble_netif_conn_count(NIMBLE_NETIF_L2CAP_CONNECTED);
-    unsigned busy = nimble_netif_conn_count(NIMBLE_NETIF_CONNECTING);
 
     printf(" Free slots: %u/%u\n", free, NIMBLE_NETIF_CONN_NUMOF);
-    printf(" Busy slots: %u\n", busy);
     printf("Advertising: ");
     if (nimble_netif_conn_get_adv() != NIMBLE_NETIF_CONN_INVALID) {
         puts("yes");
@@ -220,7 +163,7 @@ static void _cmd_connect(unsigned pos)
     }
 
     // TODO: for now we use default parameters
-    int res = nimble_netif_connect(&sle->addr, NULL, CONN_TIMEOUT);
+    int res = nimble_netif_connect(&sle->addr, NULL, APP_CONN_TIMEOUT);
     if (res != NIMBLE_NETIF_OK) {
         printf("err: unable to trigger connection sequence (%i)\n", res);
         return;
@@ -282,7 +225,7 @@ int app_ble_cmd(int argc, char **argv)
         _cmd_adv(name);
     }
     else if ((memcmp(argv[1], "scan", 4) == 0)) {
-        uint32_t duration = SCAN_DUR_DEFAULT;
+        uint32_t duration = APP_SCAN_DUR_DEFAULT;
         if (argc > 2) {
             if (_ishelp(argv[2])) {
                 printf("usage: %s scan [help|list|[duration in ms]]\n", argv[0]);
