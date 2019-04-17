@@ -37,13 +37,14 @@ extern "C" {
 #endif
 
 enum {
-    NIMBLE_NETIF_OK      =  0,
-    NIMBLE_NETIF_NOTCONN = -1,
-    NIMBLE_NETIF_DEVERR  = -2,
-    NIMBLE_NETIF_BUSY    = -3,
-    NIMBLE_NETIF_NOMEM   = -4,
-    NIMBLE_NETIF_NOTADV  = -5,
-    NIMBLE_NETIF_ALREADY = -6,
+    NIMBLE_NETIF_OK         =  0,
+    NIMBLE_NETIF_NOTCONN    = -1,
+    NIMBLE_NETIF_DEVERR     = -2,
+    NIMBLE_NETIF_BUSY       = -3,
+    NIMBLE_NETIF_NOMEM      = -4,
+    NIMBLE_NETIF_NOTADV     = -5,
+    NIMBLE_NETIF_ALREADY    = -6,
+    NIMBLE_NETIF_NOTFOUND   = -7,
 };
 
 typedef enum {
@@ -51,29 +52,30 @@ typedef enum {
     NIMBLE_NETIF_CONNECTED_SLAVE,
     NIMBLE_NETIF_DISCONNECTED,
     NIMBLE_NETIF_CONNECT_ABORT,
-    NIMBLE_NETIF_ACCEPT_ABORT,
     NIMBLE_NETIF_CONN_UPDATED,
 } nimble_netif_event_t;
 
 enum {
-    NIMBLE_NETIF_MASTER = 0,
-    NIMBLE_NETIF_SLAVE  = 1,
+    NIMBLE_NETIF_L2CAP_CLIENT       = 0x0001,
+    NIMBLE_NETIF_L2CAP_SERVER       = 0x0002,
+    NIMBLE_NETIF_L2CAP_CONNECTED    = 0x0003,
+    NIMBLE_NETIF_GAP_MASTER         = 0x0010,
+    NIMBLE_NETIF_GAP_SLAVE          = 0x0020,
+    NIMBLE_NETIF_GAP_CONNECTED      = 0x0030,
+    NIMBLE_NETIF_ADV                = 0x0100,
+    NIMBLE_NETIF_CONNECTING         = 0x4000,
+    NIMBLE_NETIF_UNUSED             = 0x8000,
 };
 
-
-/* connection states: DISCONNECTED, BUSY, ADVERTISING, CONNECTED
- * -> how do we know the state from the value of the fields of this struct? */
 typedef struct {
-    clist_node_t node;      /* could we use this value to test the state? */
-    uint8_t addr[BLE_ADDR_LEN];
-    uint8_t role;
     struct ble_l2cap_chan *coc;
-    uint16_t handle;    /* needed? -> maybe better use state? */
+    uint16_t gaphandle;
+    uint16_t state;
+    uint8_t addr[BLE_ADDR_LEN];
 } nimble_netif_conn_t;
 
 
-typedef void(*nimble_netif_eventcb_t)(nimble_netif_conn_t *conn,
-                                      nimble_netif_event_t event);
+typedef void(*nimble_netif_eventcb_t)(int handle, nimble_netif_event_t event);
 
 
 /* to be called from: system init (auto_init) */
@@ -90,47 +92,23 @@ void nimble_netif_init(void);
 int nimble_netif_eventcb(nimble_netif_eventcb_t cb);
 
 
-int nimble_netif_connect(nimble_netif_conn_t *conn,
-                         const ble_addr_t *addr,
+int nimble_netif_connect(const ble_addr_t *addr,
                          const struct ble_gap_conn_params *conn_params,
                          uint32_t connect_timeout);
 
-int nimble_netif_disconnect(nimble_netif_conn_t *conn);
+int nimble_netif_close(int handle);
 
 /* return: negative for fail */
-int nimble_netif_accept(nimble_netif_conn_t *conn,
-                        const uint8_t *ad, size_t ad_len,
+int nimble_netif_accept(const uint8_t *ad, size_t ad_len,
                         const struct ble_gap_adv_params *adv_params);
 
 /**
  * @brief   Stop accepting incoming connections (and stop advertising)
- *
- * If an advertising context was set, this function will trigger a
- * NIMBLE_NETIF_ACCEPT_ABORT event.
- *
+ * *
  * @return  NIMBLE_NETIF_OK on success
  * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
  */
 int nimble_netif_accept_stop(void);
-
-// /**
-//  * @brief   Pause accepting incoming connections (stop sending advertisements)
-//  *
-//  * @return  NIMBLE_NETIF_OK on success
-//  * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
-//  */
-// int nimble_netif_accept_pause(void);
-
-// *
-//  * @brief   Resume accepting connections
-//  *
-//  * The context set by nimble_netif_accept() will be used.
-//  *
-//  * @return  NIMBLE_NETIF_OK on success
-//  * @return  NIMBLE_NETIF_BUSY if we are already accepting connections
-//  * @return  NIMBLE_NETIF_NOTADV if no advertising context is set
-
-// int nimble_netif_accept_resume(void);
 
 /**
  * @brief   Update the connection parameters for the given connection
@@ -140,8 +118,9 @@ int nimble_netif_accept_stop(void);
  *
  * @return [description]
  */
-int nimble_netif_update(nimble_netif_conn_t *conn,
-                        struct ble_gap_conn_params *conn_params);
+int nimble_netif_update(int handle, struct ble_gap_conn_params *conn_params);
+
+
 
 /**
  * @brief   Get the connection context corresponding to the given address
@@ -149,8 +128,7 @@ int nimble_netif_update(nimble_netif_conn_t *conn,
  * @return  connection context for the connection to the given address
  * @return  NULL if not connected to the node with the given address
  */
-nimble_netif_conn_t *nimble_netif_get_conn(const uint8_t *addr);
-
+// nimble_netif_conn_t *nimble_netif_get_conn(const uint8_t *addr);
 /* deprecated? */
 // int nimble_netif_is_connected(nimble_netif_conn_t *conn);
 
