@@ -551,7 +551,7 @@ void nimble_netif_init(void)
     res = os_mbuf_pool_init(&_mbuf_pool, &_mem_pool, MBUF_SIZE, MBUF_CNT);
     assert(res == 0);
 
-    res = ble_l2cap_create_server(BLE_L2CAP_CID_IPSP, MTU_SIZE,
+    res = ble_l2cap_create_server(NIMBLE_NETIF_CID, MTU_SIZE,
                                   _on_l2cap_server_evt, NULL);
     assert(res == 0);
     (void)res;
