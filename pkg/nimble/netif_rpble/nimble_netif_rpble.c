@@ -65,23 +65,14 @@ typedef struct {
 
 /* TODO: remove=? */
 static const nimble_netif_rpble_cfg_t *_cfg = NULL;
-
 static struct ble_gap_adv_params _adv_params = { 0 };
 static struct ble_gap_conn_params _conn_params = { 0 };
 static uint32_t _conn_timeout;   /* in ms */
 
 /* local RPL context */
 static nimble_netif_rpble_ctx_t _local_rpl_ctx;
-
-/* allocate memory for connection contexts */
-static nimble_netif_conn_t _conn_pool[CONN_NUMOF];
-static nimble_netif_conn_t *_current_parent = NULL;
-static clist_node_t _parents;
-static clist_node_t _children;
-// TODO: really needed? any call from outside of this threads context?
-// -> can be removed once we move all event handlers into the NimBLE thread
-static mutex_t _list_lock = MUTEX_INIT;
-
+static int _current_parent = NIMBLE_NETIF_CONN_INVALID;
+/* table for keeping possible parents */
 static ppt_entry_t _ppt[NIMBLE_NETIF_RPBLE_PPTSIZE];
 
 // TODO: remove thread and use nimbles event loop for these events...
@@ -314,7 +305,7 @@ static void _on_scan_evt(const ble_addr_t *addr, int8_t rssi,
     // DEBUG("# added 0x%02x to PPT\n", (int)addr->val[5]);
 }
 
-static void _on_netif_evt(nimble_netif_conn_t *conn, nimble_netif_event_t event)
+static void _on_netif_evt(int handle, nimble_netif_event_t event)
 {
     assert(conn);
 

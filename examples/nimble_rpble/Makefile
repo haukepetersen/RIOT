@@ -28,6 +28,8 @@ USEMODULE += ps
 # configure and use Nimble
 USEPKG += nimble
 USEMODULE += nimble_netif_rpble
+# the number of concurrent connections that can be handled
+NIMBLE_MAX_CONN := 3
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

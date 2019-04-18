@@ -74,21 +74,17 @@ ifneq (,$(filter nimble_addr,$(USEMODULE)))
   INCLUDES += -I$(RIOTPKG)/nimble/addr/include
 endif
 ifneq (,$(filter nimble_netif,$(USEMODULE)))
-  NIMBLE_MAX_CONNECTIONS ?= 3
+  NIMBLE_MAX_CONN ?= 3
   INCLUDES += -I$(RIOTPKG)/nimble/netif/include
 
   # configure NimBLE's internals
   CFLAGS += -DNIMBLE_MAX_CONN=$(NIMBLE_MAX_CONN)
   CFLAGS += -DMYNEWT_VAL_BLE_L2CAP_COC_MAX_NUM=$(NIMBLE_MAX_CONN)
-  CFLAGS += -DMYNEWT_VAL_BLE_L2CAP_COC_MTU=100
+  CFLAGS += -DMYNEWT_VAL_BLE_L2CAP_COC_MTU=250
   CFLAGS += -DMYNEWT_VAL_BLE_MAX_CONNECTIONS=$(NIMBLE_MAX_CONN)
   # NimBLEs internal buffer need to hold one IPv6 MTU per connection
   # for the internal MTU of 250 byte, we need 13 mbufs per connection...
   CFLAGS += -DMYNEWT_VAL_MSYS_1_BLOCK_COUNT=40
-
-
-# CFLAGS += -DMYNEWT_VAL_BLE_L2CAP_COC_MAX_NUM=1
-# CFLAGS += -DMYNEWT_VAL_BLE_MAX_CONNECTIONS=5
 endif
 ifneq (,$(filter nimble_netif_autoconn,$(USEMODULE)))
   INCLUDES += -I$(RIOTPKG)/nimble/netif_autoconn/include
