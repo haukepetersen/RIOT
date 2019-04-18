@@ -28,7 +28,8 @@ static void _on_ble_evt(int handle, nimble_netif_event_t event)
             bluetil_addr_print(nimble_netif_conn_get(handle)->addr);
             puts(")");
             break;
-        case NIMBLE_NETIF_DISCONNECTED:
+        case NIMBLE_NETIF_CLOSED_MASTER:
+        case NIMBLE_NETIF_CLOSED_SLAVE:
             printf("event: handle %i -> CONNECTION CLOSED (", handle);
             bluetil_addr_print(nimble_netif_conn_get(handle)->addr);
             puts(")");
@@ -164,7 +165,7 @@ static void _cmd_connect(unsigned pos)
 
     // TODO: for now we use default parameters
     int res = nimble_netif_connect(&sle->addr, NULL, APP_CONN_TIMEOUT);
-    if (res != NIMBLE_NETIF_OK) {
+    if (res < 0) {
         printf("err: unable to trigger connection sequence (%i)\n", res);
         return;
     }

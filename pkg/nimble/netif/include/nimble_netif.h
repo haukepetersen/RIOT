@@ -49,8 +49,7 @@ enum {
     NIMBLE_NETIF_BUSY       = -3,   /**< network device is busy */
     NIMBLE_NETIF_NOMEM      = -4,   /**< insufficient memory */
     NIMBLE_NETIF_NOTADV     = -5,   /**< not advertising */
-    NIMBLE_NETIF_ALREADY    = -6,   /**< already connected/advertising */
-    NIMBLE_NETIF_NOTFOUND   = -7,   /**< no fitting entry found */
+    NIMBLE_NETIF_NOTFOUND   = -6,   /**< no fitting entry found */
 };
 
 /**
@@ -59,7 +58,8 @@ enum {
 typedef enum {
     NIMBLE_NETIF_CONNECTED_MASTER,  /**< connection established as master */
     NIMBLE_NETIF_CONNECTED_SLAVE,   /**< connection established as slave */
-    NIMBLE_NETIF_DISCONNECTED,      /**< connection closed */
+    NIMBLE_NETIF_CLOSED_MASTER,     /**< connection closed (we were master) */
+    NIMBLE_NETIF_CLOSED_SLAVE,      /**< connection closed (we were slave) */
     NIMBLE_NETIF_CONNECT_ABORT,     /**< connection establishment aborted */
     NIMBLE_NETIF_CONN_UPDATED,      /**< connection parameter update done */
 } nimble_netif_event_t;
@@ -106,14 +106,35 @@ void nimble_netif_init(void);
 // TODO: move this into the _init() function? But what about auto_init?
 int nimble_netif_eventcb(nimble_netif_eventcb_t cb);
 
-
+/**
+ * @brief      { function_description }
+ *
+ * @param[in]  addr             The address
+ * @param[in]  conn_params      The connection parameters
+ * @param[in]  connect_timeout  The connect timeout
+ *
+ * @return  the used connection handle on success
+ * @return  NIMBLE_NETIF_BUSY if already connected to the given address or if
+ *          a connection setup procedure is in progress
+ * @return  NIMBLE_NETIF_NOMEM if no connection context memory is available
+ */
 int nimble_netif_connect(const ble_addr_t *addr,
                          const struct ble_gap_conn_params *conn_params,
                          uint32_t connect_timeout);
 
 int nimble_netif_close(int handle);
 
-/* return: negative for fail */
+/**
+ * @brief   Accept incoming connections by starting to advertise this node
+ *
+ * @param[in] ad
+ * @param[in] ad_len
+ * @param[in] adv_params
+ *
+ * @return  NIMBLE_NETIF_OK on success
+ * @return  NIMBLE_NETIF_BUSY if already advertising
+ * @return  NIMBLE_NETIF_NOMEM on insufficient connection memory
+ */
 int nimble_netif_accept(const uint8_t *ad, size_t ad_len,
                         const struct ble_gap_adv_params *adv_params);
 

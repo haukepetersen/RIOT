@@ -486,7 +486,7 @@ static int _on_gap_master_evt(struct ble_gap_event *event, void *arg)
         }
         case BLE_GAP_EVENT_DISCONNECT:
             nimble_netif_conn_free(handle);
-            _notify(handle, NIMBLE_NETIF_DISCONNECTED);
+            _notify(handle, NIMBLE_NETIF_CLOSED_MASTER);
             break;
         case BLE_GAP_EVENT_MTU:
             printf("[nimg] GAP MTU event, new MTU is %u\n",
@@ -523,10 +523,8 @@ static int _on_gap_slave_evt(struct ble_gap_event *event, void *arg)
             break;
         }
         case BLE_GAP_EVENT_DISCONNECT:
-            printf("    [] (%p) GAP slave disconnect (%i)\n", conn,
-                   event->disconnect.reason);
             nimble_netif_conn_free(handle);
-            _notify(handle, NIMBLE_NETIF_DISCONNECTED);
+            _notify(handle, NIMBLE_NETIF_CLOSED_SLAVE);
             break;
         default:
             DEBUG("    [] (%p) ERROR: unknown GAP event!\n", conn);
@@ -573,12 +571,9 @@ int nimble_netif_connect(const ble_addr_t *addr,
     assert(addr);
     assert(_eventcb);
 
-    /* check that there is no open connection with the given addr */
-    if (nimble_netif_conn_connected(addr->val) != 0) {
-        printf("    [] ERROR: already connected to that address\n");
-        return NIMBLE_NETIF_ALREADY;
-    }
-    if (nimble_netif_conn_connecting()) {
+    /* check that there is no open connection with the given address */
+    if (nimble_netif_conn_connected(addr->val) ||
+        nimble_netif_conn_connecting()) {
         return NIMBLE_NETIF_BUSY;
     }
 
@@ -594,7 +589,7 @@ int nimble_netif_connect(const ble_addr_t *addr,
     assert(res == 0);
     (void)res;
 
-    return NIMBLE_NETIF_OK;
+    return handle;
 }
 
 int nimble_netif_close(int handle)
@@ -655,7 +650,7 @@ int nimble_netif_accept_stop(void)
     }
 
     int res = ble_gap_adv_stop();
-    assert((res == 0) || (res == BLE_HS_EALREADY));
+    assert(res == 0);
     (void)res;
     nimble_netif_conn_free(handle);
 

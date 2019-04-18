@@ -130,7 +130,7 @@ int nimble_netif_conn_start_adv(void)
     mutex_lock(&_lock);
     int handle = _find_by_state(NIMBLE_NETIF_ADV);
     if (handle != NIMBLE_NETIF_CONN_INVALID) {
-        res = NIMBLE_NETIF_ALREADY;
+        res = NIMBLE_NETIF_BUSY;
     }
     else {
         handle = _find_by_state(NIMBLE_NETIF_UNUSED);
