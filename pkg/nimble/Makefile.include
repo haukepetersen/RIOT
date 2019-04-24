@@ -33,6 +33,13 @@ ifneq (,$(filter nimble_host_util,$(USEMODULE)))
   INCLUDES += $(NIMIBASE)/nimble/host/util/include
 endif
 
+#include nimble mesh headers
+ifneq (,$(filter nimble_mesh,$(USEMODULE)))
+  INCLUDES += $(NIMIBASE)/nimble/host/mesh/include
+  CFLAGS += -DMYNEWT_VAL_BLE_MESH=1
+  CFLAGS += -DMYNEWT_VAL_BLE_SM_SC=1
+endif
+
 # include tinycrypt headers
 ifneq (,$(filter nimble_controller,$(USEMODULE)))
   INCLUDES += $(NIMIBASE)/ext/tinycrypt/include

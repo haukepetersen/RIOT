@@ -64,6 +64,10 @@ nimble_controller:
 nimble_drivers_nrf52:
 	"$(MAKE)" -C $(PDIR)/nimble/drivers/nrf52/src/ -f $(TDIR)/drivers.nrf52.mk
 
+# BT Mesh modules
+nimble_mesh:
+	"$(MAKE)" -C $(PDIR)/nimble/host/mesh/src/ -f $(TDIR)/nimble.host.mesh.mk
+
 # additional, RIOT specific nimble modules
 nimble_addr:
 	"$(MAKE)" -C $(TDIR)/addr/
