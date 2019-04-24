@@ -26,6 +26,11 @@ ifneq (,$(filter nimble_host,$(USEMODULE)))
   USEMODULE += nimble_host_store_ram
 endif
 
+# include mesh dependencies
+ifneq (,$(filter nimble_mesh,$(USEMODULE)))
+  USEMODULE += nimble_svc_gatt
+endif
+
 # nimble controller dependencies
 ifneq (,$(filter nimble_controller,$(USEMODULE)))
   USEMODULE += nimble_transport_ram
