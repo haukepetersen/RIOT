@@ -16,8 +16,11 @@ void _event_callback_handler(event_t *event)
     event_callback->callback(event_callback->arg);
 }
 
+#include "assert.h"
 void event_callback_init(event_callback_t *event_callback, void (callback)(void *), void *arg)
 {
+    assert(event_callback);
+    assert(callback);
     event_callback->super.handler = _event_callback_handler;
     event_callback->callback = callback;
     event_callback->arg = arg;

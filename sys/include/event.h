@@ -102,6 +102,8 @@
 #include "thread_flags.h"
 #include "clist.h"
 
+#include "xtimer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -147,6 +149,7 @@ struct event {
 typedef struct {
     clist_node_t event_list;    /**< list of queued events              */
     thread_t *waiter;           /**< thread ownning event queue         */
+    xtimer_t to;
 } event_queue_t;
 
 /**
