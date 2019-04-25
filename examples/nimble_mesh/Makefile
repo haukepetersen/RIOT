@@ -21,6 +21,9 @@ USEMODULE += nimble_mesh
 # which is not needed in a production environment but helps in the
 # development process:
 DEVELHELP ?= 1
+# TMP - dev only, remove when PRing
+CFLAGS += -DLOG_LEVEL=LOG_INFO
+CFLAGS += -DDEBUG_ASSERT_VERBOSE
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
