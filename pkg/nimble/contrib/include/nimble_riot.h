@@ -58,6 +58,14 @@ extern "C" {
 #define NIMBLE_HOST_STACKSIZE       (THREAD_STACKSIZE_DEFAULT)
 #endif
 
+#ifndef NIMBLE_MESH_PRIO
+#define NIMBLE_MESH_PRIO            (THREAD_PRIORITY_MAIN - 1)
+#endif
+
+#ifndef NIMBLE_MESH_STACKSIZE
+#define NIMBLE_MESH_STACKSIZE       (THREAD_STACKSIZE_DEFAULT)
+#endif
+
 /**
  * @brief   Export our own address type for later usage
  */
