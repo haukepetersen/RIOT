@@ -110,13 +110,29 @@ static int _health_fault_test(struct bt_mesh_model *model,
     return 0;
 }
 
-static struct bt_mesh_health_srv_cb _health_srv = {
+static void _healt_attn_on(struct bt_mesh_model *model)
+{
+    (void)model;
+    puts("attention ON");
+}
+
+static void _health_attn_off(struct bt_mesh_model *model)
+{
+    (void)model;
+    puts("attention OFF");
+}
+
+static const struct bt_mesh_health_srv_cb _health_srv_cb = {
     .fault_get_cur = _health_fault_get_cur,
     .fault_get_reg = _health_fault_get_reg,
     .fault_clear   = _health_fault_clear,
     .fault_test    = _health_fault_test,
-    .attn_on       = NULL,
-    .attn_off      = NULL,
+    .attn_on       = _healt_attn_on,
+    .attn_off      = _health_attn_off,
+};
+
+static struct bt_mesh_health_srv _health_srv = {
+    .cb = &_health_srv_cb,
 };
 
 static struct bt_mesh_model _root_models[] = {
@@ -173,6 +189,30 @@ static int _on_output_number(bt_mesh_output_action_t action, uint32_t number)
     return 0;
 }
 
+static int _on_output_string(const char *str)
+{
+    printf("OOB action: string\n");
+    printf("    string: %s\n", str);
+    return 0;
+}
+
+static int _on_input_required(bt_mesh_input_action_t act, u8_t size)
+{
+    printf("Provisioning: input required, act %i, size %i\n",
+           (int)act, (int)size);
+    return 0;
+}
+
+static void _on_link_open(bt_mesh_prov_bearer_t bearer)
+{
+    printf("Provisioning: link open, bearer: 0x%02x\n", (int)bearer);
+}
+
+static void _on_link_close(bt_mesh_prov_bearer_t bearer)
+{
+    printf("Provisioning: link close, bearer: 0x%02x\n", (int)bearer);
+}
+
 static void _on_prov_complete(uint16_t net_idx, uint16_t addr)
 {
     printf("Provisioning complete!\n");
@@ -180,16 +220,27 @@ static void _on_prov_complete(uint16_t net_idx, uint16_t addr)
     printf("      addr: %u\n", (unsigned)addr);
 }
 
+static void _on_reset(void)
+{
+    puts("Provisioning: reset");
+}
+
 static const uint8_t dev_uuid[16] = MYNEWT_VAL(BLE_MESH_DEV_UUID);
 
 static const struct bt_mesh_prov _prov_cfg = {
-    .uuid = dev_uuid,
-    .output_size = 4,
+    .uuid           = dev_uuid,
+    .output_size    = 4,
     .output_actions = BT_MESH_DISPLAY_NUMBER,
-    .output_number = _on_output_number,
-    .complete = _on_prov_complete,
+    // .output_size = 0,
+    // .output_actions = 0,
+    .output_number  = _on_output_number,
+    .output_string  = _on_output_string,
+    .input          = _on_input_required,
+    .link_open      = _on_link_open,
+    .link_close     = _on_link_close,
+    .complete       = _on_prov_complete,
+    .reset          = _on_reset,
 };
-
 
 static char _stack_mesh[NIMBLE_MESH_STACKSIZE];
 
