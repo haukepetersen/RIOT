@@ -38,7 +38,7 @@ extern "C" {
  * @brief   Stacksize used for NimBLE's controller thread
  */
 #ifndef NIMBLE_CONTROLLER_STACKSIZE
-#define NIMBLE_CONTROLLER_STACKSIZE (THREAD_STACKSIZE_DEFAULT)
+#define NIMBLE_CONTROLLER_STACKSIZE (THREAD_STACKSIZE_DEFAULT * 2)
 #endif
 
 /**
@@ -52,7 +52,7 @@ extern "C" {
  * @brief   Stacksize used for NimBLE's host thread
  */
 #ifndef NIMBLE_HOST_STACKSIZE
-#define NIMBLE_HOST_STACKSIZE       (THREAD_STACKSIZE_DEFAULT)
+#define NIMBLE_HOST_STACKSIZE       (THREAD_STACKSIZE_DEFAULT * 2)
 #endif
 
 #ifndef NIMBLE_MESH_PRIO
@@ -60,7 +60,7 @@ extern "C" {
 #endif
 
 #ifndef NIMBLE_MESH_STACKSIZE
-#define NIMBLE_MESH_STACKSIZE       (THREAD_STACKSIZE_DEFAULT)
+#define NIMBLE_MESH_STACKSIZE       (THREAD_STACKSIZE_DEFAULT * 2)
 #endif
 
 /**
