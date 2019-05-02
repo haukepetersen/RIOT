@@ -25,6 +25,9 @@
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 
+#ifdef MODULE_NIMBLE_SVC_ANS
+#include "services/ans/ble_svc_ans.h"
+#endif
 #ifdef MODULE_NIMBLE_SVC_GAP
 #include "services/gap/ble_svc_gap.h"
 #endif
@@ -100,6 +103,9 @@ void nimble_riot_init(void)
     (void)res;
 
     /* initialize the configured, build-in services */
+#ifdef MODULE_NIMBLE_SVC_ANS
+    ble_svc_ans_init();
+#endif
 #ifdef MODULE_NIMBLE_SVC_GAP
     ble_svc_gap_init();
 #endif
