@@ -48,6 +48,9 @@ nimble_tinycrypt:
 	"$(MAKE)" -C $(PDIR)/ext/tinycrypt/src/ -f $(TDIR)/ext.tinycrypt.mk
 
 # service implementations
+nimble_svc_ans:
+	"$(MAKE)" -C $(PDIR)/nimble/host/services/ans/src/ -f $(TDIR)/svc.ans.mk
+
 nimble_svc_gap:
 	"$(MAKE)" -C $(PDIR)/nimble/host/services/gap/src/ -f $(TDIR)/svc.gap.mk
 
