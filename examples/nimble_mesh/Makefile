@@ -14,6 +14,8 @@ RIOTBASE ?= $(CURDIR)/../..
 USEPKG += nimble
 USEMODULE += nimble_mesh
 
+USEMODULE += periph_gpio_irq
+
 # We also use the AD part of the BLE helper module
 # USEMODULE += bluetil_ad
 
@@ -24,6 +26,10 @@ DEVELHELP ?= 1
 # TMP - dev only, remove when PRing
 CFLAGS += -DLOG_LEVEL=LOG_INFO
 CFLAGS += -DDEBUG_ASSERT_VERBOSE
+# USEMODULE += mpu_stack_guard
+
+NAME ?= foobert
+CFLAGS += -DMYNEWT_VAL_BLE_MESH_DEVICE_NAME=\"$(NAME)\"
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1

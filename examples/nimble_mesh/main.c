@@ -22,6 +22,8 @@
 
 #include "thread.h"
 #include "nimble_riot.h"
+#include "periph/gpio.h"
+#include "event/callback.h"
 
 #include "host/ble_hs.h"
 #include "mesh/glue.h"
@@ -31,10 +33,41 @@
 #include "mesh/cfg_srv.h"
 #include "mesh/health_srv.h"
 
-#define VENDOR_CID      0x1234      /* company identifier */
-#define VENDOR_PID      0x4321      /* product identifier */
-#define VENDOR_VID      0x0001      /* version identifier */
+// #define VENDOR_CID      0x1234      /* company identifier */
+#define VENDOR_CID      0x05C3
+// #define VENDOR_PID      0x4321      /* product identifier */
+// #define VENDOR_VID      0x0001      /* version identifier */
 
+#define DEBOUNCE_DELAY          (100 * US_PER_MS)   /* 100ms */
+
+
+/* button and pin maps */
+static const gpio_t _btn[] = { BTN0_PIN, BTN1_PIN, BTN2_PIN, BTN3_PIN };
+static const gpio_t _led[] = { LED0_PIN, LED1_PIN, LED2_PIN, LED3_PIN };
+static xtimer_t _debounce[4];
+static event_queue_t _btn_evevtq;
+static event_callback_t _btn_event[4];
+
+
+static uint8_t _trans_id = 0;
+static int _is_provisioned = 0;
+
+
+static void _on_debounce(void *arg)
+{
+    unsigned num = (unsigned)arg;
+    gpio_irq_enable(_btn[num]);
+}
+
+static uint8_t _led_read(unsigned pin)
+{
+    return (gpio_read(_led[pin])) ? 0 : 1;      /* active low... */
+}
+
+static void _led_write(unsigned pin, uint8_t state)
+{
+    gpio_write(_led[pin], !state);
+}
 
 static struct bt_mesh_cfg_srv _cfg_srv = {
     .relay = BT_MESH_RELAY_ENABLED,
@@ -49,6 +82,7 @@ static struct bt_mesh_cfg_srv _cfg_srv = {
     .frnd = BT_MESH_FRIEND_NOT_SUPPORTED,
 #endif
 #if MYNEWT_VAL(BLE_MESH_GATT_PROXY)
+
     .gatt_proxy = BT_MESH_GATT_PROXY_ENABLED,
 #else
     .gatt_proxy = BT_MESH_GATT_PROXY_NOT_SUPPORTED,
@@ -72,7 +106,7 @@ static int _health_fault_get_cur(struct bt_mesh_model *model,
     puts("fault_get_cur -> reporting no faults");
 
     *test_id = 23;
-    *company_id = VENDOR_VID;
+    *company_id = VENDOR_CID;
     *fault_count = 0;
     return 0;
 }
@@ -135,51 +169,153 @@ static struct bt_mesh_health_srv _health_srv = {
     .cb = &_health_srv_cb,
 };
 
-static struct bt_mesh_model _root_models[] = {
+static struct bt_mesh_model _models_root[] = {
     BT_MESH_MODEL_CFG_SRV(&_cfg_srv),
     BT_MESH_MODEL_HEALTH_SRV(&_health_srv, &_health_pub),
 };
 
-static void _on_vendor_model_receive(struct bt_mesh_model *model,
-                                     struct bt_mesh_msg_ctx *ctx,
-                                     struct os_mbuf *buf)
+static void _led_op_get(struct bt_mesh_model *model,
+                        struct bt_mesh_msg_ctx *ctx,
+                        struct os_mbuf *buf)
 {
-    int res;
-    (void)res;
-    struct os_mbuf *msg = NET_BUF_SIMPLE(3);
+    (void)buf;
+    unsigned pin = (unsigned)model->user_data;
+    struct os_mbuf *msg = NET_BUF_SIMPLE(2 + 1 + 4);
+    uint8_t state = _led_read(pin);
 
-    printf("ON-OFF model receive\n");
+    printf("OP: LED get (pin %u)\n", pin);
 
-    bt_mesh_model_msg_init(msg, BT_MESH_MODEL_OP_3(0x01, VENDOR_CID));
-    os_mbuf_append(msg, buf->om_data, buf->om_len);
-    res = bt_mesh_model_send(model, ctx, msg, NULL, NULL);
-    assert(res == 0);
-
+    bt_mesh_model_msg_init(msg, BT_MESH_MODEL_OP_2(0x82, 0x01));
+    net_buf_simple_add_u8(msg, state);
+    int res = bt_mesh_model_send(model, ctx, msg, NULL, NULL);
+    if (res != 0) {
+        printf("Error: _led_op_get(): bt_mesh_model_send() failed (%i)\n", res);
+        assert(0);
+    }
     os_mbuf_free_chain(msg);
 }
 
-static struct bt_mesh_model_pub _vendor_model_pub;
+static void _led_op_set_unack(struct bt_mesh_model *model,
+                        struct bt_mesh_msg_ctx *ctx,
+                        struct os_mbuf *buf)
+{
+    (void)ctx;
+    unsigned pin = (unsigned)model->user_data;
+    uint8_t state = _led_read(pin);
+    uint8_t new_state = net_buf_simple_pull_u8(buf);
 
-static const struct bt_mesh_model_op _vendor_model_op[] = {
-    { BT_MESH_MODEL_OP_3(0x01, VENDOR_CID), 0, _on_vendor_model_receive },
+    printf("OP: LED set (pin %u)\n", pin);
+    _led_write(pin, new_state);
+
+    if ((state != new_state) && (model->pub->addr != BT_MESH_ADDR_UNASSIGNED)) {
+        struct os_mbuf *msg = model->pub->msg;
+        bt_mesh_model_msg_init(msg, BT_MESH_MODEL_OP_2(0x82, 0x04));
+        net_buf_simple_add_u8(msg, new_state);
+        int res = bt_mesh_model_publish(model);
+        assert(res == 0);
+    }
+}
+
+static void _led_op_set(struct bt_mesh_model *model,
+                              struct bt_mesh_msg_ctx *ctx,
+                              struct os_mbuf *buf)
+{
+    printf("OP: LED set unack (pin %u)\n", (unsigned)model->user_data);
+    _led_op_set_unack(model, ctx, buf);
+    _led_op_get(model, ctx, buf);
+}
+
+static void _btn_status(struct bt_mesh_model *model,
+                        struct bt_mesh_msg_ctx *ctx,
+                        struct os_mbuf *buf)
+{
+    (void)ctx;
+    (void)buf;
+    unsigned pin = (unsigned)model->user_data;
+
+    printf("OP: BTN status (pin %u)\n", pin);
+}
+
+
+static const struct bt_mesh_model_op _btn_op[] = {
+    { BT_MESH_MODEL_OP_2(0x82, 0x04), 1, _btn_status },
     BT_MESH_MODEL_OP_END,
 };
 
-static struct bt_mesh_model _vendor_models[] = {
-    BT_MESH_MODEL_VND(VENDOR_CID, BT_MESH_MODEL_ID_GEN_ONOFF_SRV,
-                      _vendor_model_op, &_vendor_model_pub, NULL),
+static const struct bt_mesh_model_op _led_op[] = {
+    { BT_MESH_MODEL_OP_2(0x82, 0x01), 0, _led_op_get },
+    { BT_MESH_MODEL_OP_2(0x82, 0x02), 2, _led_op_set },
+    { BT_MESH_MODEL_OP_2(0x82, 0x03), 2, _led_op_set_unack },
+    BT_MESH_MODEL_OP_END,
+};
+
+static struct bt_mesh_model_pub _s_pub[8];
+
+static struct bt_mesh_model _models_s0[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_CLI, _btn_op,
+                  &_s_pub[0], (void *)0),
+};
+
+static struct bt_mesh_model _models_s1[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_CLI, _btn_op,
+                  &_s_pub[1], (void *)1),
+};
+
+static struct bt_mesh_model _models_s2[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_CLI, _btn_op,
+                  &_s_pub[2], (void *)2),
+};
+
+static struct bt_mesh_model _models_s3[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_CLI, _btn_op,
+                  &_s_pub[3], (void *)3),
+};
+
+static struct bt_mesh_model _models_s4[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, _led_op,
+                  &_s_pub[4], (void *)0),
+};
+
+static struct bt_mesh_model _models_s5[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, _led_op,
+                  &_s_pub[5], (void *)1),
+};
+
+static struct bt_mesh_model _models_s6[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, _led_op,
+                  &_s_pub[6], (void *)2),
+};
+
+static struct bt_mesh_model _models_s7[] = {
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, _led_op,
+                  &_s_pub[7], (void *)3),
+};
+
+static struct bt_mesh_model *_btn_models[] = {
+    &_models_s0[0],
+    &_models_s1[0],
+    &_models_s2[0],
+    &_models_s3[0],
 };
 
 static struct bt_mesh_elem _elements[] = {
-    BT_MESH_ELEM(0, _root_models, _vendor_models),
+    BT_MESH_ELEM(0, _models_root, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s0, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s1, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s2, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s3, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s4, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s5, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s6, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_s7, BT_MESH_MODEL_NONE),
 };
 
 static const struct bt_mesh_comp _node_comp = {
     .cid = VENDOR_CID,
-    .pid = VENDOR_PID,
-    .vid = VENDOR_VID,
-    .elem_count = ARRAY_SIZE(_elements),
+    // .pid = VENDOR_PID,
+    // .vid = VENDOR_VID,
     .elem = _elements,
+    .elem_count = ARRAY_SIZE(_elements),
 };
 
 static int _on_output_number(bt_mesh_output_action_t action, uint32_t number)
@@ -218,6 +354,7 @@ static void _on_prov_complete(uint16_t net_idx, uint16_t addr)
     printf("Provisioning complete!\n");
     printf("   net_idx: %u\n", (unsigned)net_idx);
     printf("      addr: %u\n", (unsigned)addr);
+    _is_provisioned = 1;
 }
 
 static void _on_reset(void)
@@ -250,6 +387,33 @@ static void *_mesh_thread(void *arg)
     return NULL;
 }
 
+static void _on_btn_irq(void *arg)
+{
+    event_post(&_btn_evevtq, &_btn_event[(unsigned)arg].super);
+}
+
+static void _on_btn_evt(void *arg)
+{
+    unsigned num = (unsigned)arg;
+    uint8_t state = (~num & 0x01);  /* button 1 and 3 are on, the others off */
+    struct bt_mesh_model *model = _btn_models[num];
+
+    // gpio_irq_disable(_btn[num]);
+    // xtimer_set(&_debounce[num], DEBOUNCE_DELAY);
+
+    printf("Button %u was pressed\n", num);
+
+    if (_is_provisioned && model->pub->addr != BT_MESH_ADDR_UNASSIGNED) {
+        bt_mesh_model_msg_init(model->pub->msg, BT_MESH_MODEL_OP_2(0x82, 0x02));
+        net_buf_simple_add_u8(model->pub->msg, state);
+        net_buf_simple_add_u8(model->pub->msg, _trans_id++);
+        int res = bt_mesh_model_publish(model);
+        assert(res == 0);
+        (void)res;
+        printf("-> button state change (%u) was published\n", (unsigned)state);
+    }
+}
+
 int main(void)
 {
     int res;
@@ -257,6 +421,24 @@ int main(void)
     ble_addr_t addr;
 
     puts("NimBLE Mesh Example");
+
+    event_queue_init(&_btn_evevtq);
+    for (unsigned i = 0; i < (sizeof(_btn_event) / sizeof(_btn_event[0])); i++) {
+        event_callback_init(&_btn_event[i], _on_btn_evt, (void *)i);
+    }
+
+    /* initialize buttons and LEDs */
+    for (unsigned i = 0; i < (sizeof(_led) / sizeof(_led[0])); i++) {
+        gpio_init(_led[i], GPIO_OUT);
+        gpio_set(_led[i]);
+    }
+    for (unsigned i = 0; i < (sizeof(_debounce) / sizeof(_debounce[0])); i++) {
+        _debounce[i].callback = _on_debounce;
+        _debounce[i].arg = (void *)i;
+    }
+    for (unsigned i = 0; i < (sizeof(_btn) / sizeof(_btn[0])); i++) {
+        gpio_init_int(_btn[i], GPIO_IN_PU, GPIO_FALLING, _on_btn_irq, (void *)i);
+    }
 
     /* generate and set non-resolvable private address */
     res = ble_hs_id_gen_rnd(1, &addr);
@@ -266,6 +448,10 @@ int main(void)
 
     /* initialize the health publish service */
     _health_pub.msg = BT_MESH_HEALTH_FAULT_MSG(0);
+
+    for (unsigned i = 0; i < (sizeof(_s_pub) / sizeof(_s_pub[0])); i++) {
+        _s_pub[i].msg = NET_BUF_SIMPLE(2 + 2);
+    }
 
     /* reload the GATT server to link our added services */
     bt_mesh_register_gatt();
@@ -277,7 +463,6 @@ int main(void)
         printf("err: bt_mesh_init failed (%i)\n", res);
     }
     assert(res == 0);
-
 
     /* run mesh thread */
     thread_create(_stack_mesh, sizeof(_stack_mesh),
@@ -297,5 +482,6 @@ int main(void)
 
     puts("advertising this device for provisioning now...");
 
+    event_loop(&_btn_evevtq);
     return 0;
 }
