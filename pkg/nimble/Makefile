@@ -9,6 +9,7 @@ PDIR = $(PKG_BUILDDIR)
 # NimBLE is not optimized for building with all (extra) warnings enabled. So for
 # now, we disable a number of selected compiler warnings when building NimBLE.
 CFLAGS += -Wno-extra
+CFLAGS += -Wno-format
 ifeq (llvm,$(TOOLCHAIN))
 # the static function `ble_ll_adv_active_chanset_is_sec()` in
 # `nimble/controller/src/ble_ll_adv.c` isn't used in our compilation path, so
