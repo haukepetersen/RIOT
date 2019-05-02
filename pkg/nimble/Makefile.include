@@ -42,7 +42,8 @@ ifneq (,$(filter nimble_mesh,$(USEMODULE)))
   CFLAGS += -DMYNEWT_VAL_BLE_MESH_PROXY=1
   CFLAGS += -DMYNEWT_VAL_BLE_MESH_PB_GATT=1
   CFLAGS += -DMYNEWT_VAL_BLE_MESH_PB_ADV=1
-  CFLAGS += -DMYNEWT_VAL_BLE_MESH_GATT_PROXY=0
+  # the default block count is insufficient when using BT Mesh...
+  CFLAGS += -DMYNEWT_VAL_MSYS_1_BLOCK_COUNT=20
 endif
 
 # include tinycrypt headers
