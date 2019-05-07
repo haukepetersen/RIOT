@@ -10,6 +10,10 @@ BOARD_WHITELIST := nrf52dk nrf52840dk nrf52832-mdk
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
+USEMODULE += shell
+USEMODULE += shell_commands
+USEMODULE += ps
+
 # Include NimBLE
 USEPKG += nimble
 USEMODULE += nimble_mesh
@@ -30,6 +34,13 @@ CFLAGS += -DDEBUG_ASSERT_VERBOSE
 
 NAME ?= foobert
 CFLAGS += -DMYNEWT_VAL_BLE_MESH_DEVICE_NAME=\"$(NAME)\"
+
+PROV_STATIC ?= 1
+ifeq (1,$(PROV_STATIC))
+  USEMODULE += luid
+  CFLAGS += -DPROV_STATIC
+  CFLAGS += -DMYNEWT_VAL_BLE_MESH_CFG_CLI=1
+endif
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
