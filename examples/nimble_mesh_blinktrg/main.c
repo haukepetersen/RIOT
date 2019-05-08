@@ -105,11 +105,12 @@ static uint8_t _led_read(unsigned pin)
 static void _led_write(unsigned pin, uint8_t state)
 {
     gpio_write(_led[pin], !state);
+    printf("LED%i - %i\n", (int)pin, (int)state);
 }
 
 static struct bt_mesh_cfg_srv _cfg_srv = {
     .relay = BT_MESH_RELAY_ENABLED,
-    .beacon = BT_MESH_BEACON_ENABLED,
+    .beacon = BT_MESH_BEACON_DISABLED,
     .frnd = BT_MESH_FRIEND_NOT_SUPPORTED,
     .gatt_proxy = BT_MESH_GATT_PROXY_NOT_SUPPORTED,
     .default_ttl = 7,
@@ -279,6 +280,8 @@ static void _prov_static(void)
     struct bt_mesh_cfg_mod_pub pub = {
         .addr = PROV_ADDR_GROUP0,
         .app_idx = PROV_APP_IDX,
+        .ttl = 15,
+        .transmit = 0,
     };
 
     /* do general device provisioning */
@@ -396,6 +399,24 @@ static int _cmd_clear(int argc, char **argv)
     return 0;
 }
 
+static int _cmd_on(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    _on_btn_evt((void *)2);
+    return 0;
+}
+
+static int _cmd_off(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    _on_btn_evt((void *)3);
+    return 0;
+}
+
 static int _cmd_stats(int argc, char **argv)
 {
     (void)argc;
@@ -441,6 +462,8 @@ static int _cmd_stats(int argc, char **argv)
 static const shell_command_t _shell_cmds[] = {
     { "clr", "reset stats", _cmd_clear },
     { "stats", "show stats", _cmd_stats },
+    { "on", "turn periodic set on", _cmd_on },
+    { "off", "turn periodic set off", _cmd_off },
     { NULL, NULL, NULL }
 };
 
