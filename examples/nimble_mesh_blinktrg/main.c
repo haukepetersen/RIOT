@@ -305,14 +305,14 @@ static void _prov_static(void)
     assert(res == 0);
 
     /* provision LED element */
-    res = bt_mesh_cfg_mod_app_bind(PROV_NET_IDX, _addr_node, ADDR_LED,
-                                   PROV_APP_IDX,
-                                   BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
-    assert(res == 0);
-    res = bt_mesh_cfg_mod_sub_add(PROV_NET_IDX, _addr_node, ADDR_LED,
-                                  PROV_ADDR_GROUP0,
-                                  BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
-    assert(res == 0);
+    // res = bt_mesh_cfg_mod_app_bind(PROV_NET_IDX, _addr_node, ADDR_LED,
+    //                                PROV_APP_IDX,
+    //                                BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
+    // assert(res == 0);
+    // res = bt_mesh_cfg_mod_sub_add(PROV_NET_IDX, _addr_node, ADDR_LED,
+    //                               PROV_ADDR_GROUP0,
+    //                               BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
+    // assert(res == 0);
 
     puts("Element Provisioning complete!\n");
 
@@ -422,39 +422,7 @@ static int _cmd_stats(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    mystats_t stats;
-    mystats_get(&stats);
-
-    printf("Stats:\n");
-    printf("TX ADV\t\t%u\n", stats.tx_all);
-    printf("TX mesh data\t%u\n", stats.tx_mesh_data);
-    printf("TX mesh prov\t%u\n", stats.tx_mesh_prov);
-
-    printf("TX mesh net send\t%u\n", stats.tx_mesh_net_send);
-
-    printf("TX mesh transport unseg\t%u\n", stats.tx_mesh_transport_unseg);
-    printf("TX mesh transport seg\t%u\n", stats.tx_mesh_transport_seg);
-    printf("TX mesh transport ctl\t%u\n", stats.tx_mesh_transport_ctl);
-    printf("TX mesh transport\t%u\n", stats.tx_mesh_transport);
-
-    printf("TX mesh model send\t%u\n", stats.tx_mesh_model_send);
-    printf("TX mesh model pub\t%u\n", stats.tx_mesh_model_pub);
-    printf("TX mesh model retrans\t%u\n", stats.tx_mesh_model_retrans);
-
-    printf("RX ADV\t\t%u\n", stats.rx_all);
-    printf("RX non mesh\t%u\n", stats.rx_nonmesh);
-    printf("RX nonconn IND\t%u\n", stats.rx_nonconn_ind);
-
-    printf("RX cand\t%u\n", stats.rx_cand);
-    printf("RX cand nolen\t%u\n", stats.rx_cand_nolen);
-    printf("RX cand malformed\t%u\n", stats.rx_cand_malformed);
-
-    printf("RX mesh nomesh\t%u\n", stats.rx_type_nomesh);
-    printf("RX mesh data\t%u\n", stats.rx_mesh_data);
-    printf("RX mesh prov\t%u\n", stats.rx_mesh_prov);
-    printf("RX mesh beacon\t%u\n", stats.rx_mesh_beacon);
-
-    printf("RX mesh dropped notprov: %u\n", stats.rx_mesh_dropped_notprov);
+    mystats_dump();
 
     return 0;
 }

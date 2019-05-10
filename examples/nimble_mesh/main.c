@@ -533,28 +533,7 @@ static int _cmd_stats(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    mystats_t stats;
-    mystats_get(&stats);
-
-    printf("Stats:\n");
-    printf("TX ADV\t\t%u\n", stats.tx_all);
-    printf("TX mesh data\t%u\n", stats.tx_mesh_data);
-    printf("TX mesh prov\t%u\n", stats.tx_mesh_prov);
-
-    printf("RX ADV\t\t%u\n", stats.rx_all);
-    printf("RX non mesh\t%u\n", stats.rx_nonmesh);
-    printf("RX nonconn IND\t%u\n", stats.rx_nonconn_ind);
-
-    printf("RX cand\t%u\n", stats.rx_cand);
-    printf("RX cand nolen\t%u\n", stats.rx_cand_nolen);
-    printf("RX cand malformed\t%u\n", stats.rx_cand_malformed);
-
-    printf("RX mesh nomesh\t%u\n", stats.rx_type_nomesh);
-    printf("RX mesh data\t%u\n", stats.rx_mesh_data);
-    printf("RX mesh prov\t%u\n", stats.rx_mesh_prov);
-    printf("RX mesh beacon\t%u\n", stats.rx_mesh_beacon);
-
-    printf("RX mesh dropped notprov: %u\n", stats.rx_mesh_dropped_notprov);
+    mystats_dump();
 
     return 0;
 }
