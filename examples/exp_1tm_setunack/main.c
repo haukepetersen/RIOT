@@ -397,7 +397,7 @@ int main(void)
     (void)res;
     // ble_addr_t addr;
 
-    puts("ICN-BLE experiment: 1-to-many A");
+    puts("ICN-BLE experiment: 1-to-many setunack");
 
     /* generate and set non-resolvable private address */
     // TODO: make this static!

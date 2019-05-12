@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = exp_1tm_a
+APPLICATION = exp_1tm_setunack
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= nrf52dk

@@ -55,7 +55,7 @@ fi
 exptype="$1"
 
 if [ "$#" -eq 0 ]; then
-    exptype="single"
+    exptype="1tm_setunack"
 fi
 
 # if [ "${exptype}" == "single" ] || [ "${exptype}" == "multi" ]; then
@@ -72,7 +72,7 @@ fi
 # fi
 
 # build the application
-binroot="../exp_1tm_a"
+binroot="../exp_${exptype}"
 
 #CFLAGS="${FLAGS}" USEMODULE+="${UMODS}" make -C ${binroot} clean all || {
 make -C ${binroot} -B clean all || {
@@ -104,7 +104,6 @@ NAME="$exptype-$EXPID-$IOTLAB_SITE-$NUM_EXP_NODES-$REQUESTS-$SUBMISSION_TIME"
 
 echo "Experiment name is: ${NAME}"
 
-if [ "${exptype}" = "single" ] || [ "${exptype}" = "multi" ]; then
 CMDS1=$(cat << CMD
 sleep $((IOTLAB_DURATION * 60))
 iotlab-experiment stop -i ${EXPID} > /dev/null
@@ -114,11 +113,9 @@ CMDS2=$(cat << CMD
 serial_aggregator -i ${EXPID} | tee ${NAME}.log
 CMD
 )
-fi
 # tmux send-keys -t riot-${EXPID}:2 "pktcnt_p" C-m
 # sniffer_aggregator -i ${EXPID} -l ${IOTLAB_SITE},n,${SNIFFER} -o ${NAME}.pcap &
 
-if [ "${exptype}" = "single" ] || [ "${exptype}" = "multi" ]; then
 EXPCMDS=$(cat << CMD
 tmux send-keys -t riot-${EXPID}:2 "reboot" C-m
 sleep 5
@@ -142,7 +139,6 @@ sleep 5
 iotlab-experiment stop -i ${EXPID} > /dev/null
 CMD
 )
-fi
 
 ssh ${IOTLAB_USER}@${IOTLAB_SITE}.iot-lab.info -t << EOF
 tmux new-session -d -s riot-${EXPID} "${CMDS1}"
