@@ -359,10 +359,10 @@ static int _cmd_run(int argc, char **argv)
     for (unsigned i = 0; i < cnt; i++) {
         // printf("publishing event %u\n", i);
 
-        mystats_inc_tx_app("pub", _trans_id++);
+        mystats_inc_tx_app("pub", _trans_id);
         bt_mesh_model_msg_init(model->pub->msg, OP_SET_UNACK);
         net_buf_simple_add_u8(model->pub->msg, 0);
-        net_buf_simple_add_u8(model->pub->msg, _trans_id);
+        net_buf_simple_add_u8(model->pub->msg, _trans_id++);
         int res = bt_mesh_model_publish(model);
         assert(res == 0);
         (void)res;
