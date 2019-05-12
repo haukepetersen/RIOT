@@ -75,7 +75,7 @@ fi
 binroot="../exp_1tm_a"
 
 #CFLAGS="${FLAGS}" USEMODULE+="${UMODS}" make -C ${binroot} clean all || {
-make -C ${binroot} clean all || {
+make -C ${binroot} -B clean all || {
     echo "building firmware failed!"
     exit 1
 }

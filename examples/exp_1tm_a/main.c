@@ -104,13 +104,13 @@ static void _send_status(struct bt_mesh_model *model,
 {
     (void)buf;
 
+    mystats_inc_tx_app("status", (unsigned)_trans_id++);
     struct os_mbuf *msg = NET_BUF_SIMPLE(2 + 1 + 4);
     bt_mesh_model_msg_init(msg, OP_STATUS);
     net_buf_simple_add_u8(msg, _trans_id);  /* intentional missusage here */
     int res = bt_mesh_model_send(model, ctx, msg, NULL, NULL);
     assert(res == 0);
     (void)res;
-    mystats_inc_tx_app("status", (unsigned)_trans_id++);
     os_mbuf_free_chain(msg);
 }
 
@@ -281,6 +281,7 @@ static void _prov_source(void)
     puts("SOURCE element provisioned");
 
     mystats_clear();
+    mystats_enable();
 }
 
 static void _prov_sink(void)
@@ -299,6 +300,7 @@ static void _prov_sink(void)
     puts("SINK element provisioned");
 
     mystats_clear();
+    mystats_enable();
 }
 
 static int _cmd_clear(int argc, char **argv)
@@ -357,13 +359,13 @@ static int _cmd_run(int argc, char **argv)
     for (unsigned i = 0; i < cnt; i++) {
         // printf("publishing event %u\n", i);
 
+        mystats_inc_tx_app("pub", _trans_id++);
         bt_mesh_model_msg_init(model->pub->msg, OP_SET_UNACK);
         net_buf_simple_add_u8(model->pub->msg, 0);
         net_buf_simple_add_u8(model->pub->msg, _trans_id);
         int res = bt_mesh_model_publish(model);
         assert(res == 0);
         (void)res;
-        mystats_inc_tx_app("pub", _trans_id++);
 
         xtimer_periodic_wakeup(&last_wakeup, itvl);
     }
