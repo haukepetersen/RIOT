@@ -21,12 +21,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "fmt.h"
 #include "thread.h"
 #include "shell.h"
 #include "nimble_riot.h"
 #include "event/callback.h"
 
 #include "host/mystats.h"
+#include "host/myfilter.h"
 
 #include "host/ble_hs.h"
 #include "mesh/glue.h"
@@ -215,10 +217,6 @@ static void _dump_key(const uint8_t *key)
     printf("%02x", (int)key[15]);
 }
 
-// extern uint8_t bt_mesh_relay_retransmit_get(void);
-// extern uint8_t bt_mesh_relay_get(void);
-// extern uint8_t bt_mesh_net_transmit_get(void);
-
 static void _prov_base(void)
 {
     puts("Provisioning the base device:");
@@ -250,12 +248,14 @@ static void _prov_base(void)
 
     puts("Base provisioning done\n");
 
-    // printf("relay status: %i\n", (int)bt_mesh_relay_get());
+    uint8_t a[6];
+    res = ble_hs_id_copy_addr(nimble_riot_own_addr_type, a, NULL);
+    assert(res == 0);
 
-    // uint8_t relay_retransmissions = bt_mesh_relay_retransmit_get();
-    // printf("Relay retransmissions: %i\n", (int)relay_retransmissions);
-
-    // printf("Net transmissions: %i\n", (int)bt_mesh_net_transmit_get());
+    char str[13];
+    str[12] = '\0';
+    fmt_bytes_hex(str, a, 6);
+    printf("BLE Addr: %s\n", str);
 }
 
 static void _prov_source(void)
@@ -335,6 +335,20 @@ static int _cmd_cfg_sink(int argc, char **argv)
     return 0;
 }
 
+static int _cmd_wl(int argc, char **argv)
+{
+    if (argc < 2) {
+        puts("err: whitelist command missing parameter");
+        assert(0);
+    }
+
+    int res = myfilter_add_str(argv[1]);
+    assert(res == 0);
+    printf("whitelist: added %s\n", argv[1]);
+
+    return 0;
+}
+
 static int _cmd_run(int argc, char **argv)
 {
     uint32_t itvl = EXP_INTERVAL;
@@ -380,6 +394,7 @@ static const shell_command_t _shell_cmds[] = {
     { "stats", "show stats", _cmd_stats },
     { "cfg_source", "provision node as source", _cmd_cfg_source },
     { "cfg_sink", "provision node as sink", _cmd_cfg_sink },
+    { "wl", "white list address", _cmd_wl },
     { "run", "run the experiment", _cmd_run },
     { NULL, NULL, NULL }
 };

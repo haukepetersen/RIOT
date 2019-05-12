@@ -10,6 +10,7 @@ BOARD_WHITELIST := nrf52dk nrf52840dk nrf52832-mdk
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
+USEMODULE += fmt
 USEMODULE += luid
 USEMODULE += shell
 USEMODULE += shell_commands

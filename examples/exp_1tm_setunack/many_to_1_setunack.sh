@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 #
 
-EXPNAME=1-to-many-setunack
+EXPNAME=many_to_1_setunack
 
 SCRIPTBASE="$(dirname $(realpath $0))"
 
@@ -17,46 +17,14 @@ IOTLAB_SITE="${IOTLAB_SITE:-saclay}"
 # Duration in minutes
 IOTLAB_DURATION=${IOTLAB_DURATION:-200}
 
-# sniffer node should node be part of experiment nodes lsit
-SNIFFER="12"
-
 SACLAY_NODES="1-10"
-NUM_NODES=${NUM_NODES:-10}
-
-# node roles
-PRODUCER="11"
-# CONSUMER="1"
-SOURCE="${SOURCE:-1}"
-
-# buidl configurations
-DEFAULT_CHANNEL=17
 
 REQUESTS=${REQUESTS:-100}
-
-# average request rate per node / node in the fib
-DELAY_REQUEST=${DELAY_REQUEST:-1000000} # in us
-DELAY_JITTER=${DELAY_JITTER:-500000} # in us
-
-
-FLAGS=
-# FLAGS="-DIEEE802154_DEFAULT_CHANNEL=${DEFAULT_CHANNEL} \
-#        -DNUM_REQUESTS_NODE=${REQUESTS}"
-        # -Wno-error=cast-function-type"
-
-# USEMODULES to build in RIOT
-UMODS=""
-
-if [ ! -z "${DELAY_REQUEST}" ]; then
-    FLAGS="${FLAGS} -DDELAY_REQUEST=${DELAY_REQUEST}"
-fi
-if [ ! -z "${DELAY_JITTER}" ]; then
-    FLAGS="${FLAGS} -DDELAY_JITTER=${DELAY_JITTER}"
-fi
+DELAY_REQUEST=${DELAY_REQUEST:-5000000} # in us
 
 # build the application
 binroot="../exp_1tm_setunack"
 
-#CFLAGS="${FLAGS}" USEMODULE+="${UMODS}" make -C ${binroot} clean all || {
 make -C ${binroot} -B clean all || {
     echo "building firmware failed!"
     exit 1
@@ -66,7 +34,6 @@ echo "Time until ps(): $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))"
 
 
 # submit experiment
-#EXPID=$(iotlab-experiment submit -n ${EXPNAME} -d $((IOTLAB_DURATION + 3)) -l ${IOTLAB_SITE},m3,${IOTLAB_NODES},${binroot}/bin/iotlab-m3/${binroot##*/}.elf | grep -Po '[[:digit:]]+')
 EXPID=$(iotlab-experiment submit -n ${EXPNAME} -d $((IOTLAB_DURATION + 3)) -l ${IOTLAB_SITE},nrf52dk,${SACLAY_NODES},${binroot}/bin/nrf52dk/${binroot##*/}.elf | grep -Po '[[:digit:]]+')
 
 if [ -z "${EXPID}" ]; then
@@ -95,26 +62,39 @@ CMDS2=$(cat << CMD
 serial_aggregator -i ${EXPID} | tee ${NAME}.log
 CMD
 )
-# tmux send-keys -t riot-${EXPID}:2 "pktcnt_p" C-m
-# sniffer_aggregator -i ${EXPID} -l ${IOTLAB_SITE},n,${SNIFFER} -o ${NAME}.pcap &
 
 EXPCMDS=$(cat << CMD
 tmux send-keys -t riot-${EXPID}:2 "reboot" C-m
 sleep 5
-# tmux send-keys -t riot-${EXPID}:2 ""
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-2;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-3;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-4;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-5;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-6;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;cfg_sink" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-2;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-3;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-4;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-5;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-6;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_source" C-m
 tmux send-keys -t riot-${EXPID}:2 "clr" C-m
 sleep 3
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-2;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-3;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-4;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-5;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-6;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+sleep 0.1
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;run ${REQUESTS} ${DELAY_REQUEST}" C-m
 sleep $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))
 tmux send-keys -t riot-${EXPID}:2 "stats" C-m
 sleep 5

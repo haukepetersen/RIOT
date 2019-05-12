@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 #
 
-EXPNAME=1-to-many-setunack
+EXPNAME=1_to_many_setunack
 
 SCRIPTBASE="$(dirname $(realpath $0))"
 
@@ -102,6 +102,7 @@ EXPCMDS=$(cat << CMD
 tmux send-keys -t riot-${EXPID}:2 "reboot" C-m
 sleep 5
 # tmux send-keys -t riot-${EXPID}:2 ""
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;cfg_source" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-2;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-3;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-4;cfg_sink" C-m
@@ -111,10 +112,9 @@ tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;cfg_source" C-m
 tmux send-keys -t riot-${EXPID}:2 "clr" C-m
 sleep 3
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run ${REQUESTS} ${DELAY_REQUEST}" C-m
 sleep $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))
 tmux send-keys -t riot-${EXPID}:2 "stats" C-m
 sleep 5

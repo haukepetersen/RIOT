@@ -7,8 +7,6 @@
 # Distributed under terms of the MIT license.
 #
 
-EXPNAME=1-to-many-setunack
-
 SCRIPTBASE="$(dirname $(realpath $0))"
 
 IOTLAB_USER="${IOTLAB_USER:-$(cut -f1 -d: ${HOME}/.iotlabrc)}"
@@ -53,8 +51,28 @@ if [ ! -z "${DELAY_JITTER}" ]; then
     FLAGS="${FLAGS} -DDELAY_JITTER=${DELAY_JITTER}"
 fi
 
+# parse arguments of script call
+exptype="$1"
+
+if [ "$#" -eq 0 ]; then
+    exptype="1tm_setunack"
+fi
+
+# if [ "${exptype}" == "single" ] || [ "${exptype}" == "multi" ]; then
+#     echo "unknown experiment type ${exptype}"
+#     echo "usage: $0 [ single | multi ]"
+#     exit 1
+# fi
+
+# if [ "${exptype}" = "single" ]; then
+#     FLAGS="${FLAGS}"
+# fi
+# if [ "${exptype}" = "multi" ]; then
+#     FLAGS="${FLAGS}"
+# fi
+
 # build the application
-binroot="../exp_1tm_setunack"
+binroot="../exp_${exptype}"
 
 #CFLAGS="${FLAGS}" USEMODULE+="${UMODS}" make -C ${binroot} clean all || {
 make -C ${binroot} -B clean all || {
@@ -66,8 +84,8 @@ echo "Time until ps(): $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))"
 
 
 # submit experiment
-#EXPID=$(iotlab-experiment submit -n ${EXPNAME} -d $((IOTLAB_DURATION + 3)) -l ${IOTLAB_SITE},m3,${IOTLAB_NODES},${binroot}/bin/iotlab-m3/${binroot##*/}.elf | grep -Po '[[:digit:]]+')
-EXPID=$(iotlab-experiment submit -n ${EXPNAME} -d $((IOTLAB_DURATION + 3)) -l ${IOTLAB_SITE},nrf52dk,${SACLAY_NODES},${binroot}/bin/nrf52dk/${binroot##*/}.elf | grep -Po '[[:digit:]]+')
+#EXPID=$(iotlab-experiment submit -n ${exptype} -d $((IOTLAB_DURATION + 3)) -l ${IOTLAB_SITE},m3,${IOTLAB_NODES},${binroot}/bin/iotlab-m3/${binroot##*/}.elf | grep -Po '[[:digit:]]+')
+EXPID=$(iotlab-experiment submit -n ${exptype} -d $((IOTLAB_DURATION + 3)) -l ${IOTLAB_SITE},nrf52dk,${SACLAY_NODES},${binroot}/bin/nrf52dk/${binroot##*/}.elf | grep -Po '[[:digit:]]+')
 
 if [ -z "${EXPID}" ]; then
     echo "experiment submission failed!"
@@ -82,7 +100,7 @@ iotlab-experiment wait -i ${EXPID} || {
 
 NUM_EXP_NODES=$(iotlab-experiment get -r | grep archi | wc -l)
 SUBMISSION_TIME=$(date +%d-%m-%Y"-"%H-%M)
-NAME="$EXPNAME-$EXPID-$IOTLAB_SITE-$NUM_EXP_NODES-$REQUESTS-$SUBMISSION_TIME"
+NAME="$exptype-$EXPID-$IOTLAB_SITE-$NUM_EXP_NODES-$REQUESTS-$SUBMISSION_TIME"
 
 echo "Experiment name is: ${NAME}"
 
@@ -102,19 +120,19 @@ EXPCMDS=$(cat << CMD
 tmux send-keys -t riot-${EXPID}:2 "reboot" C-m
 sleep 5
 # tmux send-keys -t riot-${EXPID}:2 ""
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-2;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-3;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-4;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-5;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-6;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_sink" C-m
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;cfg_sink" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-2;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-3;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-4;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-5;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-6;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;cfg_source" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_source" C-m
 tmux send-keys -t riot-${EXPID}:2 "clr" C-m
 sleep 3
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;run" C-m
 sleep $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))
 tmux send-keys -t riot-${EXPID}:2 "stats" C-m
 sleep 5
