@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "fmt.h"
 #include "thread.h"
 #include "shell.h"
 #include "nimble_riot.h"
@@ -50,6 +49,11 @@
 #define OP_SET_ACKED            BT_MESH_MODEL_OP_2(0x82, 0x02)
 #define OP_SET_UNACK            BT_MESH_MODEL_OP_2(0x82, 0x03)
 #define OP_STATUS               BT_MESH_MODEL_OP_2(0x82, 0x04)
+
+#define OP_LVL_GET              BT_MESH_MODEL_OP_2(0x82, 0x05)
+#define OP_LVL_SET              BT_MESH_MODEL_OP_2(0x82, 0x06)
+#define OP_LVL_SET_UNACK        BT_MESH_MODEL_OP_2(0x82, 0x07)
+#define OP_LVL_STATUS           BT_MESH_MODEL_OP_2(0x82, 0x08)
 
 /* shell thread env */
 static char _stack_mesh[NIMBLE_MESH_STACKSIZE];
@@ -99,6 +103,46 @@ static struct bt_mesh_model _models_root[] = {
     BT_MESH_MODEL_CFG_SRV(&_cfg_srv),
     BT_MESH_MODEL_CFG_CLI(&_cfg_cli),
 };
+
+static void _op_lvl_get(struct bt_mesh_model *model,
+                        struct bt_mesh_msg_ctx *ctx,
+                        struct os_mbuf *buf)
+{
+    (void)model;
+    (void)ctx;
+    (void)buf;
+    mystats_inc_rx_app("lvl_get", 0);
+}
+
+static void _op_lvl_set(struct bt_mesh_model *model,
+                        struct bt_mesh_msg_ctx *ctx,
+                        struct os_mbuf *buf)
+{
+    (void)model;
+    (void)ctx;
+    unsigned level = (unsigned)net_buf_simple_pull_le16(buf);
+    mystats_inc_rx_app("lvl_set", level);
+}
+
+static void _op_lvl_set_unack(struct bt_mesh_model *model,
+                        struct bt_mesh_msg_ctx *ctx,
+                        struct os_mbuf *buf)
+{
+    (void)model;
+    (void)ctx;
+    unsigned level = (unsigned)net_buf_simple_pull_le16(buf);
+    mystats_inc_rx_app("lvl_set_unack", level);
+}
+
+static void _op_lvl_status(struct bt_mesh_model *model,
+                           struct bt_mesh_msg_ctx *ctx,
+                           struct os_mbuf *buf)
+{
+    (void)model;
+    (void)ctx;
+    unsigned level = (unsigned)net_buf_simple_pull_le16(buf);
+    mystats_inc_rx_app("lvl_status", level);
+}
 
 static void _send_status(struct bt_mesh_model *model,
                          struct bt_mesh_msg_ctx *ctx,
@@ -155,6 +199,18 @@ static void _op_status(struct bt_mesh_model *model,
     // printf("OP_STATUS tid %i\n", (int)buf->om_data[0]);
 }
 
+static const struct bt_mesh_model_op _lvl_svr_op[] = {
+    { OP_LVL_GET, 0, _op_lvl_get },
+    { OP_LVL_SET, 3, _op_lvl_set },
+    { OP_LVL_SET_UNACK, 3, _op_lvl_set_unack },
+    BT_MESH_MODEL_OP_END,
+};
+
+static const struct bt_mesh_model_op _lvl_cli_op[] = {
+    { OP_LVL_STATUS, 0, _op_lvl_status },
+    BT_MESH_MODEL_OP_END,
+};
+
 static const struct bt_mesh_model_op _led_op[] = {
     { BT_MESH_MODEL_OP_2(0x82, 0x01), 0, _op_get },
     { BT_MESH_MODEL_OP_2(0x82, 0x02), 2, _op_set },
@@ -167,23 +223,26 @@ static const struct bt_mesh_model_op _btn_op[] = {
     BT_MESH_MODEL_OP_END,
 };
 
-static struct bt_mesh_model_pub _s_pub[2];
+static struct bt_mesh_model_pub _s_pub[4];
 
-
-static struct bt_mesh_model _models_led[] = {
+static struct bt_mesh_model _models_svr[] = {
     BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_SRV, _led_op,
                   &_s_pub[0], (void *)0),
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_LEVEL_SRV, _lvl_svr_op,
+                  &_s_pub[1], (void *)0),
 };
 
-static struct bt_mesh_model _models_btn[] = {
+static struct bt_mesh_model _models_cli[] = {
     BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_ONOFF_CLI, _btn_op,
-                  &_s_pub[1], (void *)0),
+                  &_s_pub[2], (void *)0),
+    BT_MESH_MODEL(BT_MESH_MODEL_ID_GEN_LEVEL_CLI, _lvl_cli_op,
+                  &_s_pub[3], (void *)0),
 };
 
 static struct bt_mesh_elem _elements[] = {
     BT_MESH_ELEM(0, _models_root, BT_MESH_MODEL_NONE),
-    BT_MESH_ELEM(0, _models_led, BT_MESH_MODEL_NONE),
-    BT_MESH_ELEM(0, _models_btn, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_svr, BT_MESH_MODEL_NONE),
+    BT_MESH_ELEM(0, _models_cli, BT_MESH_MODEL_NONE),
 };
 
 static const struct bt_mesh_comp _node_comp = {
@@ -247,15 +306,6 @@ static void _prov_base(void)
     assert(res == 0);
 
     puts("Base provisioning done\n");
-
-    uint8_t a[6];
-    res = ble_hs_id_copy_addr(nimble_riot_own_addr_type, a, NULL);
-    assert(res == 0);
-
-    char str[13];
-    str[12] = '\0';
-    fmt_bytes_hex(str, a, 6);
-    printf("BLE Addr: %s\n", str);
 }
 
 static void _prov_source(void)
@@ -274,8 +324,16 @@ static void _prov_source(void)
                                    PROV_APP_IDX,
                                    BT_MESH_MODEL_ID_GEN_ONOFF_CLI, NULL);
     assert(res == 0);
+    res = bt_mesh_cfg_mod_app_bind(PROV_NET_IDX, _addr_node, ADDR_CLIENT,
+                                   PROV_APP_IDX,
+                                   BT_MESH_MODEL_ID_GEN_LEVEL_CLI, NULL);
+    assert(res == 0);
     res = bt_mesh_cfg_mod_pub_set(PROV_NET_IDX, _addr_node, ADDR_CLIENT,
                                   BT_MESH_MODEL_ID_GEN_ONOFF_CLI,
+                                  &pub, NULL);
+    assert(res == 0);
+    res = bt_mesh_cfg_mod_pub_set(PROV_NET_IDX, _addr_node, ADDR_CLIENT,
+                                  BT_MESH_MODEL_ID_GEN_LEVEL_CLI,
                                   &pub, NULL);
     assert(res == 0);
     puts("SOURCE element provisioned");
@@ -293,9 +351,17 @@ static void _prov_sink(void)
                                    PROV_APP_IDX,
                                    BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
     assert(res == 0);
+    res = bt_mesh_cfg_mod_app_bind(PROV_NET_IDX, _addr_node, ADDR_SERVER,
+                                   PROV_APP_IDX,
+                                   BT_MESH_MODEL_ID_GEN_LEVEL_SRV, NULL);
+    assert(res == 0);
     res = bt_mesh_cfg_mod_sub_add(PROV_NET_IDX, _addr_node, ADDR_SERVER,
                                   PROV_ADDR_GROUP0,
                                   BT_MESH_MODEL_ID_GEN_ONOFF_SRV, NULL);
+    assert(res == 0);
+    res = bt_mesh_cfg_mod_sub_add(PROV_NET_IDX, _addr_node, ADDR_SERVER,
+                                  PROV_ADDR_GROUP0,
+                                  BT_MESH_MODEL_ID_GEN_LEVEL_SRV, NULL);
     assert(res == 0);
     puts("SINK element provisioned");
 
@@ -353,7 +419,7 @@ static int _cmd_run(int argc, char **argv)
 {
     uint32_t itvl = EXP_INTERVAL;
     unsigned cnt = EXP_REPEAT;
-    struct bt_mesh_model *model = &_models_btn[0];
+    struct bt_mesh_model *model = &_models_cli[0];
 
     if (!_is_provisioned || (model->pub->addr == BT_MESH_ADDR_UNASSIGNED)) {
         puts("err: node or element not provisioned");
@@ -389,6 +455,46 @@ static int _cmd_run(int argc, char **argv)
     return 0;
 }
 
+static int _cmd_run_lvl(int argc, char **argv)
+{
+    uint32_t itvl = EXP_INTERVAL;
+    unsigned cnt = EXP_REPEAT;
+    struct bt_mesh_model *model = &_models_cli[1];
+
+    if (!_is_provisioned || (model->pub->addr == BT_MESH_ADDR_UNASSIGNED)) {
+        puts("err: node or element not provisioned");
+        return 1;
+    }
+
+    if (argc >= 2) {
+        cnt = (unsigned)atoi(argv[1]);
+    }
+    if (argc >= 3) {
+        itvl = (uint32_t)atoi(argv[2]);
+    }
+
+    xtimer_ticks32_t last_wakeup = xtimer_now();
+    _trans_id = 0;  /* reset, this way we can trace the experiment */
+
+    for (unsigned i = 0; i < cnt; i++) {
+        // printf("publishing event %u\n", i);
+
+        mystats_inc_tx_app("pub_lvl", (_trans_id + _addr_node));
+        bt_mesh_model_msg_init(model->pub->msg, OP_LVL_SET_UNACK);
+        net_buf_simple_add_le16(model->pub->msg, (_trans_id + _addr_node));
+        net_buf_simple_add_u8(model->pub->msg, _trans_id++);
+        int res = bt_mesh_model_publish(model);
+        assert(res == 0);
+        (void)res;
+
+        xtimer_periodic_wakeup(&last_wakeup, itvl);
+    }
+
+    puts("EXP DONE");
+
+    return 0;
+}
+
 static const shell_command_t _shell_cmds[] = {
     { "clr", "reset stats", _cmd_clear },
     { "stats", "show stats", _cmd_stats },
@@ -396,6 +502,7 @@ static const shell_command_t _shell_cmds[] = {
     { "cfg_sink", "provision node as sink", _cmd_cfg_sink },
     { "wl", "white list address", _cmd_wl },
     { "run", "run the experiment", _cmd_run },
+    { "run_lvl", "run exp, use level model", _cmd_run_lvl },
     { NULL, NULL, NULL }
 };
 
@@ -422,7 +529,7 @@ int main(void)
     // assert(res == 0);
 
     for (unsigned i = 0; i < (sizeof(_s_pub) / sizeof(_s_pub[0])); i++) {
-        _s_pub[i].msg = NET_BUF_SIMPLE(2 + 2);
+        _s_pub[i].msg = NET_BUF_SIMPLE(2 + 4);
     }
 
     /* initialize the mesh stack */

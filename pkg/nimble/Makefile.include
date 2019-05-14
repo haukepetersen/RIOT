@@ -51,7 +51,7 @@ ifneq (,$(filter nimble_mesh,$(USEMODULE)))
   CFLAGS += -DMYNEWT_VAL_BLE_MESH_GATT_PROXY=0
   CFLAGS += -DMYNEWT_VAL_BLE_MESH_PB_GATT=0
 
-  CFLAGS += -DMYNEWT_VAL_BLE_MESH_ADV_BUF_COUNT=60
+  CFLAGS += -DMYNEWT_VAL_BLE_MESH_ADV_BUF_COUNT=160
   CFLAGS += -DMYNEWT_VAL_BLE_MESH_TX_SEG_MAX=32
 
   # the default block count is insufficient when using BT Mesh...

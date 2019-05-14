@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 #
 
-EXPNAME=1_to_many_setunack_mhop
+EXPNAME=1_to_many_setunack_mhop_1s_3lltx
 
 SCRIPTBASE="$(dirname $(realpath $0))"
 
@@ -133,7 +133,7 @@ tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_sink" C-m
 
 tmux send-keys -t riot-${EXPID}:2 "clr" C-m
 sleep 3
-tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run ${REQUESTS} ${DELAY_REQUEST}" C-m
+tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run_lvl ${REQUESTS} ${DELAY_REQUEST}" C-m
 sleep $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))
 tmux send-keys -t riot-${EXPID}:2 "stats" C-m
 sleep 5
