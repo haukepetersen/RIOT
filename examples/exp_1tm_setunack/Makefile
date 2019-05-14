@@ -12,6 +12,7 @@ RIOTBASE ?= $(CURDIR)/../..
 
 USEMODULE += fmt
 USEMODULE += luid
+USEMODULE += random
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps

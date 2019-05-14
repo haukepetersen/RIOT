@@ -23,6 +23,7 @@
 
 #include "thread.h"
 #include "shell.h"
+#include "random.h"
 #include "nimble_riot.h"
 #include "event/callback.h"
 
@@ -447,6 +448,18 @@ static int _cmd_run(int argc, char **argv)
         assert(res == 0);
         (void)res;
 
+            /* REMOVE again */
+            extern u8_t bt_mesh_net_transmit_get(void);
+            extern u8_t bt_mesh_relay_retransmit_get(void);
+            extern u8_t bt_mesh_relay_get(void);
+            uint8_t trans = bt_mesh_net_transmit_get();
+            printf("NETWORK TRANSMIT STATE: 0x%02x -> cnt %i, int: %i\n",
+                   (int)trans, (int)(trans >> 5), (int)(trans & 0x1f));
+            uint8_t relay = bt_mesh_relay_retransmit_get();
+            uint8_t st = bt_mesh_relay_get();
+            printf("RELAY RETRANSMIT STATE: 0x%02x -> cnt %i, int: %i\n",
+                    (int)st, (int)(relay >> 5), (int)(relay & 0x1f));
+
         xtimer_periodic_wakeup(&last_wakeup, itvl);
     }
 
@@ -473,7 +486,10 @@ static int _cmd_run_lvl(int argc, char **argv)
         itvl = (uint32_t)atoi(argv[2]);
     }
 
-    xtimer_ticks32_t last_wakeup = xtimer_now();
+    uint32_t min = itvl / 2;
+    uint32_t max = itvl + min;
+
+    // xtimer_ticks32_t last_wakeup = xtimer_now();
     _trans_id = 0;  /* reset, this way we can trace the experiment */
 
     for (unsigned i = 0; i < cnt; i++) {
@@ -487,7 +503,8 @@ static int _cmd_run_lvl(int argc, char **argv)
         assert(res == 0);
         (void)res;
 
-        xtimer_periodic_wakeup(&last_wakeup, itvl);
+        // xtimer_periodic_wakeup(&last_wakeup, itvl);
+        xtimer_usleep(random_uint32_range(min, max));
     }
 
     puts("EXP DONE");
