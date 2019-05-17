@@ -31,6 +31,7 @@ ifneq (,$(filter nimble_controller,$(USEMODULE)))
   endif
 endif
 
+# RIOT specific submodule dependencies
 ifneq (,$(filter nimble_addr,$(USEMODULE)))
   USEMODULE += bluetil_addr
 endif
@@ -38,4 +39,9 @@ endif
 ifneq (,$(filter nimble_scanlist,$(USEMODULE)))
   USEMODULE += nimble_addr
   USEMODULE += bluetil_ad
+endif
+
+ifneq (,$(filter nimble_netif,$(USEMODULE)))
+  USEMODULE += l2util
+  USEMODULE += nimble_svc_ipss
 endif
