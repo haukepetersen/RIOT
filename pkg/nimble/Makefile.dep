@@ -43,6 +43,7 @@ endif
 
 ifneq (,$(filter nimble_netif,$(USEMODULE)))
   USEMODULE += l2util
+#   USEMODULE += nimble_svc_ipsp
 endif
 
 ifneq (,$(filter nimble_netif_autoconn_%,$(USEMODULE)))

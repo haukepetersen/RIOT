@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018,2019 Freie Universität Berlin
+ * Copyright (C) 2018-2019 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -47,9 +47,9 @@
 #include "debug.h"
 
 #ifdef MODULE_GNRC_SIXLOWPAN
-#define NTYPE                   GNRC_NETTYPE_SIXLOWPAN
+#define NETTYPE                 GNRC_NETTYPE_SIXLOWPAN
 #else
-#define NTYPE                   GNRC_NETTYPE_UNDEF
+#define NETTYPE                 GNRC_NETTYPE_UNDEF
 #endif
 
 /* maximum packet size for IPv6 packets */
@@ -72,7 +72,7 @@ static char _stack[THREAD_STACKSIZE_DEFAULT];
 
 /* keep the actual device state */
 static gnrc_netif_t *_nimble_netif = NULL;
-static gnrc_nettype_t _nettype = NTYPE;
+static gnrc_nettype_t _nettype = NETTYPE;
 
 /* keep a reference to the event callback */
 static nimble_netif_eventcb_t _eventcb;
