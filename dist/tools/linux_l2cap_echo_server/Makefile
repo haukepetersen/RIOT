@@ -1,7 +1,7 @@
 LIBS += -lbluetooth -lcurses
 CFLAGS += -Wextra -Wall -O3
 
-all: linux_l2cap_echo_server scanner
+all: linux_l2cap_echo_server scanner scannertest
 
 linux_l2cap_echo_server: linux_l2cap_echo_server.c
 	$(CC) $(CFLAGS) linux_l2cap_echo_server.c $(LIBS) -o linux_l2cap_echo_server
@@ -9,5 +9,8 @@ linux_l2cap_echo_server: linux_l2cap_echo_server.c
 scanner: scanner.c
 	$(CC) $(CFLAGS) scanner.c $(LIBS) -o scanner
 
+scannertest: scannertest.c
+	$(CC) $(CFLAGS) scannertest.c $(LIBS) -o scannertest
+
 clean:
-	rm -f linux_l2cap_echo_server scanner
+	rm -f linux_l2cap_echo_server scanner scannertest

@@ -1,4 +1,3 @@
-#if 0
 #include <stdlib.h>
 #include <errno.h>
 #include <curses.h>
@@ -13,7 +12,6 @@
 #define HCI_STATE_OPEN       2
 #define HCI_STATE_SCANNING   3
 #define HCI_STATE_FILTERING  4
-
 
 
 struct hci_state {
@@ -59,8 +57,12 @@ struct hci_state open_default_hci_device()
 
 void start_hci_scan(struct hci_state current_hci_state)
 {
-    if(hci_le_set_scan_parameters(current_hci_state.device_handle, 0x01, htobs(0x0010), htobs(0x0010), 0x00, 0x00, 1000) < 0)
+    printw("setting params for dev %i\n", current_hci_state.device_handle);
+    if(hci_le_set_scan_parameters(current_hci_state.device_handle, 0x01,
+                                htobs(0x0010), htobs(0x0010),
+                                0x00, 0x00, 1000) < 0)
     {
+        printw("err set params\n");
         current_hci_state.has_error = TRUE;
         snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Failed to set scan parameters: %s", strerror(errno));
         return;
@@ -157,7 +159,7 @@ void process_data(uint8_t *data, size_t data_len, le_advertising_info *info)
     {
         printw("Flag type: len=%d\n", data_len);
         int i;
-        for(i=1; i<data_len; i++)
+        for(i=1; i < (int)data_len; i++)
         {
             printw("\tFlag data: 0x%0X\n", data[i]);
         }
@@ -169,7 +171,7 @@ void process_data(uint8_t *data, size_t data_len, le_advertising_info *info)
         // TODO int company_id = data[current_index + 2]
 
         int i;
-        for(i=1; i<data_len; i++)
+        for(i=1; i < (int)data_len; i++)
         {
             printw("\tData: 0x%0X\n", data[i]);
         }
@@ -218,9 +220,11 @@ int get_rssi(bdaddr_t *bdaddr, struct hci_state current_hci_state)
 
     usleep(10000);
     hci_disconnect(current_hci_state.device_handle, handle, HCI_OE_USER_ENDED_CONNECTION, 10000);
+
+    return 0;
 }
 
-void main(void)
+int main(void)
 {
     initscr();
     timeout(0);
@@ -228,11 +232,11 @@ void main(void)
     struct hci_state current_hci_state = open_default_hci_device();
     error_check_and_exit(current_hci_state);
 
-    printw("hci state: dev id: %i, dev_handle: %i\n",
-           current_hci_state.device_id, current_hci_state.device_handle);
-
     start_hci_scan(current_hci_state);
     error_check_and_exit(current_hci_state);
+
+    printw("hci state: dev id: %i, dev_handle: %i\n",
+           current_hci_state.device_id, current_hci_state.device_handle);
 
     printw("Scanning...\n");
     printw("Hello, all good\n");
@@ -323,82 +327,57 @@ void main(void)
     close_hci_device(current_hci_state);
 
     endwin();
+
+    return 0;
 }
 
-#else
-#include <stdlib.h>
+#if 0
 #include <stdio.h>
-#include <errno.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 
-int main(void)
+int main(int argc, char **argv)
 {
-    int dev_id;
-    int dd;
-    int res;
-    struct hci_dev_info di;
-    char tmpstr[400];
+        (void)argc;
+        (void)argv;
 
-    /* open BLE/BT device */
-    dev_id = hci_get_route(NULL);
-    printf("dev_id: %i\n", dev_id);
-    if (dev_id < 0) {
-        return 1;
-    }
-    dd = hci_open_dev(dev_id);
-    printf("dd: %i\n", dd);
-    if (dd < 0) {
-        return 1;
-    }
+        inquiry_info *ii = NULL;
+        int max_rsp, num_rsp;
+        int dev_id, sock, len, flags;
+        int i;
+        char addr[19] = { 0 };
+        char name[248] = { 0 };
 
-    /* get some device info */
-    res = hci_devinfo(dev_id, &di);
-    if (res < 0) {
-        printf("err: devinfo %i\n", res);
-        goto end;
-    }
-    ba2str(&di.bdaddr, tmpstr);
-    printf("own addr: %s\n", tmpstr);
+        dev_id = hci_get_route(NULL);
+        sock = hci_open_dev( dev_id );
+        if (dev_id < 0 || sock < 0) {
+                perror("opening socket");
+                exit(1);
+        }
 
+        len  = 10;
+        max_rsp = 255;
+        flags = IREQ_CACHE_FLUSH;
+        ii = (inquiry_info*)malloc(max_rsp * sizeof(inquiry_info));
 
-    // Set fd non-blocking
-    int on = 1;
-    if(ioctl(dd, FIONBIO, (char *)&on) < 0) {
-        printf("ioctl: fail %s\n", strerror(errno));
-        goto end;
-    }
+        num_rsp = hci_inquiry(dev_id, len, max_rsp, NULL, &ii, flags);
+        if( num_rsp < 0 ) perror("hci_inquiry");
 
+        for (i = 0; i < num_rsp; i++) {
+                ba2str(&(ii+i)->bdaddr, addr);
+                memset(name, 0, sizeof(name));
+                if (hci_read_remote_name(sock, &(ii+i)->bdaddr, sizeof(name),
+                        name, 0) < 0)
+                strcpy(name, "[unknown]");
+                printf("%s  %s\n", addr, name);
+        }
 
-    /* start scanning */
-    /*
-    int hci_le_set_scan_parameters(int dev_id, uint8_t type, uint16_t interval,
-                    uint16_t window, uint8_t own_type,
-                    uint8_t filter, int to);
-    */
-    res = hci_le_set_scan_parameters(dd, 0x01,
-                                     htobs(0x0010), htobs(0x0010),
-                                     0x00, 0x00, 1000);
-    if (res < 0) {
-        printf("err: le_set_scan_param failed %i\n", res);
-        goto end;
-    }
-
-    res = hci_le_set_scan_enable(dd, 0x01, 0x00, 1000);
-    if (res < 0) {
-        printf("err: le_scan_enable %i\n", res);
-        goto end;
-    }
-
-
-end:
-    res = hci_close_dev(dd);
-    printf("close res: %i\n", res);
-
-    return 0;
+        free( ii );
+        close( sock );
+        return 0;
 }
 #endif
