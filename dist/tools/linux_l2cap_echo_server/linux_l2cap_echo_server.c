@@ -7,7 +7,7 @@
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 
-#define ATT_CID  0x0123
+#define ATT_CID  0x0023
 
 int main() {
     printf("init\n");

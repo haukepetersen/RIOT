@@ -28,33 +28,6 @@ struct hci_state {
 #define EIR_NAME_COMPLETE           0x09
 #define EIR_MANUFACTURE_SPECIFIC    0xFF
 
-struct hci_state open_default_hci_device()
-{
-    struct hci_state current_hci_state = {0};
-
-    current_hci_state.device_id = hci_get_route(NULL);
-
-    if((current_hci_state.device_handle = hci_open_dev(current_hci_state.device_id)) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could not open device: %s", strerror(errno));
-        return current_hci_state;
-    }
-
-    // Set fd non-blocking
-    int on = 1;
-    if(ioctl(current_hci_state.device_handle, FIONBIO, (char *)&on) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could set device to non-blocking: %s", strerror(errno));
-        return current_hci_state;
-    }
-
-    current_hci_state.state = HCI_STATE_OPEN;
-
-    return current_hci_state;
-}
-
 void start_hci_scan(struct hci_state current_hci_state)
 {
     printw("setting params for dev %i\n", current_hci_state.device_handle);
@@ -68,7 +41,7 @@ void start_hci_scan(struct hci_state current_hci_state)
         return;
     }
 
-    if(hci_le_set_scan_enable(current_hci_state.device_handle, 0x01, 1, 1000) < 0)
+    if(hci_le_set_scan_enable(current_hci_state.device_handle, 0x01, 0, 1000) < 0)
     {
         current_hci_state.has_error = TRUE;
         snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Failed to enable scan: %s", strerror(errno));
@@ -79,7 +52,8 @@ void start_hci_scan(struct hci_state current_hci_state)
 
     // Save the current HCI filter
     socklen_t olen = sizeof(current_hci_state.original_filter);
-    if(getsockopt(current_hci_state.device_handle, SOL_HCI, HCI_FILTER, &current_hci_state.original_filter, &olen) < 0)
+    if (getsockopt(current_hci_state.device_handle, SOL_HCI, HCI_FILTER,
+        &current_hci_state.original_filter, &olen) < 0)
     {
         current_hci_state.has_error = TRUE;
         snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could not get socket options: %s", strerror(errno));
@@ -137,6 +111,13 @@ void error_check_and_exit(struct hci_state current_hci_state)
         exit(1);
     }
 }
+
+static void exiterr(void)
+{
+    endwin();
+    exit(1);
+}
+
 
 void process_data(uint8_t *data, size_t data_len, le_advertising_info *info)
 {
@@ -229,7 +210,28 @@ int main(void)
     initscr();
     timeout(0);
 
-    struct hci_state current_hci_state = open_default_hci_device();
+
+    // struct hci_state current_hci_state = open_default_hci_device();
+    struct hci_state current_hci_state = {0};
+
+    current_hci_state.device_id = hci_get_route(NULL);
+
+    if((current_hci_state.device_handle = hci_open_dev(current_hci_state.device_id)) < 0)
+    {
+        printw("Could not open device: %s\n", strerror(errno));
+        exiterr();
+    }
+
+    // Set fd non-blocking
+    int on = 1;
+    if(ioctl(current_hci_state.device_handle, FIONBIO, (char *)&on) < 0)
+    {
+        printw("Could set device to non-blocking: %s\n", strerror(errno));
+        exiterr();
+    }
+    current_hci_state.state = HCI_STATE_OPEN;
+
+
     error_check_and_exit(current_hci_state);
 
     start_hci_scan(current_hci_state);

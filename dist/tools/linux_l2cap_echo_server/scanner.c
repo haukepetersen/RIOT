@@ -1,334 +1,7 @@
-#if 0
-#include <stdlib.h>
-#include <errno.h>
-#include <curses.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/hci_lib.h>
-
-#define HCI_STATE_NONE       0
-#define HCI_STATE_OPEN       2
-#define HCI_STATE_SCANNING   3
-#define HCI_STATE_FILTERING  4
-
-
-
-struct hci_state {
-    int device_id;
-    int device_handle;
-    struct hci_filter original_filter;
-    int state;
-    int has_error;
-    char error_message[1024];
-} hci_state;
-
-#define EIR_FLAGS                   0X01
-#define EIR_NAME_SHORT              0x08
-#define EIR_NAME_COMPLETE           0x09
-#define EIR_MANUFACTURE_SPECIFIC    0xFF
-
-struct hci_state open_default_hci_device()
-{
-    struct hci_state current_hci_state = {0};
-
-    current_hci_state.device_id = hci_get_route(NULL);
-
-    if((current_hci_state.device_handle = hci_open_dev(current_hci_state.device_id)) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could not open device: %s", strerror(errno));
-        return current_hci_state;
-    }
-
-    // Set fd non-blocking
-    int on = 1;
-    if(ioctl(current_hci_state.device_handle, FIONBIO, (char *)&on) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could set device to non-blocking: %s", strerror(errno));
-        return current_hci_state;
-    }
-
-    current_hci_state.state = HCI_STATE_OPEN;
-
-    return current_hci_state;
-}
-
-void start_hci_scan(struct hci_state current_hci_state)
-{
-    if(hci_le_set_scan_parameters(current_hci_state.device_handle, 0x01, htobs(0x0010), htobs(0x0010), 0x00, 0x00, 1000) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Failed to set scan parameters: %s", strerror(errno));
-        return;
-    }
-
-    if(hci_le_set_scan_enable(current_hci_state.device_handle, 0x01, 1, 1000) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Failed to enable scan: %s", strerror(errno));
-        return;
-    }
-
-    current_hci_state.state = HCI_STATE_SCANNING;
-
-    // Save the current HCI filter
-    socklen_t olen = sizeof(current_hci_state.original_filter);
-    if(getsockopt(current_hci_state.device_handle, SOL_HCI, HCI_FILTER, &current_hci_state.original_filter, &olen) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could not get socket options: %s", strerror(errno));
-        return;
-    }
-
-    // Create and set the new filter
-    struct hci_filter new_filter;
-
-    hci_filter_clear(&new_filter);
-    hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
-    hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
-
-    if(setsockopt(current_hci_state.device_handle, SOL_HCI, HCI_FILTER, &new_filter, sizeof(new_filter)) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Could not set socket options: %s", strerror(errno));
-        return;
-    }
-
-    current_hci_state.state = HCI_STATE_FILTERING;
-}
-
-void stop_hci_scan(struct hci_state current_hci_state)
-{
-    if(current_hci_state.state == HCI_STATE_FILTERING)
-    {
-        current_hci_state.state = HCI_STATE_SCANNING;
-        setsockopt(current_hci_state.device_handle, SOL_HCI, HCI_FILTER, &current_hci_state.original_filter, sizeof(current_hci_state.original_filter));
-    }
-
-    if(hci_le_set_scan_enable(current_hci_state.device_handle, 0x00, 1, 1000) < 0)
-    {
-        current_hci_state.has_error = TRUE;
-        snprintf(current_hci_state.error_message, sizeof(current_hci_state.error_message), "Disable scan failed: %s", strerror(errno));
-    }
-
-    current_hci_state.state = HCI_STATE_OPEN;
-}
-
-void close_hci_device(struct hci_state current_hci_state)
-{
-    if(current_hci_state.state == HCI_STATE_OPEN)
-    {
-        hci_close_dev(current_hci_state.device_handle);
-    }
-}
-
-void error_check_and_exit(struct hci_state current_hci_state)
-{
-    if(current_hci_state.has_error)
-    {
-        printw("ERROR: %s\n", current_hci_state.error_message);
-        endwin();
-        exit(1);
-    }
-}
-
-void process_data(uint8_t *data, size_t data_len, le_advertising_info *info)
-{
-    printw("Test: %p and %d\n", data, data_len);
-    if(data[0] == EIR_NAME_SHORT || data[0] == EIR_NAME_COMPLETE)
-    {
-        size_t name_len = data_len - 1;
-        char *name = malloc(name_len + 1);
-        memset(name, 0, name_len + 1);
-        memcpy(name, &data[2], name_len);
-
-        char addr[18];
-        ba2str(&info->bdaddr, addr);
-
-        printw("addr=%s name=%s\n", addr, name);
-
-        free(name);
-    }
-    else if(data[0] == EIR_FLAGS)
-    {
-        printw("Flag type: len=%d\n", data_len);
-        int i;
-        for(i=1; i<data_len; i++)
-        {
-            printw("\tFlag data: 0x%0X\n", data[i]);
-        }
-    }
-    else if(data[0] == EIR_MANUFACTURE_SPECIFIC)
-    {
-        printw("Manufacture specific type: len=%d\n", data_len);
-
-        // TODO int company_id = data[current_index + 2]
-
-        int i;
-        for(i=1; i<data_len; i++)
-        {
-            printw("\tData: 0x%0X\n", data[i]);
-        }
-    }
-    else
-    {
-        printw("Unknown type: type=%X\n", data[0]);
-    }
-}
-
-int get_rssi(bdaddr_t *bdaddr, struct hci_state current_hci_state)
-{
-    struct hci_dev_info di;
-    if (hci_devinfo(current_hci_state.device_id, &di) < 0) {
-        perror("Can't get device info");
-        return(-1);
-    }
-
-    uint16_t handle;
-// int hci_create_connection(int dd, const bdaddr_t *bdaddr, uint16_t ptype, uint16_t clkoffset, uint8_t rswitch, uint16_t *handle, int to);
-// HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5
-    if (hci_create_connection(current_hci_state.device_handle, bdaddr, htobs(di.pkt_type & ACL_PTYPE_MASK), 0, 0x01, &handle, 25000) < 0) {
-        perror("Can't create connection");
-        // TODO close(dd);
-        return(-1);
-    }
-    sleep(1);
-
-    struct hci_conn_info_req *cr = malloc(sizeof(*cr) + sizeof(struct hci_conn_info));
-    bacpy(&cr->bdaddr, bdaddr);
-    cr->type = ACL_LINK;
-    if(ioctl(current_hci_state.device_handle, HCIGETCONNINFO, (unsigned long) cr) < 0) {
-        perror("Get connection info failed");
-        return(-1);
-    }
-
-    int8_t rssi;
-    if(hci_read_rssi(current_hci_state.device_handle, htobs(cr->conn_info->handle), &rssi, 1000) < 0) {
-        perror("Read RSSI failed");
-        return(-1);
-    }
-
-    printf("RSSI return value: %d\n", rssi);
-
-    free(cr);
-
-    usleep(10000);
-    hci_disconnect(current_hci_state.device_handle, handle, HCI_OE_USER_ENDED_CONNECTION, 10000);
-}
-
-void main(void)
-{
-    initscr();
-    timeout(0);
-
-    struct hci_state current_hci_state = open_default_hci_device();
-    error_check_and_exit(current_hci_state);
-
-    printw("hci state: dev id: %i, dev_handle: %i\n",
-           current_hci_state.device_id, current_hci_state.device_handle);
-
-    start_hci_scan(current_hci_state);
-    error_check_and_exit(current_hci_state);
-
-    printw("Scanning...\n");
-    printw("Hello, all good\n");
-
-    int done = FALSE;
-    int error = FALSE;
-    while(!done && !error)
-    {
-        int len = 0;
-        unsigned char buf[HCI_MAX_EVENT_SIZE];
-        while((len = read(current_hci_state.device_handle, buf, sizeof(buf))) < 0)
-        {
-            if (errno == EINTR)
-            {
-                done = TRUE;
-                break;
-            }
-
-            if (errno == EAGAIN || errno == EINTR)
-            {
-                if(getch() == 'q')
-                {
-                    done = TRUE;
-                    break;
-                }
-
-                usleep(100);
-                continue;
-            }
-
-            error = TRUE;
-        }
-
-        printw("found one: %i\n", len);
-
-        if(!done && !error)
-        {
-            evt_le_meta_event *meta = (void *)(buf + (1 + HCI_EVENT_HDR_SIZE));
-
-            len -= (1 + HCI_EVENT_HDR_SIZE);
-
-            if (meta->subevent != EVT_LE_ADVERTISING_REPORT)
-            {
-                continue;
-            }
-
-            le_advertising_info *info = (le_advertising_info *) (meta->data + 1);
-
-            printw("Event: %d\n", info->evt_type);
-            printw("Length: %d\n", info->length);
-
-            if(info->length == 0)
-            {
-                continue;
-            }
-
-            int current_index = 0;
-            int data_error = 0;
-
-            while(!data_error && current_index < info->length)
-            {
-                size_t data_len = info->data[current_index];
-
-                if(data_len + 1 > info->length)
-                {
-                    printw("EIR data length is longer than EIR packet length. %d + 1 > %d", data_len, info->length);
-                    data_error = 1;
-                }
-                else
-                {
-                    process_data(info->data + current_index + 1, data_len, info);
-                    //get_rssi(&info->bdaddr, current_hci_state);
-                    current_index += data_len + 1;
-                }
-            }
-        }
-    }
-
-    if(error)
-    {
-        printw("Error scanning.");
-    }
-
-    stop_hci_scan(current_hci_state);
-
-    error_check_and_exit(current_hci_state);
-
-    close_hci_device(current_hci_state);
-
-    endwin();
-}
-
-#else
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -342,7 +15,9 @@ int main(void)
     int dd;
     int res;
     struct hci_dev_info di;
+    struct hci_filter filter;
     char tmpstr[400];
+    uint8_t buf[1000];
 
     /* open BLE/BT device */
     dev_id = hci_get_route(NULL);
@@ -366,12 +41,12 @@ int main(void)
     printf("own addr: %s\n", tmpstr);
 
 
-    // Set fd non-blocking
-    int on = 1;
-    if(ioctl(dd, FIONBIO, (char *)&on) < 0) {
-        printf("ioctl: fail %s\n", strerror(errno));
-        goto end;
-    }
+    // // Set fd non-blocking
+    // int on = 1;
+    // if(ioctl(dd, FIONBIO, (char *)&on) < 0) {
+    //     printf("ioctl: fail %s\n", strerror(errno));
+    //     goto end;
+    // }
 
 
     /* start scanning */
@@ -394,6 +69,113 @@ int main(void)
         goto end;
     }
 
+    /* configure filter */
+    socklen_t olen;
+    res = getsockopt(dd, SOL_HCI, HCI_FILTER, &filter, &olen);
+    if (res < 0) {
+        printf("err: getsockopt %s\n", strerror(errno));
+        goto end;
+    }
+    /* create new filter from old one */
+    struct hci_filter new_filter;
+    hci_filter_clear(&new_filter);
+    hci_filter_set_ptype(HCI_EVENT_PKT, &new_filter);
+    hci_filter_set_event(EVT_LE_META_EVENT, &new_filter);
+    /* apply it */
+    res = setsockopt(dd, SOL_HCI, HCI_FILTER, &new_filter, sizeof(new_filter));
+    if (res < 0) {
+        printf("err: setsockopt: %s\n", strerror(errno));
+        goto end;
+    }
+
+    printf("SCANNING\n");
+    for (int i = 0; i < 10; i++) {
+        int len = read(dd, buf, sizeof(buf));
+
+        if (len <= 0) {
+            printf("err: can't do anything with this data\n");
+            continue;
+        }
+
+        puts("");
+
+        // printf("RAW:");
+        // for (int b = 0; b < len; b++) {
+        //     printf(" 0x%02x", (int)buf[b]);
+        // }
+        // puts("");
+
+        switch (buf[0]) {
+            case HCI_COMMAND_PKT:
+                printf("type: HCI_COMMAND_PKT\n");
+                break;
+            case HCI_ACLDATA_PKT:
+                printf("type: HCI_ACLDATA_PKT\n");
+                break;
+            case HCI_SCODATA_PKT:
+                printf("type: HCI_SCODATA_PKT\n");
+                break;
+            case HCI_EVENT_PKT:
+                printf("type: HCI_EVENT_PKT\n");
+                break;
+            case HCI_VENDOR_PKT:
+                printf("type: HCI_VENDOR_PKT\n");
+                break;
+        }
+        if (buf[0] != HCI_EVENT_PKT) {
+            printf("err: no event pkt\n");
+            continue;
+        }
+
+        hci_event_hdr *evt_hdr = (hci_event_hdr *)(buf + 1);
+        printf("hci_event - type: 0x%02x, plen: %i\n",
+               (int)evt_hdr->evt, (int)evt_hdr->plen);
+        if (evt_hdr->evt != EVT_LE_META_EVENT) {
+            printf("err: no LE_META_EVENT\n");
+            continue;
+        }
+
+        evt_le_meta_event *meta_evt = (evt_le_meta_event *)(buf + 1 + HCI_EVENT_HDR_SIZE);
+        // printf("meta_evt - subevent: 0x%02x\n", (int)meta_evt->subevent);
+        if (meta_evt->subevent != EVT_LE_ADVERTISING_REPORT) {
+            printf("err: subevent is not EVT_LE_ADVERTISING_REPORT\n");
+            continue;
+        }
+
+        le_advertising_info *ai = (le_advertising_info *)(meta_evt->data + 1);
+        ba2str(&ai->bdaddr, tmpstr);
+        printf("adv_info - type: 0x%02x, bdaddr_type: 0x%02x addr: %s, len: %i\n",
+               (int)ai->evt_type, (int)ai->bdaddr_type, tmpstr, (int)ai->length);
+
+        uint8_t *ad = (ai->data);
+        size_t pos = 0;
+        while (pos < (size_t)ai->length) {
+            size_t len = ad[pos++];
+            size_t type = ad[pos];
+
+            // printf("AD len 0x%02x, type 0x%02x\n", (int)len, (int)type);
+            if (type == 0x09) {
+                strncpy(tmpstr, (char *)&ad[pos + 1], len);
+                tmpstr[len - 1] = '\0';
+                printf("NAME: %s\n", tmpstr);
+            }
+
+            pos += (len);
+        }
+    }
+
+    /* reset filter */
+    res = setsockopt(dd, SOL_HCI, HCI_FILTER, &filter, sizeof(filter));
+    if (res < 0) {
+        printf("err: set back old filter: %s\n", strerror(errno));
+        goto end;
+    }
+
+    /* stop scanning */
+    res = hci_le_set_scan_enable(dd, 0x00, 0x00, 1000);
+    if (res < 0) {
+        printf("err: failed to disable scanning: %s\n", strerror(errno));
+    }
 
 end:
     res = hci_close_dev(dd);
@@ -401,4 +183,3 @@ end:
 
     return 0;
 }
-#endif
