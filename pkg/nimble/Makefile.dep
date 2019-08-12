@@ -34,6 +34,7 @@ ifneq (,$(filter nimble_controller,$(USEMODULE)))
   endif
 endif
 
+# RIOT specific submodule dependencies
 ifneq (,$(filter nimble_addr,$(USEMODULE)))
   USEMODULE += bluetil_addr
 endif

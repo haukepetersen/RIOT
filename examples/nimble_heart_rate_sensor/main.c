@@ -74,24 +74,7 @@ static void _start_updating(void);
 static void _stop_updating(void);
 
 /* GATT service definitions */
-static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
-    {
-        /* Heart Rate Service */
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(BLE_GATT_SVC_HRS),
-        .characteristics = (struct ble_gatt_chr_def[]) { {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_HEART_RATE_MEASURE),
-            .access_cb = _hrs_handler,
-            .val_handle = &_hrs_val_handle,
-            .flags = BLE_GATT_CHR_F_NOTIFY,
-        }, {
-            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_BODY_SENSE_LOC),
-            .access_cb = _hrs_handler,
-            .flags = BLE_GATT_CHR_F_READ,
-        }, {
-            0, /* no more characteristics in this service */
-        }, }
-    },
+static const struct ble_gatt_svc_def gatt_1[] = {
     {
         /* Device Information Service */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -120,6 +103,35 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
             0, /* no more characteristics in this service */
         }, }
     },
+    {
+        0
+    }
+};
+
+static const struct ble_gatt_svc_def gatt_2[] = {
+    {
+        /* Heart Rate Service */
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = BLE_UUID16_DECLARE(BLE_GATT_SVC_HRS),
+        .characteristics = (struct ble_gatt_chr_def[]) { {
+            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_HEART_RATE_MEASURE),
+            .access_cb = _hrs_handler,
+            .val_handle = &_hrs_val_handle,
+            .flags = BLE_GATT_CHR_F_NOTIFY,
+        }, {
+            .uuid = BLE_UUID16_DECLARE(BLE_GATT_CHAR_BODY_SENSE_LOC),
+            .access_cb = _hrs_handler,
+            .flags = BLE_GATT_CHR_F_READ,
+        }, {
+            0, /* no more characteristics in this service */
+        }, }
+    },
+    {
+        0,
+    }
+};
+
+static const struct ble_gatt_svc_def gatt_3[] = {
     {
         /* Battery Level Service */
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -303,15 +315,30 @@ int main(void)
     event_timeout_init(&_update_timeout_evt, &_eq, &_update_evt);
 
     /* verify and add our custom services */
-    res = ble_gatts_count_cfg(gatt_svr_svcs);
+    printf("svc gatt 1: %p\n", (void *)gatt_1);
+    res = ble_gatts_count_cfg(gatt_1);
     assert(res == 0);
-    res = ble_gatts_add_svcs(gatt_svr_svcs);
+    res = ble_gatts_add_svcs(gatt_1);
+    assert(res == 0);
+
+    printf("svc gatt 2: %p\n", (void *)gatt_2);
+    res = ble_gatts_count_cfg(gatt_2);
+    assert(res == 0);
+    res = ble_gatts_add_svcs(gatt_2);
+    assert(res == 0);
+
+    printf("svc gatt 3: %p\n", (void *)gatt_3);
+    res = ble_gatts_count_cfg(gatt_3);
+    assert(res == 0);
+    res = ble_gatts_add_svcs(gatt_3);
     assert(res == 0);
 
     /* set the device name */
     ble_svc_gap_device_name_set(_device_name);
     /* reload the GATT server to link our added services */
-    ble_gatts_start();
+    puts("RE-enable GATTS");
+    res = ble_gatts_start();
+    assert(res == 0);
 
     /* configure and set the advertising data */
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
