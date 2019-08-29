@@ -160,24 +160,28 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
 
 void nimble_autoconn_init(void)
 {
+    int res;
+    (void)res;
+
     /* register our event callback */
     nimble_netif_eventcb(_on_netif_evt);
+    /* setup state machine timer (we use NimBLEs callouts for this) */
+    ble_npl_callout_init(&_state_evt, nimble_port_get_dflt_eventq(),
+                         _on_state_change, NULL);
+
     /* update parameters, this also triggers advertising and scanning */
-    nimble_autoconn_param_update(&nimble_autoconn_params);
-    /* enable autoconn right away */
-    // TODO: do this here? or trigger this from the application?
+    res = nimble_autoconn_param_update(&nimble_autoconn_params);
+    assert(res == NIMBLE_AUTOCONN_OK);
+
+    /* enable autoconn */
     nimble_autoconn_enable();
 }
 
 // TODO: return error on invalid config?!
-void nimble_autoconn_param_update(const nimble_autoconn_params_t *params)
+int nimble_autoconn_param_update(const nimble_autoconn_params_t *params)
 {
     int res;
     (void)res;
-
-    /* setup state machine timer (we use NimBLEs callouts for this) */
-    ble_npl_callout_init(&_state_evt, nimble_port_get_dflt_eventq(),
-                         _on_state_change, NULL);
 
     /* scan and advertising period configuration */
     ble_npl_time_ms_to_ticks(params->period_adv, &_timeout_adv_period);
@@ -226,6 +230,8 @@ void nimble_autoconn_param_update(const nimble_autoconn_params_t *params)
      * automatically. */
 
     // TODO: apply _conn_params for all open connections where we are MASTER
+
+    return NIMBLE_AUTOCONN_OK;
 }
 
 void nimble_autoconn_enable(void)
