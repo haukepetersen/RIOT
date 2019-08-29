@@ -119,4 +119,12 @@ void nimble_riot_init(void)
 #ifdef MODULE_NIMBLE_SVC_IPSS
     ble_svc_ipss_init();
 #endif
+
+#ifdef MODULE_NIMBLE_AUTOCONN
+    ble_gatts_start();
+    /* CAUTION: this must be called after nimble_netif_init() and also only
+     *          after the GATT server has been initialized */
+    extern void nimble_autoconn_init(void);
+    nimble_autoconn_init();
+#endif
 }
