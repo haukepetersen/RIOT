@@ -92,9 +92,9 @@ static struct bt_mesh_cfg_srv _cfg_srv = {
     .gatt_proxy = BT_MESH_GATT_PROXY_NOT_SUPPORTED,
     .default_ttl = 7,
 
-    /* 3 transmissions with 20ms interval */
-    .net_transmit = BT_MESH_TRANSMIT(2, 20),
-    .relay_retransmit = BT_MESH_TRANSMIT(2, 20),
+    /* 5 transmissions with 20ms interval */
+    .net_transmit = BT_MESH_TRANSMIT(4, 20),
+    .relay_retransmit = BT_MESH_TRANSMIT(4, 20),
 };
 
 static struct bt_mesh_cfg_cli _cfg_cli = {
