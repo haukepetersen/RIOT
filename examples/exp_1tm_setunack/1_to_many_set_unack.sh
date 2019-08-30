@@ -36,6 +36,7 @@ REQUESTS=${REQUESTS:-100}
 # average request rate per node / node in the fib
 DELAY_REQUEST=${DELAY_REQUEST:-1000000} # in us
 DELAY_JITTER=${DELAY_JITTER:-500000} # in us
+TIMEOUT=${TIMEOUT:-151}
 
 
 FLAGS=
@@ -99,6 +100,7 @@ CMD
 # sniffer_aggregator -i ${EXPID} -l ${IOTLAB_SITE},n,${SNIFFER} -o ${NAME}.pcap &
 
 EXPCMDS=$(cat << CMD
+sleep 5
 tmux send-keys -t riot-${EXPID}:2 "reboot" C-m
 sleep 5
 # tmux send-keys -t riot-${EXPID}:2 ""
@@ -115,8 +117,7 @@ tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "clr" C-m
 sleep 3
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run_lvl ${REQUESTS} ${DELAY_REQUEST}" C-m
-# sleep $(((($REQUESTS*$DELAY_REQUEST)/1000000)+10))
-sleep 200
+sleep ${TIMEOUT}
 tmux send-keys -t riot-${EXPID}:2 "stats" C-m
 sleep 5
 iotlab-experiment stop -i ${EXPID} > /dev/null
@@ -126,7 +127,6 @@ CMD
 ssh ${IOTLAB_USER}@${IOTLAB_SITE}.iot-lab.info -t << EOF
 tmux new-session -d -s riot-${EXPID} "${CMDS1}"
 tmux new-window -t riot-${EXPID}:2 "${CMDS2}"
-iotlab-node -i ${EXPID} --reset
 ${EXPCMDS}
 EOF
 
