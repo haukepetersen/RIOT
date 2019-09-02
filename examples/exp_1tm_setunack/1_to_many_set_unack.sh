@@ -114,12 +114,28 @@ tmux send-keys -t riot-${EXPID}:2 "nrf52dk-7;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-8;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-9;cfg_sink" C-m
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-10;cfg_sink" C-m
+
+# Probe for background traffic
 tmux send-keys -t riot-${EXPID}:2 "clr" C-m
-sleep 3
+sleep 10
+tmux send-keys -t riot-${EXPID}:2 "stats" C-m
+sleep 1
+
+# Run expiriment
+tmux send-keys -t riot-${EXPID}:2 "clr" C-m
+sleep 1
 tmux send-keys -t riot-${EXPID}:2 "nrf52dk-1;run_lvl ${REQUESTS} ${DELAY_REQUEST}" C-m
 sleep ${TIMEOUT}
 tmux send-keys -t riot-${EXPID}:2 "stats" C-m
-sleep 5
+sleep 1
+
+# Probe for background traffic
+tmux send-keys -t riot-${EXPID}:2 "clr" C-m
+sleep 10
+tmux send-keys -t riot-${EXPID}:2 "stats" C-m
+sleep 1
+
+# Cleanup
 iotlab-experiment stop -i ${EXPID} > /dev/null
 CMD
 )
@@ -128,6 +144,7 @@ ssh ${IOTLAB_USER}@${IOTLAB_SITE}.iot-lab.info -t << EOF
 tmux new-session -d -s riot-${EXPID} "${CMDS1}"
 tmux new-window -t riot-${EXPID}:2 "${CMDS2}"
 ${EXPCMDS}
+tmux kill-session -t riot-${EXPID}
 EOF
 
 exit 0
