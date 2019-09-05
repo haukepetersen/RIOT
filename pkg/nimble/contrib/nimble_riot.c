@@ -123,9 +123,6 @@ void nimble_riot_init(void)
     extern void sc_nimble_netif_init(void);
     sc_nimble_netif_init();
 #endif
-#ifdef MODULE_NIMBLE_NETIF_RPBLE
-    res = nimble_netif_rpble_init(&nimble_netif_rpble_params);
-    assert(res == NIMBLE_NETIF_RPBLE_OK);
 #endif
 
     /* initialize the configured, built-in services */
@@ -150,5 +147,10 @@ void nimble_riot_init(void)
     res = nimble_autoconn_init(&nimble_autoconn_params, NULL, 0);
     assert(res == NIMBLE_AUTOCONN_OK);
     nimble_autoconn_enable();
+#endif
+
+#ifdef MODULE_NIMBLE_NETIF_RPBLE
+    res = nimble_netif_rpble_init(&nimble_netif_rpble_params);
+    assert(res == NIMBLE_NETIF_RPBLE_OK);
 #endif
 }
