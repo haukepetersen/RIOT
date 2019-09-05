@@ -81,3 +81,12 @@ ifneq (,$(filter nimble_netif,$(USEMODULE)))
     USEMODULE += gnrc_sixlowpan_iphc
   endif
 endif
+
+ifneq (,$(filter nimble_netif_rpble,$(USEMODULE)))
+  USEMODULE += gnrc_rpl
+  USEMODULE += nimble_netif
+  USEMODULE += nimble_scanner
+  USEMODULE += bluetil_ad
+  USEMODULE += bluetil_addr
+  USEMODULE += event_timeout
+endif

@@ -51,6 +51,11 @@
 #include "nrf_clock.h"
 #endif
 
+#ifdef MODULE_NIMBLE_NETIF_RPBLE
+#include "nimble_netif_rpble.h"
+#include "nimble_netif_rpble_params.h"
+#endif
+
 static char _stack_controller[NIMBLE_CONTROLLER_STACKSIZE];
 #endif
 
@@ -120,6 +125,9 @@ void nimble_riot_init(void)
     extern void sc_nimble_netif_init(void);
     sc_nimble_netif_init();
 #endif
+#ifdef MODULE_NIMBLE_NETIF_RPBLE
+    res = nimble_netif_rpble_init(&nimble_netif_rpble_params);
+    assert(res == NIMBLE_NETIF_RPBLE_OK);
 #endif
 
     /* initialize the configured, built-in services */

@@ -86,6 +86,9 @@ nimble_autoconn:
 nimble_netif:
 	"$(MAKE)" -C $(TDIR)/netif/
 
+nimble_netif_rpble:
+	"$(MAKE)" -C $(TDIR)/netif_rpble/
+
 nimble_scanlist:
 	"$(MAKE)" -C $(TDIR)/scanlist
 
