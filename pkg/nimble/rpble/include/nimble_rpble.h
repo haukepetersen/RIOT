@@ -11,6 +11,32 @@
  * @ingroup     net_ble_nimble
  * @brief       RPL-over-BLE for Nimble implementation
  *
+ * # About
+ * This module provides a BLE connection manager for establishing IP-over-BLE
+ * connections between BLE nodes based on information provided by the RPL
+ * routing protocol.
+ *
+ * # Strategy
+ * - parents are advertising their presence (if slots are open)
+ * - children are scanning for potential parents
+ * - children will initiate connection procedure 'best' parent
+ * - metric for best parent:
+ *   - lowest rank
+ *   - rssi?
+ *    -most free connection slots
+ *
+ * # State Machine
+ * initial: is master?
+ * -> yes: start accepting (advertising)
+ * -> no: start discovery loop
+ *
+ * new connection to parent established?
+ * -> stop scanning
+ * -> start accepting (advertising)
+ *
+ * # Architecture
+ * TODO
+ *
  * # TODOs
  * @todo        remove thread and run events solely using NimBLEs event loop
  * @todo        never remove active parents from ppt

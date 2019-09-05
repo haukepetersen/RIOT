@@ -33,9 +33,9 @@
 
 #include "nimble_netif.h"
 #include "nimble_netif_conn.h"
-#include "nimble_netif_rpble.h"
+#include "nimble_rpble.h"
 #include "nimble_scanner.h"
-#include "host/ble_gap.h"role
+#include "host/ble_gap.h"
 
 
 #define ENABLE_DEBUG        (1)
