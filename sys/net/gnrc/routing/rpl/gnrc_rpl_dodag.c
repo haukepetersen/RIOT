@@ -34,6 +34,10 @@
 #include "net/gnrc/rpl/p2p_dodag.h"
 #endif
 
+#ifdef MODULE_NIMBLE_NETIF_RPBLE
+#include "nimble_netif_rpble.h"
+#endif
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -101,6 +105,7 @@ bool gnrc_rpl_instance_add(uint8_t instance_id, gnrc_rpl_instance_t **inst)
         (*inst)->min_hop_rank_inc = CONFIG_GNRC_RPL_DEFAULT_MIN_HOP_RANK_INCREASE;
         (*inst)->dodag.parents = NULL;
         (*inst)->cleanup_event.msg.content.ptr = (*inst);
+
         return true;
     }
 
@@ -358,6 +363,17 @@ static gnrc_rpl_parent_t *_gnrc_rpl_find_preferred_parent(gnrc_rpl_dodag_t *doda
     dodag->my_rank = dodag->instance->of->calc_rank(dodag, 0);
     if (dodag->my_rank != old_rank) {
         trickle_reset_timer(&dodag->trickle);
+
+#ifdef MODULE_NIMBLE_NETIF_RPBLE
+        nimble_netif_rpble_ctx_t ctx;
+        ctx.inst_id = dodag->instance->id;
+        memcpy(ctx.dodag_id, &dodag->dodag_id, 16);
+        ctx.version = dodag->version;
+        ctx.rank = dodag->my_rank;
+        ctx.role = dodag->node_status;
+
+        nimble_netif_rpble_update(&ctx);
+#endif
     }
 
     LL_FOREACH_SAFE(dodag->parents, elt, tmp) {
