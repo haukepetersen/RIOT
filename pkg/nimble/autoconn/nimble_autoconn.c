@@ -93,10 +93,16 @@ static void _on_state_change(struct ble_npl_event *ev)
     }
 }
 
-static void _on_scan_evt(const ble_addr_t *addr, int8_t rssi,
+static void _on_scan_evt(uint8_t type, const ble_addr_t *addr, int8_t rssi,
                          const uint8_t *ad_buf, size_t ad_len)
 {
     (void)rssi;
+
+    /* we are only interested in ADV_IND packets, the rest can be dropped right
+     * away */
+    if (type != BLE_HCI_ADV_TYPE_ADV_IND) {
+        return;
+    }
 
     bluetil_ad_t ad = {
         .buf  = (uint8_t *)ad_buf,

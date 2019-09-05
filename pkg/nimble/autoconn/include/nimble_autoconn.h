@@ -7,15 +7,21 @@
  */
 
 /**
- * @defgroup    pkg_nimble_autoconn Simple Connection Manager for Nimble netif
+ * @defgroup    pkg_nimble_autoconn Autoconn
  * @ingroup     pkg_nimble
- * @brief       BLE Connection manager that automatically opens BLE
- *              connections to any node that fit the given filter criteria
+ * @brief       Simple connection manager that automatically opens BLE
+ *              connections to any node that fits the given filter criteria
  *
  * # About
- * TODO
+ * This submodule implements a connection manager for BLE. It takes care of
+ * scanning, advertising, and opening connections to neighboring nodes.For this,
+ * autoconn periodically switches between advertising and scanning mode, hence
+ * from accepting incoming connection requests to scanning actively for
+ * new neighbors.
  *
  * # State Machine
+ *
+ *
  * alternate between:
  * - advertising (accepting incoming connection requests) for `period_adv` + jitter
  * - scanning (actively opening connections) for `period_scan` + jitter
@@ -50,24 +56,35 @@ enum {
     NIMBLE_AUTOCONN_INVALID = -1,  /**< invalid parameters given */
 };
 
+/**
+ * @brief   Set of configuration parameters needed to run autoconn
+ */
 typedef struct {
-    uint32_t period_scan;           /* in ms */
+    /**< amount of time spend in scanning mode [in ms] */
+    uint32_t period_scan;           /*   in ms */
+    /**< amount of time spend in advertising mode [in ms] */
     uint32_t period_adv;            /* in ms */
+    /**< a random value from 0 to this value is added to the duration of each
+     *   scanning and advertising period [in ms] */
     uint32_t period_jitter;         /* in ms */
-
+    /**< advertising interval used when in advertising mode [in ms] */
     uint32_t adv_itvl;              /* in ms */
-
     /**< scan interval applied while in scanning state [in ms] */
     uint32_t scan_itvl;
     /**< scan window applied while in scanning state [in ms] */
     uint32_t scan_win;
-
-    uint32_t conn_itvl;             /* in ms */
-    uint16_t conn_latency;          /* slave latency */
-    uint32_t conn_super_to;         /* supervision timeout, in ms */
-    /**< Node ID included in the advertising data, may be NULL */
+    /**< connection interval used when opening a new connection [in ms] */
+    uint32_t conn_itvl;
+    /**< slave latency used for new connections [in ms] */
+    uint16_t conn_latency;
+    /**< supervision timeout used for new connections [in ms] */
+    uint32_t conn_super_to;
+    /**< node ID included in the advertising data, may be NULL */
     const char *node_id;
 } nimble_autoconn_params_t;
+
+typedef void(*nimble_autoconn_filter_t)(const ble_addr_t *addr, int8_t rssi,
+                                        const uint8_t *ad_buf, size_t ad_len);
 
 /**
  * @brief   Initialize and enable the autoconn module
@@ -75,7 +92,8 @@ typedef struct {
  * @note    This function is intended to be called once during system
  *          initialization
  */
-void nimble_autoconn_init(void);
+void nimble_autoconn_init(const nimble_autoconn_params_t *params,
+                          nimble_autoconn_filter_t filter);
 
 /**
  * @brief   Update the used parameters (timing and node ID)
@@ -85,7 +103,7 @@ void nimble_autoconn_init(void);
  * @return  NIMBLE_AUTOCONN_OK if everything went fine
  * @return  NIMBLE_AUTOCONN_INVALID if given parameters can not be applied
  */
-int nimble_autoconn_param_update(const nimble_autoconn_params_t *params);
+int nimble_autoconn_update(const nimble_autoconn_params_t *params);
 
 /**
  * @brief   Enable the automated management of BLE connections
