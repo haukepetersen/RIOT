@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     nimble_netif_rpble
+ * @ingroup     nimble_rpble
  * @{
  *
  * @file
@@ -56,7 +56,7 @@
 
 /* get shortcuts for the max number of connections, parents, and children */
 #define CONN_NUMOF          (MYNEWT_VAL_BLE_MAX_CONNECTIONS)
-#define PARENT_NUM          (NIMBLE_NETIF_RPBLE_MAXPARENTS)
+#define PARENT_NUM          (NIMBLE_RPBLE_MAXPARENTS)
 #define CHILD_NUM           (CONN_NUMOF - PARENT_NUM)
 
 typedef struct {
@@ -75,7 +75,7 @@ static uint32_t _conn_timeout;   /* in ms */
 static nimble_netif_rpble_ctx_t _local_rpl_ctx;
 static int _current_parent = NIMBLE_NETIF_CONN_INVALID;
 /* table for keeping possible parents */
-static ppt_entry_t _ppt[NIMBLE_NETIF_RPBLE_PPTSIZE];
+static ppt_entry_t _ppt[NIMBLE_RPBLE_PPTSIZE];
 
 // TODO: remove thread and use nimbles event loop for these events...
 #define PRIO                (THREAD_PRIORITY_MAIN - 2)
@@ -95,7 +95,7 @@ static ppt_entry_t *_ppt_find_best(void)
     uint16_t rank = UINT16_MAX;
     uint8_t free = 0;
     ppt_entry_t *pp = NULL;
-    for (unsigned i = 0; i < NIMBLE_NETIF_RPBLE_PPTSIZE; i++) {
+    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
         // DEBUG("# rank have %i, cmp %i, free have %i, cmp %i\n",
         //       (int)rank, (int)_ppt[i].ctx.rank,
         //       (int)free, (int)_ppt[i].ctx.free_slots);
@@ -115,7 +115,7 @@ static ppt_entry_t *_ppt_find_worst(void)
     uint16_t rank = 0;
     uint8_t free = UINT8_MAX;
     ppt_entry_t *pp = NULL;
-    for (unsigned i = 0; i < NIMBLE_NETIF_RPBLE_PPTSIZE; i++) {
+    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
         if ((_ppt[i].state == PPT_STATE_FILLED) &&
             ((_ppt[i].ctx.rank > rank) || (
              (_ppt[i].ctx.rank == rank) && (_ppt[i].ctx.free_slots < free)))) {
@@ -134,7 +134,7 @@ static void _ppt_clear(void)
 
 static void _ppt_remove(const uint8_t *addr)
 {
-    for (unsigned i = 0; i < NIMBLE_NETIF_RPBLE_PPTSIZE; i++) {
+    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
         if (memcmp(_ppt[i].addr.val, addr, BLE_ADDR_LEN) == 0) {
             _ppt[i].state = PPT_STATE_FREE;
             // DEBUG("# PPT remove: removed entry\n");
@@ -153,7 +153,7 @@ static void _ppt_add(nimble_netif_rpble_ctx_t *ctx, const ble_addr_t *addr)
     }
 
     // DEBUG("# PPT add %02x\n", (int)addr->val[5]);
-    // for (unsigned i = 0; i < NIMBLE_NETIF_RPBLE_PPTSIZE; i++) {
+    // for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
     //     DEBUG("# ppt[%u]: %02x rank: %i, free_slots: %i\n", i,
     //           (int)_ppt[i].addr.val[5],
     //           (int)_ppt[i].ctx.rank,
@@ -161,7 +161,7 @@ static void _ppt_add(nimble_netif_rpble_ctx_t *ctx, const ble_addr_t *addr)
     // }
 
     /* scan table if given address is already part of it. If so, update entry */
-    for (unsigned i = 0; i < NIMBLE_NETIF_RPBLE_PPTSIZE; i++) {
+    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
         if (memcmp(addr, &_ppt[i].addr, sizeof(ble_addr_t)) == 0) {
             // DEBUG("# PPT match\n");
             memcpy(&_ppt[i].ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
@@ -169,7 +169,7 @@ static void _ppt_add(nimble_netif_rpble_ctx_t *ctx, const ble_addr_t *addr)
         }
     }
     /* if not found, look for an empty slot */
-    for (unsigned i = 0; i < NIMBLE_NETIF_RPBLE_PPTSIZE; i++) {
+    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
         if (_ppt[i].state == PPT_STATE_FREE) {
             memcpy(&_ppt[i].ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
             memcpy(&_ppt[i].addr, addr, sizeof(ble_addr_t));
@@ -402,16 +402,10 @@ int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
 
     _cfg = cfg;
 
-    /* initialize connection list */
-    for (unsigned i = 0; i < CONN_NUMOF; i++) {
-        memset(&_conn_pool[i], 0, sizeof(nimble_netif_conn_t));
-        if (i < PARENT_NUM) {
-            clist_rpush(&_parents, &_conn_pool[i].node);
-        }
-        else {
-            clist_rpush(&_children, &_conn_pool[i].node);
-        }
-    }
+    /** get timeout values */
+    ble_npl_time_ms_to_ticks(params->period_adv, &_timeout_adv_period);
+    ble_npl_time_ms_to_ticks(params->period_scan, &_timeout_scan_period);
+    ble_npl_time_ms_to_ticks(params->period_jitter, &_period_jitter);
 
     /* apply configuration parameters */
     struct ble_gap_disc_params scan_params = { 0 };
@@ -455,7 +449,7 @@ int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
     nimble_scanner_start();
     DEBUG("[rpble] scanning now\n");
 
-    return NIMBLE_NETIF_RPBLE_OK;
+    return NIMBLE_RPBLE_OK;
 }
 
 int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
@@ -469,7 +463,7 @@ int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
     _local_rpl_ctx.free_slots = 0;
     if (memcmp(&_local_rpl_ctx, ctx, sizeof(nimble_netif_rpble_ctx_t)) == 0) {
         DEBUG("[rpble] RPL update: ignored (no ctx data change)\n");
-        return NIMBLE_NETIF_RPBLE_NO_CHANGE;
+        return NIMBLE_RPBLE_NO_CHANGE;
     }
 
     DEBUG("[rpble] RPL update: got new context data (rank %i, inst %i)\n",
@@ -487,5 +481,5 @@ int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
     /* and start to advertise */
     _try_to_advertise();
 
-    return NIMBLE_NETIF_RPBLE_OK;
+    return NIMBLE_RPBLE_OK;
 }
