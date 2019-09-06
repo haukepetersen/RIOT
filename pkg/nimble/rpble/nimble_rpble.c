@@ -81,13 +81,9 @@ static ppt_entry_t _ppt[NIMBLE_RPBLE_PPTSIZE];
 #define PRIO                (THREAD_PRIORITY_MAIN - 2)
 static char _stack[THREAD_STACKSIZE_DEFAULT];
 
-/* timeout events used for periodical state updates */
-/* TODO: make them trickle based? */
-static event_queue_t _rpble_q;
-static event_t _evt_clear_ppt;
-static event_t _evt_eval_parent;
-static event_timeout_t _evtto_clear_ppt;
-static event_timeout_t _evtto_eval_parent;
+/* eval event used for periodical state updates */
+static uint32_t _eval_itvl;
+static struct ble_npl_callout _state_evt;
 
 static ppt_entry_t *_ppt_find_best(void)
 {
@@ -241,18 +237,11 @@ static void _try_to_advertise(void)
     }
 }
 
-static void _on_scan_evt(const ble_addr_t *addr, int8_t rssi,
+static void _on_scan_evt(uint8_t type,
+                         const ble_addr_t *addr, int8_t rssi,
                          const uint8_t *ad, size_t ad_len)
 {
     int res;
-
-    // if (addr->val[5] == 0xea) {
-    //     DEBUG("# seen node 0x%02x %02x\n", (int)addr->val[5], (int)addr->val[0]);
-    //     for (size_t i = 0; i < ad_len; i++) {
-    //         DEBUG("0x%02x ", (int)ad[i]);
-    //     }
-    //     puts("");
-    // }
 
     /* check if scanned node does actually speak rpble */
     bluetil_ad_data_t msd_field;
@@ -376,43 +365,16 @@ static void _eval_parent_handler(event_t *event)
     }
 }
 
-static void *_run(void *arg)
-{
-    /* initialize event loop and the events that we use */
-    event_queue_init(&_rpble_q);
-    _evt_clear_ppt.handler = _clear_ppt_handler;
-    _evt_eval_parent.handler = _eval_parent_handler;
-    event_timeout_init(&_evtto_clear_ppt, &_rpble_q, &_evt_clear_ppt);
-    event_timeout_init(&_evtto_eval_parent, &_rpble_q, &_evt_eval_parent);
-
-    event_timeout_set(&_evtto_clear_ppt, _cfg->clear_timeout);
-    event_timeout_set(&_evtto_eval_parent, _cfg->eval_timeout);
-
-    /* handle events here for now (TODO: move to using NimBLE's event loop) */
-    event_loop(&_rpble_q);
-
-    /* never reached (in theory) */
-    return NULL;
-}
-
-
 int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
 {
     assert(cfg);
 
     _cfg = cfg;
 
-    /** get timeout values */
-    ble_npl_time_ms_to_ticks(params->period_adv, &_timeout_adv_period);
-    ble_npl_time_ms_to_ticks(params->period_scan, &_timeout_scan_period);
-    ble_npl_time_ms_to_ticks(params->period_jitter, &_period_jitter);
-
-    /* apply configuration parameters */
-    struct ble_gap_disc_params scan_params = { 0 };
-    scan_params.itvl = (cfg->scan_itvl / BLE_HCI_SCAN_ITVL);
-    scan_params.window = (cfg->scan_win / BLE_HCI_SCAN_ITVL);
-    scan_params.passive = 1;
-    scan_params.filter_duplicates = 1;
+    /** initialize the eval event */
+    ble_npl_time_ms_to_ticks(params->eval_itvl, &_eval_itvl);
+    ble_npl_callout_init(&_evt_eval, nimble_port_get_dflt_eventq(),
+                         _on_eval, NULL);
 
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     _adv_params.disc_mode = BLE_GAP_DISC_MODE_LTD;
@@ -428,26 +390,20 @@ int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
                                         BLE_HCI_CONN_SPVN_TMO_UNITS);
     _conn_timeout = cfg->conn_timeout / 1000;
 
-    // DEBUG("[rpble] CONNCTION PARAMS\n");
-    // DEBUG("init: adv itvl: %i\n", (int)_adv_params.itvl_min);
-    // DEBUG("init: scan itvl: %i\n", (int)_conn_params.scan_itvl);
-    // DEBUG("init: conn itvl: %i\n", (int)_conn_params.itvl_min);
-    // DEBUG("init: spvn to  : %i\n", (int)_conn_params.supervision_timeout);
-    // DEBUG("init: _conn_timeout: %i\n", (int)_conn_timeout);
-
     /* register event callback */
     nimble_netif_eventcb(_on_netif_evt);
+
     /* configure scanner */
+    struct ble_gap_disc_params scan_params = { 0 };
+    scan_params.itvl = (cfg->scan_itvl / BLE_HCI_SCAN_ITVL);
+    scan_params.window = (cfg->scan_win / BLE_HCI_SCAN_ITVL);
+    scan_params.passive = 1;
+    scan_params.filter_duplicates = 1;
     nimble_scanner_init(&scan_params, _on_scan_evt);
 
-
-    // TODO remove and use nimble's event loop!
-    thread_create(_stack, sizeof(_stack), PRIO, THREAD_CREATE_STACKTEST,
-                  _run, NULL, "nimble_rpble");
-
-    /* start scanning */
+    /* start to look for parents */
     nimble_scanner_start();
-    DEBUG("[rpble] scanning now\n");
+    ble_npl_callout_reset(&_evt_eval, _eval_itvl);
 
     return NIMBLE_RPBLE_OK;
 }
