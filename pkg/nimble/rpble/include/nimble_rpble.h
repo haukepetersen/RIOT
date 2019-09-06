@@ -88,10 +88,9 @@ typedef struct {
     uint32_t conn_itvl;
     uint16_t conn_latency;
     uint32_t conn_super_to;
-    uint32_t conn_timeout;      // merge with scanitv and scanwin
+    uint32_t conn_timeout;
 
-    uint32_t eval_timeout;
-    uint32_t clear_timeout;
+    uint32_t eval_itvl;
 
     const char *name;
 } nimble_netif_rpble_cfg_t;
