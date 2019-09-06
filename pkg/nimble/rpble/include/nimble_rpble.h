@@ -58,19 +58,19 @@
 extern "C" {
 #endif
 
-#ifndef NIMBLE_NETIF_RPBLE_MAXPARENTS
-#define NIMBLE_NETIF_RPBLE_MAXPARENTS       (1U)
+#ifndef NIMBLE_RPBLE_MAXPARENTS
+#define NIMBLE_RPBLE_MAXPARENTS         (1U)
 #endif
 
-#ifndef NIMBLE_NETIF_RPBLE_PPTSIZE
-#define NIMBLE_NETIF_RPBLE_PPTSIZE          (5U)
+#ifndef NIMBLE_RPBLE_PPTSIZE
+#define NIMBLE_RPBLE_PPTSIZE            (5U)
 #endif
 
 enum {
-    NIMBLE_NETIF_RPBLE_OK        =  0,
-    NIMBLE_NETIF_RPBLE_STACKERR  = -1,
-    NIMBLE_NETIF_RPBLE_ERR_ADV   = -2,
-    NIMBLE_NETIF_RPBLE_NO_CHANGE = -3,
+    NIMBLE_RPBLE_OK         =  0,
+    NIMBLE_RPBLE_STACKERR   = -1,
+    NIMBLE_RPBLE_ERR_ADV    = -2,
+    NIMBLE_RPBLE_NO_CHANGE  = -3,
 };
 
 typedef struct {
