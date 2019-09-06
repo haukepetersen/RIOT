@@ -36,7 +36,10 @@
 #include "nimble_rpble.h"
 #include "nimble_scanner.h"
 #include "host/ble_gap.h"
+#include "nimble/nimble_port.h"
 
+#define PARENT_NONE         (-1)
+#define PARENT_ROOT         (-2)
 
 #define ENABLE_DEBUG        (1)
 #include "debug.h"
@@ -63,27 +66,26 @@ typedef struct {
     nimble_netif_rpble_ctx_t ctx;      /* TODO: only save rank and free slots? */
     ble_addr_t addr;    /**< potential parents address */
     uint8_t state;      /**< TODO: remove and use existing field implicitly */
+    uint8_t tries;
 } ppt_entry_t;
 
-/* TODO: remove=? */
-static const nimble_netif_rpble_cfg_t *_cfg = NULL;
+/* keep the timing parameters for connections and advertisements */
 static struct ble_gap_adv_params _adv_params = { 0 };
 static struct ble_gap_conn_params _conn_params = { 0 };
 static uint32_t _conn_timeout;   /* in ms */
 
 /* local RPL context */
 static nimble_netif_rpble_ctx_t _local_rpl_ctx;
-static int _current_parent = NIMBLE_NETIF_CONN_INVALID;
+static int _current_parent = PARENT_NONE;
 /* table for keeping possible parents */
 static ppt_entry_t _ppt[NIMBLE_RPBLE_PPTSIZE];
 
-// TODO: remove thread and use nimbles event loop for these events...
-#define PRIO                (THREAD_PRIORITY_MAIN - 2)
-static char _stack[THREAD_STACKSIZE_DEFAULT];
-
 /* eval event used for periodical state updates */
 static uint32_t _eval_itvl;
-static struct ble_npl_callout _state_evt;
+static struct ble_npl_callout _evt_eval;
+
+static void _parent_find(void);
+static void _parent_select(struct ble_npl_event *ev);
 
 static ppt_entry_t *_ppt_find_best(void)
 {
@@ -221,19 +223,25 @@ static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
     // assert(res == BLUETIL_AD_OK);
 }
 
-static void _try_to_advertise(void)
+static void _children_accept(void)
 {
-    // TODO: update only parts of the AD */
+    // TODO: update only parts of the AD? */
     /* generate the new advertisement data */
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
     bluetil_ad_t ad;
     _make_ad(&ad, buf, &_local_rpl_ctx,
              (uint8_t)nimble_netif_conn_count(NIMBLE_NETIF_UNUSED) + 1);
-    /* start advertising this node */
+    /* start advertising this node. In any case we make sure to use the newest
+     * set of advertising data by killing any ongoing advertisements */
+    nimble_netif_accept_stop();
     int res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
-    // TODO remove
+    // TODO remove the following block...
     if (res == NIMBLE_NETIF_OK) {
         DEBUG("# ADV started\n");
+    }
+    else {
+        /* should never happen */
+        assert(0);
     }
 }
 
@@ -242,6 +250,11 @@ static void _on_scan_evt(uint8_t type,
                          const uint8_t *ad, size_t ad_len)
 {
     int res;
+
+    /* filter out all non-connectible advertisements */
+    if (type != BLE_HCI_ADV_TYPE_ADV_IND) {
+        return;
+    }
 
     /* check if scanned node does actually speak rpble */
     bluetil_ad_data_t msd_field;
@@ -265,6 +278,49 @@ static void _on_scan_evt(uint8_t type,
     // DEBUG("# added 0x%02x to PPT\n", (int)addr->val[5]);
 }
 
+static void _parent_find(void)
+{
+    nimble_scanner_start();
+    ble_npl_callout_reset(&_evt_eval, _eval_itvl);
+}
+
+static void _parent_select(struct ble_npl_event *ev)
+{
+    (void)ev;
+
+    /* for now, we only try to connect to a parent if we have none */
+    assert(_current_parent == PARENT_NONE);
+
+    /* reset timer and stop scanner  */
+    ble_npl_callout_stop(&_evt_eval);
+    nimble_scanner_stop();
+
+    /* just in case this event is triggered while we were configured to be the
+     * RPL root */
+    if (_local_rpl_ctx.role == GNRC_RPL_ROOT_NODE) {
+        DEBUG("# eval: we are root, so no more parent evalutations\n");
+        return;
+    }
+
+    ppt_entry_t *pp = _ppt_find_best();
+    if (pp == NULL) {
+        DEBUG("# parent_select: no fitting parent in PPT, continue search\n");
+        _parent_find();
+        return;
+    }
+
+    DEBUG("# parent selected. will connect now: %02x\n", (int)pp->addr.val[5]);
+    pp->tries++;
+    int res = nimble_netif_connect(&pp->addr, &_conn_params, _conn_timeout);
+    if (res < 0) {
+        DEBUG("# parent_handler: err: unable to connect to preferred parent");
+        _parent_find();
+    }
+    else {
+        _current_parent = res;
+    }
+}
+
 static void _on_netif_evt(int handle, nimble_netif_event_t event)
 {
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
@@ -273,43 +329,38 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
     switch (event) {
         case NIMBLE_NETIF_CONNECTED_MASTER:
             assert(_current_parent == handle);
-            DEBUG("[rpble] PARENT selected: %02x\n", (int)conn->addr[5]);
-            nimble_scanner_start();
+            DEBUG("[rpble] PARENT selected: %02x\n", (int)conn->addr[0]);
+            _children_accept();
             break;
         case NIMBLE_NETIF_CONNECTED_SLAVE:
-            DEBUG("[rpble] CHILD added: %02x\n", (int)conn->addr[5]);
-            _try_to_advertise();
+            DEBUG("[rpble] CHILD added: %02x\n", (int)conn->addr[0]);
+            _children_accept();
             break;
         case NIMBLE_NETIF_CLOSED_MASTER:
-            DEBUG("[rpble] PARENT lost: %02x\n", (int)conn->addr[5]);
-            _current_parent = NIMBLE_NETIF_CONN_INVALID;
-            _ppt_remove(conn->addr);
+            DEBUG("[rpble] PARENT lost: %02x\n", (int)conn->addr[0]);
+            _current_parent = PARENT_NONE;
             nimble_netif_accept_stop();
-            /* try to connect to the next fitting parent immediately */
-            event_post(&_rpble_q, &_evt_eval_parent);
+            /* back to 0, now we need to find a new parent... */
+            _parent_find();
             break;
         case NIMBLE_NETIF_CLOSED_SLAVE:
-            DEBUG("[rpble] CHILD lost %02x\n", (int)conn->addr[5]);
-            _try_to_advertise();
-            // TODO: not sure why we had this in...
-            // if (_current_parent >= 0 || (_local_rpl_ctx.role == GNRC_RPL_ROOT_NODE)) {
-            //     nimble_netif_accept_stop();
-            // }
+            DEBUG("[rpble] CHILD lost %02x\n", (int)conn->addr[0]);
+            _children_accept();
             break;
         case NIMBLE_NETIF_CONNECT_ABORT:
             _ppt_remove(conn->addr);
-            if (handle == _current_parent) {
-                printf("[rpble] PARENT abort (0x%02x)\n", (int)conn->addr[5]);
-                _current_parent = NIMBLE_NETIF_CONN_INVALID;
-                nimble_scanner_start();
+            if (_current_parent == handle) {
+                printf("[rpble] PARENT abort (0x%02x)\n", (int)conn->addr[0]);
+                _current_parent = PARENT_NONE;
+                _parent_find();
             }
             else {
-                printf("[rpble] CHILD abort (0x%02x)\n", (int)conn->addr[5]);
-                _try_to_advertise();
+                printf("[rpble] CHILD abort (0x%02x)\n", (int)conn->addr[0]);
+                _children_accept();
             }
             break;
         case NIMBLE_NETIF_CONN_UPDATED:
-            printf("[rpble] conn param update (0x%02x)\n", (int)conn->addr[5]);
+            printf("[rpble] conn param update (0x%02x)\n", (int)conn->addr[0]);
             break;
         default:
             /* should never be reached */
@@ -318,63 +369,14 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
     }
 }
 
-static void _clear_ppt_handler(event_t *event)
-{
-    (void)event;
-    _ppt_clear();
-    event_timeout_set(&_evtto_clear_ppt, _cfg->clear_timeout);
-}
-
-static void _eval_parent_handler(event_t *event)
-{
-    (void)event;
-    int res;
-    (void)res;
-
-    /* reset timer  */
-    event_timeout_clear(&_evtto_eval_parent);
-    if (_local_rpl_ctx.role == GNRC_RPL_ROOT_NODE) {
-        DEBUG("# eval: we are root, so no more parent evalutations\n");
-        return;
-    }
-    else {
-        event_timeout_set(&_evtto_eval_parent, _cfg->eval_timeout);
-    }
-
-    ppt_entry_t *pp = _ppt_find_best();
-    if (pp == NULL) {
-        // DEBUG("# no fitting parent in PPT\n");
-        return;
-    }
-    if (_current_parent != NIMBLE_NETIF_CONN_INVALID) {
-        nimble_netif_conn_t *parent = nimble_netif_conn_get(_current_parent);
-        /* if we do have an active parent, and pp is not equal to that parent */
-        if ((memcmp(parent->addr, pp->addr.val, sizeof(BLE_ADDR_LEN)) != 0)) {
-            DEBUG("# we have a parent, but we want a better one -> disonn\n");
-            nimble_netif_close(_current_parent);
-        }
-    }
-    else {
-        DEBUG("# parent selected. will connect now: %02x\n", (int)pp->addr.val[5]);
-        nimble_scanner_stop();
-        _current_parent = nimble_netif_connect(&pp->addr, &_conn_params,
-                                               _conn_timeout);
-        if (_current_parent < 0) {
-            DEBUG("# parent_handler: err: unable to connect to preferred parent");
-        }
-    }
-}
-
 int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
 {
     assert(cfg);
 
-    _cfg = cfg;
-
     /** initialize the eval event */
-    ble_npl_time_ms_to_ticks(params->eval_itvl, &_eval_itvl);
+    ble_npl_time_ms_to_ticks(cfg->eval_itvl, &_eval_itvl);
     ble_npl_callout_init(&_evt_eval, nimble_port_get_dflt_eventq(),
-                         _on_eval, NULL);
+                         _parent_select, NULL);
 
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     _adv_params.disc_mode = BLE_GAP_DISC_MODE_LTD;
@@ -402,10 +404,16 @@ int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
     nimble_scanner_init(&scan_params, _on_scan_evt);
 
     /* start to look for parents */
-    nimble_scanner_start();
-    ble_npl_callout_reset(&_evt_eval, _eval_itvl);
+    _parent_find();
 
     return NIMBLE_RPBLE_OK;
+}
+
+void _parent_find_stop(void)
+{
+    nimble_scanner_stop();
+    ble_npl_callout_stop(&_evt_eval);
+    _ppt_clear();
 }
 
 int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
@@ -425,17 +433,18 @@ int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
     DEBUG("[rpble] RPL update: got new context data (rank %i, inst %i)\n",
           (int)ctx->rank, (int)ctx->inst_id);
 
-    if (ctx->role == GNRC_RPL_ROOT_NODE) {
-        nimble_scanner_stop();
-        _ppt_clear();
-    }
-
-    /* stop any ongoing advertisements */
-    nimble_netif_accept_stop();
     /* save rpl context for future reference */
     memcpy(&_local_rpl_ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
-    /* and start to advertise */
-    _try_to_advertise();
+
+    if (ctx->role == GNRC_RPL_ROOT_NODE) {
+        _parent_find_stop();
+        _current_parent = PARENT_ROOT;
+    }
+
+    /* advertise the updated context */
+    if (_current_parent != PARENT_NONE) {
+        _children_accept();
+    }
 
     return NIMBLE_RPBLE_OK;
 }

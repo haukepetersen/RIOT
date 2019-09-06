@@ -66,6 +66,11 @@ extern "C" {
 #define NIMBLE_RPBLE_PPTSIZE            (5U)
 #endif
 
+#ifndef NIMBLE_RPBLE_MAXTRIES
+#define NIMBLE_RPBLE_MAXTRIES           (3U)
+#endif
+
+
 enum {
     NIMBLE_RPBLE_OK         =  0,
     NIMBLE_RPBLE_STACKERR   = -1,
