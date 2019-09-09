@@ -63,9 +63,8 @@
 #define CHILD_NUM           (CONN_NUMOF - PARENT_NUM)
 
 typedef struct {
-    nimble_netif_rpble_ctx_t ctx;      /* TODO: only save rank and free slots? */
     ble_addr_t addr;    /**< potential parents address */
-    uint8_t state;      /**< TODO: remove and use existing field implicitly */
+    unsigned score;         /* 0 := not used, larger is better! */
     uint8_t tries;
 } ppt_entry_t;
 
@@ -89,40 +88,31 @@ static void _parent_select(struct ble_npl_event *ev);
 
 static ppt_entry_t *_ppt_find_best(void)
 {
-    // DEBUG("# find best\n");
-    uint16_t rank = UINT16_MAX;
-    uint8_t free = 0;
-    ppt_entry_t *pp = NULL;
-    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        // DEBUG("# rank have %i, cmp %i, free have %i, cmp %i\n",
-        //       (int)rank, (int)_ppt[i].ctx.rank,
-        //       (int)free, (int)_ppt[i].ctx.free_slots);
-        if ((_ppt[i].state == PPT_STATE_FILLED) &&
-            ((_ppt[i].ctx.rank < rank) || (
-             (_ppt[i].ctx.rank == rank) && (_ppt[i].ctx.free_slots < free)))) {
-            rank = _ppt[i].ctx.rank;
-            free = _ppt[i].ctx.free_slots;
-            pp = &_ppt[i];
+    ppt_entry_t *best = &_ppt[0];
+
+    for (unsigned i = 1; i < NIMBLE_RPBLE_PPTSIZE; i++) {
+        if (_ppt[i].score > best->score) {
+            best = &_ppt[i];
         }
     }
-    return pp;
+
+    return (best->score > 0) ? best : NULL;
 }
 
 static ppt_entry_t *_ppt_find_worst(void)
 {
-    uint16_t rank = 0;
-    uint8_t free = UINT8_MAX;
-    ppt_entry_t *pp = NULL;
-    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        if ((_ppt[i].state == PPT_STATE_FILLED) &&
-            ((_ppt[i].ctx.rank > rank) || (
-             (_ppt[i].ctx.rank == rank) && (_ppt[i].ctx.free_slots < free)))) {
-            rank = _ppt[i].ctx.rank;
-            free = _ppt[i].ctx.free_slots;
-            pp = &_ppt[i];
+    ppt_entry_t *worst = &_ppt[0];
+
+    for (unsigned i = 1; i < NIMBLE_RPBLE_PPTSIZE; i++) {
+        if (worst->score == 0) {
+            return worst;
+        }
+        if (_ppt[i].score < worst->score) {
+            worst = &_ppt[i];
         }
     }
-    return pp;
+
+    return worst;
 }
 
 static void _ppt_clear(void)
@@ -130,78 +120,35 @@ static void _ppt_clear(void)
     memset(_ppt, 0, sizeof(_ppt));
 }
 
-static void _ppt_remove(const uint8_t *addr)
+static void _ppt_add(const ble_addr_t *addr, unsigned score)
 {
-    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        if (memcmp(_ppt[i].addr.val, addr, BLE_ADDR_LEN) == 0) {
-            _ppt[i].state = PPT_STATE_FREE;
-            // DEBUG("# PPT remove: removed entry\n");
-            return;
-        }
-    }
-}
-
-static void _ppt_add(nimble_netif_rpble_ctx_t *ctx, const ble_addr_t *addr)
-{
-    /* only add if the rank is interesting for us */
-    if ((_local_rpl_ctx.rank != 0) && (ctx->rank > _local_rpl_ctx.rank)) {
-        // DEBUG("# PPT add: new rank is larger (%i) then ours (%i)\n",
-        //       (int)ctx->rank, (int)_local_rpl_ctx.rank);
-        return;
-    }
-
-    // DEBUG("# PPT add %02x\n", (int)addr->val[5]);
-    // for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-    //     DEBUG("# ppt[%u]: %02x rank: %i, free_slots: %i\n", i,
-    //           (int)_ppt[i].addr.val[5],
-    //           (int)_ppt[i].ctx.rank,
-    //           (int)_ppt[i].ctx.free_slots);
-    // }
-
-    /* scan table if given address is already part of it. If so, update entry */
+    /* if peer is already in table, update its entry */
     for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
         if (memcmp(addr, &_ppt[i].addr, sizeof(ble_addr_t)) == 0) {
-            // DEBUG("# PPT match\n");
-            memcpy(&_ppt[i].ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
-            return;
+            _ppt[i].score = score;
         }
     }
-    /* if not found, look for an empty slot */
-    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        if (_ppt[i].state == PPT_STATE_FREE) {
-            memcpy(&_ppt[i].ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
-            memcpy(&_ppt[i].addr, addr, sizeof(ble_addr_t));
-            _ppt[i].state = PPT_STATE_FILLED;
-            return;
-        }
-    }
-    /* make sure the new scan result is better than the worst existing one */
-    ppt_entry_t *pp = _ppt_find_worst();
-    assert(pp != NULL);
-    if ((pp->ctx.rank > ctx->rank) ||
-        ((pp->ctx.rank == ctx->rank) &&
-         (pp->ctx.free_slots > ctx->free_slots))) {
-        memcpy(&pp->ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
-        memcpy(&pp->addr, addr, sizeof(ble_addr_t));
+
+    /* if not, find the worst entry in the table and override it if feasible */
+    ppt_entry_t *e  = _ppt_find_worst();
+    if (score > e->score) {
+        memcpy(&e->addr, addr, sizeof(ble_addr_t));
+        e->score = score;
+        e->tries = 0;
     }
 }
 
-static void _rpble_ad_from_ad(uint8_t *buf, size_t len, nimble_netif_rpble_ctx_t *ctx)
+static unsigned _ppt_score(uint8_t *buf, size_t len)
 {
-    assert(len == (VENDOR_FIELD_LEN - 2));
-    ctx->inst_id = buf[POS_INST_ID];
-    memcpy(&ctx->dodag_id, &buf[POS_DODAG_ID], 16);
-    ctx->version = buf[POS_VERSION];
-    ctx->rank = ((int16_t)buf[POS_RANK + 1] << 8) | buf[POS_RANK];  // TODO: proper byteorder
-    ctx->free_slots = buf[POS_FREE_SLOTS];
+    uint16_t rank = ((int16_t)buf[POS_RANK + 1] << 8) | buf[POS_RANK];  // TODO: proper byteorder
+    unsigned free = (unsigned)buf[POS_FREE_SLOTS];
+    return (60000 - rank + free); // TODO: how large can RPL ranks become?
 }
 
 static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
                      const nimble_netif_rpble_ctx_t *ctx, uint8_t free_slots)
 {
-    /* TODO: make thread save? */
-    int res = 0;
-    (void)res;
+    int res;
 
     /* fill manufacturer specific data field */
     uint8_t msd[VENDOR_FIELD_LEN];
@@ -219,13 +166,11 @@ static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
     assert(res == BLUETIL_AD_OK);
     res = bluetil_ad_add(ad, BLE_GAP_AD_VENDOR, msd, sizeof(msd));
     assert(res == BLUETIL_AD_OK);
-    // res = bluetil_ad_add_name(ad, _cfg->name);
-    // assert(res == BLUETIL_AD_OK);
+    (void)res;
 }
 
 static void _children_accept(void)
 {
-    // TODO: update only parts of the AD? */
     /* generate the new advertisement data */
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
     bluetil_ad_t ad;
@@ -235,14 +180,8 @@ static void _children_accept(void)
      * set of advertising data by killing any ongoing advertisements */
     nimble_netif_accept_stop();
     int res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
-    // TODO remove the following block...
-    if (res == NIMBLE_NETIF_OK) {
-        DEBUG("# ADV started\n");
-    }
-    else {
-        /* should never happen */
-        assert(0);
-    }
+    assert(res == NIMBLE_NETIF_OK);
+    (void)res;
 }
 
 static void _on_scan_evt(uint8_t type,
@@ -265,23 +204,27 @@ static void _on_scan_evt(uint8_t type,
     }
     if (msd_field.len != VENDOR_FIELD_LEN ||
         msd_field.data[0] != 0xff || msd_field.data[1] != 0xff) {
-        if (addr->val[5] == 0xea) {
-            DEBUG("# ea did not have vend id and right field length\n");
-            DEBUG("# len: %i, ven A: 0x%02x B 0x%02x\n", (int)msd_field.len,
-                  (int)msd_field.data[0], (int)msd_field.data[1]);
-        }
         return;
     }
-    nimble_netif_rpble_ctx_t rpble;
-    _rpble_ad_from_ad((msd_field.data + 2), (msd_field.len - 2), &rpble);
-    _ppt_add(&rpble, addr);
-    // DEBUG("# added 0x%02x to PPT\n", (int)addr->val[5]);
+
+    // TODO: filter peer for DODAG-ID, version, or similar?
+    /* lets score the result */
+    unsigned score = _ppt_score((msd_field.data + 2), (msd_field.len - 2));
+    _ppt_add(addr, score);
 }
 
 static void _parent_find(void)
 {
+    _ppt_clear();
     nimble_scanner_start();
     ble_npl_callout_reset(&_evt_eval, _eval_itvl);
+}
+
+static void _parent_find_stop(void)
+{
+    nimble_scanner_stop();
+    ble_npl_callout_stop(&_evt_eval);
+    _ppt_clear();
 }
 
 static void _parent_select(struct ble_npl_event *ev)
@@ -348,7 +291,6 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
             _children_accept();
             break;
         case NIMBLE_NETIF_CONNECT_ABORT:
-            _ppt_remove(conn->addr);
             if (_current_parent == handle) {
                 printf("[rpble] PARENT abort (0x%02x)\n", (int)conn->addr[0]);
                 _current_parent = PARENT_NONE;
@@ -409,19 +351,9 @@ int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
     return NIMBLE_RPBLE_OK;
 }
 
-void _parent_find_stop(void)
-{
-    nimble_scanner_stop();
-    ble_npl_callout_stop(&_evt_eval);
-    _ppt_clear();
-}
-
 int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
 {
     assert(ctx != NULL);
-
-    /* TODO: rather post an update event to the event queue to unify the thread
-     * execution context? */
 
     /* XXX: if the update context is equal to what we have, ignore it */
     _local_rpl_ctx.free_slots = 0;
