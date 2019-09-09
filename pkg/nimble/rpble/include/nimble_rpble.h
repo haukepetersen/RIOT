@@ -24,6 +24,7 @@
  *   - lowest rank
  *   - rssi?
  *    -most free connection slots
+ *    --> all compiled into a single score value
  *
  * # State Machine
  * initial: is master?
@@ -38,8 +39,8 @@
  * TODO
  *
  * # TODOs
- * @todo        remove thread and run events solely using NimBLEs event loop
  * @todo        never remove active parents from ppt
+ * @todo        use DODAG ID in evaluation phase: but how?
  *
  * @{
  *
