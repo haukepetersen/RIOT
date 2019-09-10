@@ -27,9 +27,10 @@ CFLAGS += -DMYNEWT_VAL_BLE_MESH_CFG_CLI=1
 # which is not needed in a production environment but helps in the
 # development process:
 DEVELHELP ?= 1
+
 # TMP - dev only, remove when PRing
-CFLAGS += -DLOG_LEVEL=LOG_INFO
-CFLAGS += -DDEBUG_ASSERT_VERBOSE
+# CFLAGS += -DLOG_LEVEL=LOG_INFO
+# CFLAGS += -DDEBUG_ASSERT_VERBOSE
 # USEMODULE += mpu_stack_guard
 
 # Change this to 0 show compiler invocation lines by default:

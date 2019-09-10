@@ -42,6 +42,7 @@
 #include "mesh/cfg_cli.h"
 
 #define EXP_INTERVAL            (1U * US_PER_SEC)   /* default: 1 pkt per sec */
+#define EXP_JITTER              (500U * US_PER_MS)  /* default: .5 sec jitter */
 #define EXP_REPEAT              (100U)              /* default: 100 packets */
 
 #define VENDOR_CID              0x2342              /* random... */
@@ -471,6 +472,7 @@ static int _cmd_run(int argc, char **argv)
 static int _cmd_run_lvl(int argc, char **argv)
 {
     uint32_t itvl = EXP_INTERVAL;
+    uint32_t jttr = EXP_JITTER;
     unsigned cnt = EXP_REPEAT;
     struct bt_mesh_model *model = &_models_cli[1];
 
@@ -485,16 +487,17 @@ static int _cmd_run_lvl(int argc, char **argv)
     if (argc >= 3) {
         itvl = (uint32_t)atoi(argv[2]);
     }
+    if (argc >= 4) {
+        jttr = (uint32_t)atoi(argv[3]);
+    }
 
-    uint32_t min = itvl / 2;
-    uint32_t max = itvl + min;
+    uint32_t min = itvl - jttr;
+    uint32_t max = itvl + jttr;
+    assert(min < max);
 
-    // xtimer_ticks32_t last_wakeup = xtimer_now();
     _trans_id = 0;  /* reset, this way we can trace the experiment */
 
     for (unsigned i = 0; i < cnt; i++) {
-        // printf("publishing event %u\n", i);
-
         mystats_inc_tx_app("pub_lvl", (_trans_id + _addr_node));
         bt_mesh_model_msg_init(model->pub->msg, OP_LVL_SET_UNACK);
         net_buf_simple_add_le16(model->pub->msg, (_trans_id + _addr_node));
@@ -503,7 +506,6 @@ static int _cmd_run_lvl(int argc, char **argv)
         assert(res == 0);
         (void)res;
 
-        // xtimer_periodic_wakeup(&last_wakeup, itvl);
         xtimer_usleep(random_uint32_range(min, max));
     }
 
