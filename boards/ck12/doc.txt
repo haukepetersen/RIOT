@@ -1,0 +1,10 @@
+/**
+@defgroup    boards_ck12 CK12 Smart Watch
+@ingroup     boards
+@brief       Support for the CK12 smart watch
+
+## Flash the board
+
+See the `Flashing` section in @ref boards_common_nrf52.
+
+ */
