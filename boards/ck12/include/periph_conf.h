@@ -38,6 +38,21 @@ extern "C" {
 // #define UART_PIN_TX         GPIO_PIN(0, 3)
 /** @} */
 
+/**
+ * @name    I2C configuration
+ * @{
+ */
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev = NRF_TWIM1,
+        .scl = 6,
+        .sda = 3,
+        .speed = I2C_SPEED_NORMAL
+    }
+};
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
