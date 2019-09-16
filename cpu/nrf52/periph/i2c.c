@@ -102,6 +102,27 @@ void i2c_init(i2c_t dev)
     bus(dev)->ENABLE = TWIM_ENABLE_ENABLE_Enabled;
 }
 
+void i2c_init_custom(i2c_t dev, unsigned scl, unsigned sda)
+{
+    assert(dev == 0);
+
+    /* disable device during initialization, will be enabled when acquire is
+     * called */
+    bus(dev)->ENABLE = TWIM_ENABLE_ENABLE_Disabled;
+    /* configure pins */
+    gpio_init(scl, GPIO_IN_OD_PU);
+    gpio_init(sda, GPIO_IN_OD_PU);
+    bus(dev)->PSEL.SCL = i2c_config[dev].scl;
+    bus(dev)->PSEL.SDA = i2c_config[dev].sda;
+    /* configure dev clock speed */
+    bus(dev)->FREQUENCY = i2c_config[dev].speed;
+
+    /* re-enable the device. We expect that the device was being acquired before
+     * the i2c_init_master() function is called, so it should be enabled when
+     * exiting this function. */
+    bus(dev)->ENABLE = TWIM_ENABLE_ENABLE_Enabled;
+}
+
 int i2c_acquire(i2c_t dev)
 {
     assert(dev < I2C_NUMOF);
