@@ -112,8 +112,8 @@ void i2c_init_custom(i2c_t dev, unsigned scl, unsigned sda)
     /* configure pins */
     gpio_init(scl, GPIO_IN_OD_PU);
     gpio_init(sda, GPIO_IN_OD_PU);
-    bus(dev)->PSEL.SCL = i2c_config[dev].scl;
-    bus(dev)->PSEL.SDA = i2c_config[dev].sda;
+    bus(dev)->PSEL.SCL = scl;
+    bus(dev)->PSEL.SDA = sda;
     /* configure dev clock speed */
     bus(dev)->FREQUENCY = i2c_config[dev].speed;
 
