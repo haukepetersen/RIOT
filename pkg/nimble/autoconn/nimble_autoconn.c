@@ -191,7 +191,7 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params,
     res = nimble_autoconn_update(params, adbuf, adlen);
     assert(res == NIMBLE_AUTOCONN_OK);
 
-    /* enable autoconn */
+    /* TODO: remove and make explicit */
     nimble_autoconn_enable();
 
     return NIMBLE_AUTOCONN_OK;
