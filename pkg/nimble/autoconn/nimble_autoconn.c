@@ -172,6 +172,7 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
         case NIMBLE_NETIF_GAP_SLAVE_CONN:
             _state = STATE_SCAN;
             nimble_autoconn_enable();
+            break;
         default:
             /* this should never happen */
             assert(0);
