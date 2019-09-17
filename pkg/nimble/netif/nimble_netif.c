@@ -72,6 +72,7 @@ static gnrc_nettype_t _nettype = NETTYPE;
 
 /* keep a reference to the event callback */
 static nimble_netif_eventcb_t _eventcb;
+static nimble_netif_gappassthrough_t _passthrough;
 
 /* allocation of memory for buffering IP packets when handing them to NimBLE */
 static os_membuf_t _mem[OS_MEMPOOL_SIZE(MBUF_CNT, MBUF_SIZE)];
@@ -83,6 +84,13 @@ static void _notify(int handle, nimble_netif_event_t event)
 {
     if (_eventcb) {
         _eventcb(handle, event);
+    }
+}
+
+static void _notify_passthrough(struct ble_gap_event *event)
+{
+    if (_passthrough) {
+        _passthrough(event);
     }
 }
 
@@ -488,6 +496,7 @@ static int _on_gap_slave_evt(struct ble_gap_event *event, void *arg)
             /* nothing to do here */
             break;
         default:
+            _notify_passthrough(event);
             break;
     }
 
@@ -520,6 +529,11 @@ void nimble_netif_init(void)
 void nimble_netif_eventcb(nimble_netif_eventcb_t cb)
 {
     _eventcb = cb;
+}
+
+void nimble_netif_gappassthrough(nimble_netif_gappassthrough_t cb)
+{
+    _passthrough = cb;
 }
 
 int nimble_netif_connect(const ble_addr_t *addr,

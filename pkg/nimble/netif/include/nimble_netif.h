@@ -151,6 +151,8 @@ enum {
  */
 typedef void(*nimble_netif_eventcb_t)(int handle, nimble_netif_event_t event);
 
+typedef void(*nimble_netif_gappassthrough_t)(struct ble_gap_event *event);
+
 /**
  * @brief   Initialize the netif implementation, spawns the netif thread
  *
@@ -167,6 +169,11 @@ void nimble_netif_init(void);
  * @param[in] cb            event callback to register, may be NULL
  */
 void nimble_netif_eventcb(nimble_netif_eventcb_t cb);
+
+/**
+ * @brief   TODO
+ */
+void nimble_netif_gappassthrough(nimble_netif_gappassthrough_t cb);
 
 /**
  * @brief   Open a BLE connection as BLE master
