@@ -620,7 +620,7 @@ int nimble_netif_accept_stop(void)
     }
 
     int res = ble_gap_adv_stop();
-    assert(res == 0);
+    // assert(res == 0);
     (void)res;
     nimble_netif_conn_free(handle);
 
