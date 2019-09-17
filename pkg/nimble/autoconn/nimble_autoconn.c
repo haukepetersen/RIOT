@@ -169,6 +169,9 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
             DEBUG("[autoconn] CONNECTION UPDATED %i\n", handle);
             /* nothing to do here */
             break;
+        case NIMBLE_NETIF_GAP_SLAVE_CONN:
+            _state = STATE_SCAN;
+            nimble_autoconn_enable();
         default:
             /* this should never happen */
             assert(0);

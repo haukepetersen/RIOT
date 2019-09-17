@@ -123,6 +123,7 @@ typedef enum {
     NIMBLE_NETIF_CLOSED_SLAVE,      /**< connection closed (we were slave) */
     NIMBLE_NETIF_CONNECT_ABORT,     /**< connection establishment aborted */
     NIMBLE_NETIF_CONN_UPDATED,      /**< connection parameter update done */
+    NIMBLE_NETIF_GAP_SLAVE_CONN,    /**< TODO */
 } nimble_netif_event_t;
 
 /**

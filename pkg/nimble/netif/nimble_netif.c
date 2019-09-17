@@ -483,6 +483,7 @@ static int _on_gap_slave_evt(struct ble_gap_event *event, void *arg)
             _on_gap_connected(conn, event->connect.conn_handle);
             assert(conn->state == NIMBLE_NETIF_ADV);
             conn->state = NIMBLE_NETIF_GAP_SLAVE;
+            _notify(handle, NIMBLE_NETIF_GAP_SLAVE_CONN);
             break;
         }
         case BLE_GAP_EVENT_DISCONNECT:
