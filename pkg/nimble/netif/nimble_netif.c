@@ -620,7 +620,10 @@ int nimble_netif_accept_stop(void)
     }
 
     int res = ble_gap_adv_stop();
-    // assert(res == 0);
+    if (res != 0) {
+        printf("accept_stop: unable to adv stop() -> %i\n", res);
+    }
+    assert(res == 0);
     (void)res;
     nimble_netif_conn_free(handle);
 
