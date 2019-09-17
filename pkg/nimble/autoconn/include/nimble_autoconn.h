@@ -93,7 +93,8 @@ typedef void(*nimble_autoconn_filter_t)(const ble_addr_t *addr, int8_t rssi,
  * @note    This function is intended to be called once during system
  *          initialization
  */
-int nimble_autoconn_init(const nimble_autoconn_params_t *params);
+int nimble_autoconn_init(const nimble_autoconn_params_t *params,
+                         uint8_t *adbuf, size_t adlen);
 
 /**
  * @brief   Update the used parameters (timing and node ID)
@@ -103,7 +104,8 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params);
  * @return  NIMBLE_AUTOCONN_OK if everything went fine
  * @return  NIMBLE_AUTOCONN_INVALID if given parameters can not be applied
  */
-int nimble_autoconn_update(const nimble_autoconn_params_t *params);
+int nimble_autoconn_update(const nimble_autoconn_params_t *params,
+                           uint8_t *adbuf, size_t adlen);
 
 /**
  * @brief   Enable the automated management of BLE connections

@@ -93,6 +93,21 @@ static void _on_state_change(struct ble_npl_event *ev)
     }
 }
 
+static int _filter_uuid(const bluetil_ad_t *ad)
+{
+    bluetil_ad_data_t incomp;
+    if (bluetil_ad_find(ad, BLE_GAP_AD_UUID16_INCOMP, &incomp) == BLUETIL_AD_OK) {
+        uint16_t filter_uuid = SVC_FILTER;
+        for (unsigned i = 0; i < incomp.len; i += 2) {
+            if (memcmp(&filter_uuid, &incomp.data[i], 2) == 0) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static void _on_scan_evt(uint8_t type, const ble_addr_t *addr, int8_t rssi,
                          const uint8_t *ad_buf, size_t ad_len)
 {
@@ -114,11 +129,7 @@ static void _on_scan_evt(uint8_t type, const ble_addr_t *addr, int8_t rssi,
     uint8_t addrn[BLE_ADDR_LEN];
     bluetil_addr_swapped_cp(addr->val, addrn);
 
-    /* for now, we filter by looking at the BLE_GAP_AD_UUID16_COMP field only */
-    uint16_t filter_uuid = SVC_FILTER;
-    if (bluetil_ad_find_and_cmp(&ad, BLE_GAP_AD_UUID16_COMP,
-                                &filter_uuid, sizeof(filter_uuid)) &&
-        !nimble_netif_conn_connected(addrn)) {
+    if (_filter_uuid(&ad) && !nimble_netif_conn_connected(addrn)) {
         nimble_autoconn_disable();
         _state = STATE_CONN;
         int res = nimble_netif_connect(addr, &_conn_params, _conn_timeout);
@@ -164,7 +175,8 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
     }
 }
 
-int nimble_autoconn_init(const nimble_autoconn_params_t *params)
+int nimble_autoconn_init(const nimble_autoconn_params_t *params,
+                         uint8_t *adbuf, size_t adlen)
 {
     int res;
     (void)res;
@@ -176,7 +188,7 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params)
                          _on_state_change, NULL);
 
     /* update parameters, this also triggers advertising and scanning */
-    res = nimble_autoconn_update(params);
+    res = nimble_autoconn_update(params, adbuf, adlen);
     assert(res == NIMBLE_AUTOCONN_OK);
 
     /* enable autoconn */
@@ -186,10 +198,13 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params)
 }
 
 // TODO: return error on invalid config
-int nimble_autoconn_update(const nimble_autoconn_params_t *params)
+int nimble_autoconn_update(const nimble_autoconn_params_t *params,
+                           uint8_t *adbuf, size_t adlen)
 {
     int res;
     (void)res;
+
+    assert(adlen < sizeof(_ad_buf));
 
     /* scan and advertising period configuration */
     ble_npl_time_ms_to_ticks(params->period_adv, &_timeout_adv_period);
@@ -219,13 +234,20 @@ int nimble_autoconn_update(const nimble_autoconn_params_t *params)
     nimble_scanner_init(&scan_params, _on_scan_evt);
 
     /* generate advertising data */
-    bluetil_ad_init_with_flags(&_ad, _ad_buf, sizeof(_ad_buf),
-                               BLUETIL_AD_FLAGS_DEFAULT);
-    uint16_t svc = SVC_FILTER;
-    bluetil_ad_add(&_ad, BLE_GAP_AD_UUID16_COMP, &svc, sizeof(svc));
-    if (params->node_id) {
-        bluetil_ad_add(&_ad, BLE_GAP_AD_NAME,
-                       params->node_id, strlen(params->node_id));
+    if (adlen > 0) {
+        assert(adbuf != NULL);
+        memcpy(_ad_buf, adbuf, adlen);
+        bluetil_ad_init(&_ad, _ad_buf, adlen, sizeof(_ad_buf));
+    }
+    else {
+        uint16_t svc = SVC_FILTER;
+        bluetil_ad_init_with_flags(&_ad, _ad_buf, sizeof(_ad_buf),
+                                   BLUETIL_AD_FLAGS_DEFAULT);
+        bluetil_ad_add(&_ad, BLE_GAP_AD_UUID16_INCOMP, &svc, sizeof(svc));
+        if (params->node_id) {
+            bluetil_ad_add(&_ad, BLE_GAP_AD_NAME,
+                           params->node_id, strlen(params->node_id));
+        }
     }
 
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;

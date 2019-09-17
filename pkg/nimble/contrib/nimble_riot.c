@@ -129,6 +129,6 @@ void nimble_riot_init(void)
     ble_gatts_start();
     /* CAUTION: this must be called after nimble_netif_init() and also only
      *          after the GATT server has been initialized */
-    nimble_autoconn_init(&nimble_autoconn_params);
+    nimble_autoconn_init(&nimble_autoconn_params, NULL, 0);
 #endif
 }

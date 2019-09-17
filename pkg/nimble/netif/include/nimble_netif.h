@@ -77,6 +77,13 @@ extern "C" {
 #endif
 
 /**
+ * @brief   The maximum number of connections that can be accepted
+ */
+#ifndef NIMBLE_NETIF_MAX_CONN
+#define NIMBLE_NETIF_MAX_CONN       (MYNEWT_VAL_BLE_MAX_CONNECTIONS)
+#endif
+
+/**
  * @brief   Default L2CAP channel ID to use
  */
 #ifndef NIMBLE_NETIF_CID
