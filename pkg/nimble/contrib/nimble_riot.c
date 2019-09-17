@@ -35,6 +35,11 @@
 #include "services/ipss/ble_svc_ipss.h"
 #endif
 
+#ifdef MODULE_NIMBLE_AUTOCONN
+#include "nimble_autoconn.h"
+#include "nimble_autoconn_params.h"
+#endif
+
 #ifdef MODULE_NIMBLE_CONTROLLER
 #if defined(CPU_FAM_NRF52) || defined(CPU_FAM_NRF51)
 #include "nrf_clock.h"
@@ -124,7 +129,6 @@ void nimble_riot_init(void)
     ble_gatts_start();
     /* CAUTION: this must be called after nimble_netif_init() and also only
      *          after the GATT server has been initialized */
-    extern void nimble_autoconn_init(void);
-    nimble_autoconn_init();
+    nimble_autoconn_init(&nimble_autoconn_params);
 #endif
 }

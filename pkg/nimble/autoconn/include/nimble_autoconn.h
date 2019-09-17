@@ -83,6 +83,7 @@ typedef struct {
     const char *node_id;
 } nimble_autoconn_params_t;
 
+// TODO: make filter configurable
 typedef void(*nimble_autoconn_filter_t)(const ble_addr_t *addr, int8_t rssi,
                                         const uint8_t *ad_buf, size_t ad_len);
 
@@ -92,8 +93,7 @@ typedef void(*nimble_autoconn_filter_t)(const ble_addr_t *addr, int8_t rssi,
  * @note    This function is intended to be called once during system
  *          initialization
  */
-void nimble_autoconn_init(const nimble_autoconn_params_t *params,
-                          nimble_autoconn_filter_t filter);
+int nimble_autoconn_init(const nimble_autoconn_params_t *params);
 
 /**
  * @brief   Update the used parameters (timing and node ID)

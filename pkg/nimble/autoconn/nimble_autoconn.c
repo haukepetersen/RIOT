@@ -164,7 +164,7 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
     }
 }
 
-void nimble_autoconn_init(void)
+int nimble_autoconn_init(const nimble_autoconn_params_t *params)
 {
     int res;
     (void)res;
@@ -176,15 +176,17 @@ void nimble_autoconn_init(void)
                          _on_state_change, NULL);
 
     /* update parameters, this also triggers advertising and scanning */
-    res = nimble_autoconn_param_update(&nimble_autoconn_params);
+    res = nimble_autoconn_update(params);
     assert(res == NIMBLE_AUTOCONN_OK);
 
     /* enable autoconn */
     nimble_autoconn_enable();
+
+    return NIMBLE_AUTOCONN_OK;
 }
 
-// TODO: return error on invalid config?!
-int nimble_autoconn_param_update(const nimble_autoconn_params_t *params)
+// TODO: return error on invalid config
+int nimble_autoconn_update(const nimble_autoconn_params_t *params)
 {
     int res;
     (void)res;
@@ -221,8 +223,10 @@ int nimble_autoconn_param_update(const nimble_autoconn_params_t *params)
                                BLUETIL_AD_FLAGS_DEFAULT);
     uint16_t svc = SVC_FILTER;
     bluetil_ad_add(&_ad, BLE_GAP_AD_UUID16_COMP, &svc, sizeof(svc));
-    bluetil_ad_add(&_ad, BLE_GAP_AD_NAME,
-                   params->node_id, strlen(params->node_id));
+    if (params->node_id) {
+        bluetil_ad_add(&_ad, BLE_GAP_AD_NAME,
+                       params->node_id, strlen(params->node_id));
+    }
 
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     _adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
