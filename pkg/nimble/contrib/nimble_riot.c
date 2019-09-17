@@ -35,7 +35,7 @@
 #include "services/ipss/ble_svc_ipss.h"
 #endif
 
-#ifdef MODULE_NIMBLE_AUTOCONN
+#ifdef MODULE_NIMBLE_AUTOCONN_AUTOSTART
 #include "nimble_autoconn.h"
 #include "nimble_autoconn_params.h"
 #endif
@@ -125,7 +125,7 @@ void nimble_riot_init(void)
     ble_svc_ipss_init();
 #endif
 
-#ifdef MODULE_NIMBLE_AUTOCONN
+#ifdef MODULE_NIMBLE_AUTOCONN_AUTOSTART
     ble_gatts_start();
     /* CAUTION: this must be called after nimble_netif_init() and also only
      *          after the GATT server has been initialized */
