@@ -50,11 +50,19 @@ static inline NRF_TWIM_Type *bus(i2c_t dev)
     return i2c_config[0].dev;
 }
 
+// #include "xtimer.h"
+
 static int finish(i2c_t dev)
 {
     DEBUG("[i2c] waiting for STOPPED or ERROR event\n");
-    while ((!(bus(dev)->EVENTS_STOPPED)) && (!(bus(dev)->EVENTS_ERROR))) {
+    // uint32_t time = xtimer_now_usec();
+    // uint32_t timeout = time + 5000;
+
+    while (//(time < timeout) &&
+           (!(bus(dev)->EVENTS_STOPPED)) &&
+           (!(bus(dev)->EVENTS_ERROR))) {
         nrf52_sleep();
+        // time = xtimer_now_usec();
     }
 
     if ((bus(dev)->EVENTS_STOPPED)) {
@@ -75,6 +83,10 @@ static int finish(i2c_t dev)
             return -EIO;
         }
     }
+
+    // if (time >= timeout) {
+        // return -ETIMEDOUT;
+    // }
 
     return 0;
 }
