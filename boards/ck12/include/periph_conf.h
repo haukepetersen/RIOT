@@ -53,7 +53,8 @@ static const i2c_conf_t i2c_config[] = {
         .dev = NRF_TWIM1,
         .scl = 25,
         .sda = 26,
-    },  .speed = I2C_SPEED_NORMAL,
+        .speed = I2C_SPEED_NORMAL,
+    },
 };
 
 
