@@ -28,6 +28,8 @@
 #define RES             ADC_RES_10BIT
 #define DELAY           (100LU * US_PER_MS) /* 100 ms */
 
+int samples[ADC_NUMOF];
+
 
 int main(void)
 {
@@ -48,15 +50,26 @@ int main(void)
         }
     }
 
+    xtimer_sleep(5);
+
+    for (int i = 0; i < 9; i++) {
+        printf("AN%i  ", i);
+    }
+    puts("");
+    for (int i = 0; i < 9; i++) {
+        printf("AN%i  ", i);
+    }
+    puts("");
+    for (int i = 0; i < 9; i++) {
+        printf(" AN%i ", i);
+    }
+    puts("");
     while (1) {
         for (unsigned i = 0; i < ADC_NUMOF; i++) {
             sample = adc_sample(ADC_LINE(i), RES);
-            if (sample < 0) {
-                printf("ADC_LINE(%u): 10-bit resolution not applicable\n", i);
-            } else {
-                printf("ADC_LINE(%u): %i\n", i, sample);
-            }
+            printf("%4i ", sample);
         }
+        puts("");
         xtimer_periodic_wakeup(&last, DELAY);
     }
 
