@@ -1,11 +1,9 @@
-# name of your application
-APPLICATION = hello-world
+
+include ../Makefile.tests_common
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= native
+BOARD ?= ck12
 
-# This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/../..
 
 USEPKG += u8g2
 USEMODULE += periph_i2c
