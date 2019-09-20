@@ -54,8 +54,11 @@ enum {
 static volatile uint8_t _state = STATE_IDLE;
 static volatile uint8_t _active = 0;
 
+#ifndef AUTOCONN_SCAN_ONLY
 static bluetil_ad_t _ad;
 static uint8_t _ad_buf[BLE_HS_ADV_MAX_SZ];
+#endif
+
 static struct ble_gap_adv_params _adv_params;
 static struct ble_gap_conn_params _conn_params;
 static uint32_t _conn_timeout;
@@ -75,17 +78,21 @@ static void _on_state_change(struct ble_npl_event *ev)
     if (_state == STATE_SCAN) {
         /* stop scanning */
         nimble_scanner_stop();
+#ifndef AUTOCONN_SCAN_ONLY
         /* start advertising/accepting */
         int res = nimble_netif_accept(_ad.buf, _ad.pos, &_adv_params);
         assert((res == NIMBLE_NETIF_OK) || (res == NIMBLE_NETIF_NOMEM));
+#endif
 
         /* schedule next state change */
         _state = STATE_ADV;
         ble_npl_callout_reset(&_state_evt, (_timeout_adv_period + offset));
     }
     else if (_state == STATE_ADV) {
+#ifndef AUTOCONN_SCAN_ONLY
         /* stop advertising/accepting */
         nimble_netif_accept_stop();
+#endif
         /* start scanning */
         nimble_scanner_start();
         _state = STATE_SCAN;
@@ -196,7 +203,9 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params,
     assert(res == NIMBLE_AUTOCONN_OK);
 
     /* TODO: remove and make explicit */
+#ifndef AUTOCONN_SCAN_ONLY
     nimble_autoconn_enable();
+#endif
 
     return NIMBLE_AUTOCONN_OK;
 }
@@ -208,7 +217,9 @@ int nimble_autoconn_update(const nimble_autoconn_params_t *params,
     int res;
     (void)res;
 
+#ifndef AUTOCONN_SCAN_ONLY
     assert(adlen < sizeof(_ad_buf));
+#endif
 
     /* scan and advertising period configuration */
     ble_npl_time_ms_to_ticks(params->period_adv, &_timeout_adv_period);
@@ -237,6 +248,7 @@ int nimble_autoconn_update(const nimble_autoconn_params_t *params,
     };
     nimble_scanner_init(&scan_params, _on_scan_evt);
 
+#ifndef AUTOCONN_SCAN_ONLY
     /* generate advertising data */
     if (adlen > 0) {
         assert(adbuf != NULL);
@@ -253,6 +265,10 @@ int nimble_autoconn_update(const nimble_autoconn_params_t *params,
                            params->node_id, strlen(params->node_id));
         }
     }
+#else
+    (void)adbuf;
+    (void)adlen;
+#endif
 
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     _adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
@@ -272,6 +288,7 @@ int nimble_autoconn_update(const nimble_autoconn_params_t *params,
 
 void nimble_autoconn_enable(void)
 {
+    DEBUG("[autoconn] ENBALED\n");
     if (nimble_netif_conn_count(NIMBLE_NETIF_UNUSED) > 0) {
         _active = 1;
         _state = STATE_ADV;
@@ -281,11 +298,14 @@ void nimble_autoconn_enable(void)
 
 void nimble_autoconn_disable(void)
 {
+    DEBUG("[autoconn] DISABLED\n");
     if ((_state == STATE_ADV) || (_state == STATE_SCAN)) {
         _state = STATE_IDLE;
         ble_npl_callout_stop(&_state_evt);
         nimble_scanner_stop();
+#ifndef AUTOCONN_SCAN_ONLY
         nimble_netif_accept_stop();
+#endif
     }
     _active = 0;
 }
