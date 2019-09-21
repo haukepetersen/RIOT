@@ -20,9 +20,29 @@
 
 #include "cpu.h"
 #include "board.h"
+#include "xtimer.h"
+#include "periph/gpio.h"
+
+static xtimer_t _tim;
+
+static void _vib_stop(void *arg)
+{
+    (void)arg;
+    gpio_clear(VIB_PIN);
+}
 
 void board_init(void)
 {
     /* initialize the CPU */
     cpu_init();
+
+    gpio_init(VIB_PIN, GPIO_OUT);
+    gpio_clear(VIB_PIN);
+
+    _tim.callback = _vib_stop;
+}
+
+void board_vibrate(uint32_t ms)
+{
+    xtimer_set(&_tim, (ms * 1000U));
 }

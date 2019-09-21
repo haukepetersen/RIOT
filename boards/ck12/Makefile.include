@@ -3,5 +3,8 @@ USEMODULE += stdio_rtt
 TERMPROG = $(RIOTTOOLS)/jlink/jlink.sh
 TERMFLAGS = term_rtt
 
+USEMODULE += xtimer
+USEMODULE += periph_gpio
+
 # use shared Makefile.include
 include $(RIOTBOARD)/common/nrf52/Makefile.include

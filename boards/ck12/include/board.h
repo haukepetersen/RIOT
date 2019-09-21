@@ -19,6 +19,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include <stdint.h>
+
 #include "cpu.h"
 
 #ifdef __cplusplus
@@ -33,10 +35,14 @@ extern "C" {
 // #define BTN0_MODE           GPIO_IN_PU
 /** @} */
 
+#define VIB_PIN         GPIO_PIN(0, 2)
+
 /**
  * @brief   Initialize board specific hardware
  */
 void board_init(void);
+
+void board_vibrate(uint32_t ms);
 
 #ifdef __cplusplus
 }
