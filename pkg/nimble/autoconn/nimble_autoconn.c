@@ -69,7 +69,7 @@ static ble_npl_time_t _timeout_scan_period;
 static ble_npl_time_t _period_jitter;
 
 /* XXX: only temporary for demo purposes */
-#ifndef AUTOCONN_SCAN_ONLY
+#ifdef AUTOCONN_SCAN_ONLY
 static uint8_t nimble_autoconn_wl[NIMBLE_AUTOCONN_WL_LEN][BLE_ADDR_LEN];
 static int _wl_pass(uint8_t *addr)
 {
@@ -163,7 +163,7 @@ static void _on_scan_evt(uint8_t type, const ble_addr_t *addr, int8_t rssi,
     bluetil_addr_swapped_cp(addr->val, addrn);
 
     if (_filter_uuid(&ad) &&
-#ifndef AUTOCONN_SCAN_ONLY
+#ifdef AUTOCONN_SCAN_ONLY
         _wl_pass(addrn) &&
 #endif
         !nimble_netif_conn_connected(addrn)) {
@@ -223,7 +223,9 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params,
     (void)res;
 
     /* XXX: remove */
+#ifdef AUTOCONN_SCAN_ONLY
     memset(nimble_autoconn_wl, 0, sizeof(nimble_autoconn_wl));
+#endif
 
     /* register our event callback */
     nimble_netif_eventcb(_on_netif_evt);
