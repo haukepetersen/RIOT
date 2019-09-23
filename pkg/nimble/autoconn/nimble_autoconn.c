@@ -68,6 +68,32 @@ static ble_npl_time_t _timeout_adv_period;
 static ble_npl_time_t _timeout_scan_period;
 static ble_npl_time_t _period_jitter;
 
+/* XXX: only temporary for demo purposes */
+#ifndef AUTOCONN_SCAN_ONLY
+static uint8_t nimble_autoconn_wl[NIMBLE_AUTOCONN_WL_LEN][BLE_ADDR_LEN];
+static int _wl_pass(uint8_t *addr)
+{
+    for (unsigned i = 0; i < NIMBLE_AUTOCONN_WL_LEN; i++) {
+        if (memcmp(nimble_autoconn_wl[i], addr, BLE_ADDR_LEN) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int nimble_autoconn_wl_add(uint8_t *addr)
+{
+    for (unsigned i = 0; i < NIMBLE_AUTOCONN_WL_LEN; i++) {
+        /* XXX: WL does not work for addresses starting with 0x00... */
+        if (nimble_autoconn_wl[i][0] == 0x00){
+            memcpy(nimble_autoconn_wl[i], addr, BLE_ADDR_LEN);
+            return NIMBLE_AUTOCONN_OK;
+        }
+    }
+    return NIMBLE_AUTOCONN_INVALID;
+}
+#endif
+
 /* this is run inside the NimBLE host thread */
 static void _on_state_change(struct ble_npl_event *ev)
 {
@@ -136,7 +162,11 @@ static void _on_scan_evt(uint8_t type, const ble_addr_t *addr, int8_t rssi,
     uint8_t addrn[BLE_ADDR_LEN];
     bluetil_addr_swapped_cp(addr->val, addrn);
 
-    if (_filter_uuid(&ad) && !nimble_netif_conn_connected(addrn)) {
+    if (_filter_uuid(&ad) &&
+#ifndef AUTOCONN_SCAN_ONLY
+        _wl_pass(addrn) &&
+#endif
+        !nimble_netif_conn_connected(addrn)) {
         nimble_autoconn_disable();
         _state = STATE_CONN;
         int res = nimble_netif_connect(addr, &_conn_params, _conn_timeout);
@@ -191,6 +221,9 @@ int nimble_autoconn_init(const nimble_autoconn_params_t *params,
 {
     int res;
     (void)res;
+
+    /* XXX: remove */
+    memset(nimble_autoconn_wl, 0, sizeof(nimble_autoconn_wl));
 
     /* register our event callback */
     nimble_netif_eventcb(_on_netif_evt);

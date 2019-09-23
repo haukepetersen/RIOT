@@ -48,6 +48,9 @@
 extern "C" {
 #endif
 
+/* XXX: only temporary for demo purposes */
+#define NIMBLE_AUTOCONN_WL_LEN      (6U)
+
 /**
  * @brief   Return codes used by the autoconn module
  */
@@ -119,6 +122,10 @@ void nimble_autoconn_enable(void);
  *          is canceled
  */
 void nimble_autoconn_disable(void);
+
+
+/* XXX: remove */
+int nimble_autoconn_wl_add(uint8_t *addr);
 
 #ifdef __cplusplus
 }
