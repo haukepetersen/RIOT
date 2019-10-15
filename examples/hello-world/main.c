@@ -22,6 +22,16 @@
 #include <stdio.h>
 #include "cpu.h"
 
+typedef enum {
+    A,
+    B,
+} foo_t;
+
+void a(foo_t f)
+{
+    printf("%i\n", f);
+}
+
 int main(void)
 {
     // puts("Hello World!");
@@ -31,6 +41,12 @@ int main(void)
 
     // NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 
+    a(A);
+    a(B);
+    a(23);
+
+    foo_t foo = 23;
+    a(foo);
 
     return 0;
 }

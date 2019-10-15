@@ -27,7 +27,7 @@
 #if !defined(MODULE_PM_LAYERED) && !defined(PROVIDES_PM_SET_LOWEST_CORTEXM)
 void pm_set_lowest(void)
 {
-    cortexm_sleep(0);
+    cortexm_sleep(1);
 }
 #endif
 
