@@ -35,4 +35,8 @@ void board_init(void)
 
     /* initialize the CPU */
     cpu_init();
+
+    /* these boards provide the necessary LC filter on the DCC pin, so lets use
+     * the more power efficient internal DC/DC converter */
+    NRF_POWER->DCDCEN = 1;
 }
