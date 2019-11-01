@@ -1,6 +1,6 @@
 include ../Makefile.tests_common
 
-USEMODULE += qmc5883l_int
+USEMODULE += qmc5883l
 USEMODULE += core_thread_flags
 USEMODULE += xtimer
 

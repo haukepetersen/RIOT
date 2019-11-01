@@ -71,8 +71,9 @@ int main(void)
     puts("Please refer to the README.md for more information\n");
 
     /* initialize the sensor with default configuration parameters */
-    if (qmc5883l_init(&_dev, &qmc5883l_params[0]) != QMC5883L_OK) {
-        puts("Error: unable to initialize device");
+    int res = qmc5883l_init(&_dev, &qmc5883l_params[0]);
+    if (res != QMC5883L_OK) {
+        printf("Error: unable to initialize device (%i)\n", res);
         return 1;
     }
 
