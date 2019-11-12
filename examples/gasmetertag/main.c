@@ -64,8 +64,8 @@ int main(void)
     thread_t *t_main = (thread_t *)thread_get(thread_getpid());
 
     /* initialize supporting modules */
-    xtimer_init();
-    i2c_init(I2C_DEV(0));
+    // xtimer_init();
+    // i2c_init(I2C_DEV(0));
 
     printf("foobar\n");
 
@@ -79,11 +79,20 @@ int main(void)
 
     skald_adv_start(&_adv);
 
-    qmc5883l_init(&_mag, &_mag_params);
-    qmc5883l_init_int(&_mag, _on_mag_sample, t_main);
+    int res = qmc5883l_init(&_mag, &_mag_params);
+    if (res != QMC5883L_OK) {
+        puts("err init qmc");
+        return 1;
+    }
+    res = qmc5883l_init_int(&_mag, _on_mag_sample, t_main);
+    if (res != QMC5883L_OK) {
+        puts("err init qmc int");
+        return 1;
+    }
 
     while (1) {
         int16_t raw[3];
+        puts("wait");
         thread_flags_wait_all(FLAG_DRDY);
         qmc5883l_read_raw(&_mag, raw);
         printf("res: %i, %i, %i\n", (int)raw[0], (int)raw[1], (int)raw[2]);
