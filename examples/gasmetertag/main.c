@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "board.h"
 #include "xtimer.h"
 #include "thread_flags.h"
 #include "periph/i2c.h"
@@ -30,13 +31,17 @@
 
 #define MAG_I2C         I2C_DEV(0)
 #define MAG_PIN         GPIO_PIN(1, 1)
+#define OVR_SAMPLE      (20u)
 
 #define FLAG_DRDY       (0x0001)
 
-#define AD_STATIC       { 0x02, 0x01, 0x06, 0x0b, 0xff, 0xfe, 0xaf }
+#define TYPE_GAS        (0x01)
+#define TYPE_EL         (0x02)
+
+#define AD_STATIC       { 0x02, 0x01, 0x06, 0x0b, 0xff, 0xfe, 0xaf, TYPE_GAS }
 
 typedef struct __attribute__((packed)) {
-    uint16_t raw[3];
+    int16_t raw[3];
     uint16_t seq;
 } tagdata_t;
 
@@ -72,6 +77,7 @@ int main(void)
     /* setup BLE */
     skald_init();
     uint8_t *pdu = _adv.pkt.pdu;
+    _adv.pkt.len = (6 + sizeof(_ad_static) + sizeof(tagdata_t));
     skald_generate_random_addr(pdu);
     memcpy(pdu + 6, _ad_static, sizeof(_ad_static));
     _data = (tagdata_t *)(pdu + 6 + sizeof(_ad_static));
@@ -90,12 +96,30 @@ int main(void)
         return 1;
     }
 
+    int32_t buf[3];
+    memset(buf, 0, sizeof(buf));
+
+    unsigned cnt = 0;
     while (1) {
-        int16_t raw[3];
-        puts("wait");
+        LED0_TOGGLE;
         thread_flags_wait_all(FLAG_DRDY);
-        qmc5883l_read_raw(&_mag, raw);
-        printf("res: %i, %i, %i\n", (int)raw[0], (int)raw[1], (int)raw[2]);
+        int16_t sample[3];
+        qmc5883l_read(&_mag, sample);
+        ++cnt;
+
+        for (int i = 0; i < 3; i++) {
+            buf[i] += sample[i];
+        }
+
+        if (cnt == OVR_SAMPLE) {
+            for (int i = 0; i < 3; i++) {
+                _data->raw[i] = (int16_t)(buf[i] / (int16_t)OVR_SAMPLE);
+            }
+            _data->seq++;
+            printf("data: %" PRIi16 " %" PRIi16 " %" PRIi16 "\n", _data->raw[0], _data->raw[1], _data->raw[2]);
+            memset(buf, 0, sizeof(buf));
+            cnt = 0;
+        }
     }
 
     return 0;

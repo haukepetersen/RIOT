@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Kaspar Schleiser <kaspar@schleiser.de>
+ * Copyright (C) 2019 Hauke Petersen <devel@haukepeterse.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,13 +7,25 @@
  */
 
 /**
- * @ingroup     tests
+ * @ingroup     homelog
  * @{
  *
  * @file
- * @brief       minimal RIOT application, intended as size test
+ * @brief       Homelog node for reading an analog electrical power meter
  *
- * @author      Kaspar Schleiser <kaspar@schleiser.de>
+ * Strategy:
+ * - sample the sensor with 10Hz
+ * - on rising flank (2 consecutive readings above threshold):
+ *   - take timestamp
+ *   - increment counter
+ *   - recalc
+ *
+ *
+ * What to show in Grafana:
+ * - current power consumption (W)
+ * - daily power consumption (kWh)
+ *
+ * @author      Hauke Petersen <devel@haukepetersen.de>
  *
  * @}
  */
@@ -27,18 +39,24 @@
 #include "periph/gpio.h"
 #include "periph/adc.h"
 
-#define A0              ADC_LINE(1)
-#define D0              GPIO_PIN(0, 4)
-#define A_RES           ADC_RES_8BIT
+#define A0                  ADC_LINE(1)
+#define A_RES               ADC_RES_8BIT
 
-#define TYPE_GAS        (0x01)
-#define TYPE_EL         (0x02)
+#define TYPE_GAS            (0x01)
+#define TYPE_EL             (0x02)
 
-#define AD_STATIC       { 0x02, 0x01, 0x06, 0x08, 0xff, 0xfe, 0xaf, TYPE_EL }
+#define AD_STATIC           { 0x02, 0x01, 0x06, 0x08, 0xff, 0xfe, 0xaf, TYPE_EL }
+
+
+#define SAMPLE_RATE         (10u)
+#define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
+#define PULSE_THRESHOLD     (50u)
+#define PULSE_OVERSAMPLE    (2u)
 
 typedef struct __attribute__((packed)) {
-    uint8_t d;
+    // uint8_t d;
     uint8_t a;
+
     uint16_t seq;
 } eldata_t;
 
@@ -49,7 +67,7 @@ static eldata_t *_data = NULL;
 int main(void)
 {
     /* initialize supporting modules */
-    printf("foobar\n");
+    // printf("foobar\n");
 
     /* setup BLE */
     // skald_init();
@@ -60,9 +78,7 @@ int main(void)
     _data = (eldata_t *)(pdu + 6 + sizeof(_ad_static));
     memset(_data, 0, sizeof(eldata_t));
 
-
     adc_init(A0);
-    gpio_init(D0, GPIO_IN);
 
     for (int i = 0; i < (int)_adv.pkt.len; i++) {
         printf("0x%02x ", (int)_adv.pkt.pdu[i]);
@@ -71,18 +87,41 @@ int main(void)
 
     skald_adv_start(&_adv);
 
+
+    unsigned state = 0;
+    uint32_t pulse_cnt = 0;
+    uint32_t pulse_last = ximter_now_usec();
+    uint32_t e_cur = 0;
     uint16_t seq = 0;
+
     while (1) {
-        int d = gpio_read(D0);
         int a = adc_sample(A0, ADC_RES_8BIT);
-        printf("D:%i A:%4i\n", d, a);
 
-        ++seq;
-        _data->d = (uint8_t)d;
-        _data->a = (uint8_t)a;
-        memcpy(&_data->seq, &seq, 2);
+        if (a > PULSE_THRESHOLD) {
+            LED0_ON;
+            ++state;
+        }
+        else {
+            LED0_OFF;
+            state = 0;
+        }
 
-        xtimer_usleep(1000 * 1000);
+
+
+        if (state == PULSE_OVERSAMPLE) {
+            uint32_t now = xtimer_now_usec();
+            uint32_t itvl = now - pulse_last;
+
+
+
+            ++seq;
+            _data->d = (uint8_t)d;
+            _data->a = (uint8_t)a;
+            memcpy(&_data->seq, &seq, 2);
+        }
+
+
+        xtimer_usleep(SAMPLING_DELAY);
     }
 
     return 0;

@@ -1,5 +1,5 @@
 APPLICATION = gasmetertag
-BOARD = particle-xenon
+BOARD ?= particle-xenon
 RIOTBASE ?= $(CURDIR)/../..
 
 # DISABLE_MODULE += auto_init
