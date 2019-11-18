@@ -42,22 +42,25 @@
 #define A0                  ADC_LINE(1)
 #define A_RES               ADC_RES_8BIT
 
-#define TYPE_GAS            (0x01)
-#define TYPE_EL             (0x02)
+#define TYPE_GAS_RAW        (0x01)
+#define TYPE_EL_RAW         (0x02)
+#define TYPE_GAS            (0x03)
+#define TYPE_EL             (0x04)
 
 #define AD_STATIC           { 0x02, 0x01, 0x06, 0x08, 0xff, 0xfe, 0xaf, TYPE_EL }
-
 
 #define SAMPLE_RATE         (10u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
 #define PULSE_THRESHOLD     (50u)
 #define PULSE_OVERSAMPLE    (2u)
 
-typedef struct __attribute__((packed)) {
-    // uint8_t d;
-    uint8_t a;
+#define POWER_TIMEOUT       (300000u)   /* assume 0W power after 5 minutes */
+#define POWER_CONST         (48000000u) /* MS_PER_HOUR / U per Wh */
 
+typedef struct __attribute__((packed)) {
     uint16_t seq;
+    uint16_t pulse_cnt;
+    uint16_t power;
 } eldata_t;
 
 static const uint8_t _ad_static[] = AD_STATIC;
@@ -66,11 +69,7 @@ static eldata_t *_data = NULL;
 
 int main(void)
 {
-    /* initialize supporting modules */
-    // printf("foobar\n");
-
     /* setup BLE */
-    // skald_init();
     uint8_t *pdu = _adv.pkt.pdu;
     _adv.pkt.len = (6 + sizeof(_ad_static) + sizeof(eldata_t));
     skald_generate_random_addr(pdu);
@@ -79,25 +78,18 @@ int main(void)
     memset(_data, 0, sizeof(eldata_t));
 
     adc_init(A0);
-
-    for (int i = 0; i < (int)_adv.pkt.len; i++) {
-        printf("0x%02x ", (int)_adv.pkt.pdu[i]);
-    }
-    puts("");
-
     skald_adv_start(&_adv);
 
-
     unsigned state = 0;
-    uint32_t pulse_cnt = 0;
-    uint32_t pulse_last = ximter_now_usec();
-    uint32_t e_cur = 0;
+    uint32_t pulse_last = xtimer_now_usec();
     uint16_t seq = 0;
+    uint16_t pulse_cnt = 0;
+    uint16_t power;
 
     while (1) {
         int a = adc_sample(A0, ADC_RES_8BIT);
 
-        if (a > PULSE_THRESHOLD) {
+        if ((unsigned)a > PULSE_THRESHOLD) {
             LED0_ON;
             ++state;
         }
@@ -106,20 +98,26 @@ int main(void)
             state = 0;
         }
 
-
+        uint32_t now = xtimer_now_usec();
+        uint32_t itvl = (now - pulse_last) / 1000;      /* in ms */
 
         if (state == PULSE_OVERSAMPLE) {
-            uint32_t now = xtimer_now_usec();
-            uint32_t itvl = now - pulse_last;
-
-
 
             ++seq;
-            _data->d = (uint8_t)d;
-            _data->a = (uint8_t)a;
-            memcpy(&_data->seq, &seq, 2);
-        }
+            pulse_last = now;
+            ++pulse_cnt;
+            power = (uint16_t)(POWER_CONST / itvl);
 
+            memcpy(&_data->seq, &seq, 2);
+            memcpy(&_data->pulse_cnt, &pulse_cnt, 2);
+            memcpy(&_data->power, &power, 2);
+        }
+        else if ((itvl > POWER_TIMEOUT) && (power != 0)) {
+            ++seq;
+            power = 0;
+            memcpy(&_data->seq, &seq, 2);
+            memcpy(&_data->power, &power, 2);
+        }
 
         xtimer_usleep(SAMPLING_DELAY);
     }
