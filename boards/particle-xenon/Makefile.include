@@ -3,7 +3,7 @@
 
 ifneq (,$(filter stdio_rtt,$(USEMODULE)))
   TERMPROG = $(RIOTTOOLS)/jlink/jlink.sh
-  TERMFLAGS = term_rtt
+  TERMFLAGS = term-rtt
 endif
 
 PROGRAMMER = jlink
