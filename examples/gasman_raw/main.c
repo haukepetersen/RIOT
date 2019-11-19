@@ -36,7 +36,7 @@
 
 #define MAG_I2C         I2C_DEV(0)
 #define MAG_PIN         GPIO_PIN(1, 1)
-#define OVR_SAMPLE      (20u)
+#define OVR_SAMPLE      (10u)
 
 #define FLAG_DRDY       (0x0001)
 
@@ -129,14 +129,15 @@ int main(void)
         if (cnt == OVR_SAMPLE) {
             /* get battery voltage */
             uint16_t v_bat = _bat_read();
+            int16_t raw[3];
 
             /* write advertising data */
             seq++;
             byteorder_htobebufs((uint8_t *)&_data->seq, seq);
             byteorder_htobebufs((uint8_t *)&_data->bat, v_bat);
             for (int i = 0; i < 3; i++) {
-                uint16_t raw = (int16_t)(buf[i] / (int16_t)OVR_SAMPLE);
-                byteorder_htobebufs((uint8_t *)&_data->raw[i], raw);
+                raw[i] = (int16_t)(buf[i] / (int32_t)OVR_SAMPLE);
+                byteorder_htobebufs((uint8_t *)&_data->raw[i], raw[i]);
             }
 
             /* reset buffer and counter */
@@ -144,7 +145,7 @@ int main(void)
             memset(buf, 0, sizeof(buf));
 
             printf("data: %" PRIi16 " %" PRIi16 " %" PRIi16 " bat:%imV\n",
-                   _data->raw[0], _data->raw[1], _data->raw[2], (int)v_bat);
+                   raw[0], raw[1], raw[2], (int)v_bat);
         }
     }
 
