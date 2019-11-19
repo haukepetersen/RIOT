@@ -98,7 +98,7 @@ static void _on_radio_evt(netdev_t *netdev, netdev_event_t event)
     if (event == NETDEV_EVENT_TX_COMPLETE) {
         skald_ctx_t *ctx = _radio->context;
         _stop_radio();
-        xtimer_set(&ctx->timer, 150);
+        xtimer_set(&ctx->timer, 4000);
     }
 }
 
