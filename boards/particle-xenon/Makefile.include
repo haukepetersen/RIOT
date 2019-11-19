@@ -1,7 +1,11 @@
 # for this board, we are using Segger's RTT as default terminal interface
 # USEMODULE += stdio_rtt
-# TERMPROG = $(RIOTTOOLS)/jlink/jlink.sh
-# TERMFLAGS = term_rtt
+
+ifneq (,$(filter stdio_rtt,$(USEMODULE)))
+  TERMPROG = $(RIOTTOOLS)/jlink/jlink.sh
+  TERMFLAGS = term_rtt
+endif
+
 PROGRAMMER = jlink
 
 include $(RIOTBOARD)/common/particle-mesh/Makefile.include
