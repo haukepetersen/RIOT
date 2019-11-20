@@ -35,9 +35,14 @@
 #include <stdio.h>
 
 #include "xtimer.h"
+#include "byteorder.h"
 #include "net/skald.h"
 #include "periph/gpio.h"
 #include "periph/adc.h"
+
+#define BAT_LINE            ADC_LINE(3)
+#define BAT_MUL             (95898)     /* (V_max * (R15 + R16) * 1000) / 100 */
+#define BAT_DIV             (21504)     /* (R16 * ADC_max) / 100  */
 
 #define A0                  ADC_LINE(1)
 #define A_RES               ADC_RES_8BIT
@@ -47,7 +52,7 @@
 #define TYPE_GAS            (0x03)
 #define TYPE_EL             (0x04)
 
-#define AD_STATIC           { 0x02, 0x01, 0x06, 0x08, 0xff, 0xfe, 0xaf, TYPE_EL }
+#define AD_STATIC           { 0x02, 0x01, 0x06, 0x0c, 0xff, 0xfe, 0xaf, TYPE_EL }
 
 #define SAMPLE_RATE         (10u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
@@ -59,6 +64,7 @@
 
 typedef struct __attribute__((packed)) {
     uint16_t seq;
+    uint16_t bat;
     uint16_t pulse_cnt;
     uint16_t power;
 } eldata_t;
@@ -66,6 +72,14 @@ typedef struct __attribute__((packed)) {
 static const uint8_t _ad_static[] = AD_STATIC;
 static skald_ctx_t _adv;
 static eldata_t *_data = NULL;
+
+
+static uint16_t _bat_read(void)
+{
+    int bat_raw = adc_sample(BAT_LINE, ADC_RES_10BIT);
+    uint32_t v = ((bat_raw * BAT_MUL) / BAT_DIV);
+    return (uint16_t)v;
+}
 
 int main(void)
 {
@@ -77,6 +91,10 @@ int main(void)
     _data = (eldata_t *)(pdu + 6 + sizeof(_ad_static));
     memset(_data, 0, sizeof(eldata_t));
 
+    /* initialize battery measurement */
+    adc_init(BAT_LINE);
+
+    /* initialize power meter sampling input */
     adc_init(A0);
     skald_adv_start(&_adv);
 
@@ -98,25 +116,21 @@ int main(void)
             state = 0;
         }
 
-        uint32_t now = xtimer_now_usec();
-        uint32_t itvl = (now - pulse_last) / 1000;      /* in ms */
 
         if (state == PULSE_OVERSAMPLE) {
+            uint32_t now = xtimer_now_usec();
+            uint32_t itvl = (now - pulse_last) / 1000;      /* in ms */
+            pulse_last = now;
 
             ++seq;
-            pulse_last = now;
+            uint16_t v_bat = _bat_read();
             ++pulse_cnt;
             power = (uint16_t)(POWER_CONST / itvl);
 
-            memcpy(&_data->seq, &seq, 2);
-            memcpy(&_data->pulse_cnt, &pulse_cnt, 2);
-            memcpy(&_data->power, &power, 2);
-        }
-        else if ((itvl > POWER_TIMEOUT) && (power != 0)) {
-            ++seq;
-            power = 0;
-            memcpy(&_data->seq, &seq, 2);
-            memcpy(&_data->power, &power, 2);
+            byteorder_htobebufs((uint8_t *)&_data->seq, seq);
+            byteorder_htobebufs((uint8_t *)&_data->bat, v_bat);
+            byteorder_htobebufs((uint8_t *)&_data->pulse_cnt, pulse_cnt);
+            byteorder_htobebufs((uint8_t *)&_data->power, power);
         }
 
         xtimer_usleep(SAMPLING_DELAY);
