@@ -56,7 +56,7 @@
 
 #define SAMPLE_RATE         (10u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
-#define PULSE_THRESHOLD     (50u)
+#define PULSE_THRESHOLD     (18u)
 #define PULSE_OVERSAMPLE    (2u)
 
 #define POWER_TIMEOUT       (300000u)   /* assume 0W power after 5 minutes */
