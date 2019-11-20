@@ -52,7 +52,7 @@
 #define TYPE_GAS            (0x03)
 #define TYPE_EL             (0x04)
 
-#define AD_STATIC           { 0x02, 0x01, 0x06, 0x09, 0xff, 0xfe, 0xaf, TYPE_EL }
+#define AD_STATIC           { 0x02, 0x01, 0x06, 0x09, 0xff, 0xfe, 0xaf, TYPE_EL_RAW }
 
 #define SAMPLE_RATE         (10u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
