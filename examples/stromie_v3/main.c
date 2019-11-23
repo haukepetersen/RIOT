@@ -101,32 +101,28 @@ int main(void)
     skald_adv_start(&_adv);
 
     unsigned state = 0;
+    uint16_t seq = 0;
 
     while (1) {
-        int a = adc_sample(A0, ADC_RES_8BIT);
+        int ir_bg = adc_sample(A0, ADC_RES_8BIT);
         gpio_set(D_ON);
         xtimer_usleep(150);
-        int b = adc_sample(A0, ADC_RES_8BIT);
-        xtimer_usleep(75);
-        int c = adc_sample(A0, ADC_RES_8BIT);
-        xtimer_usleep(50);
-        int d = adc_sample(A0, ADC_RES_8BIT);
-        xtimer_usleep(50);
-        int e = adc_sample(A0, ADC_RES_8BIT);
-        xtimer_usleep(50);
-        int f = adc_sample(A0, ADC_RES_8BIT);
+        int ir_fg = adc_sample(A0, ADC_RES_8BIT);
         gpio_clear(D_ON);
-        xtimer_usleep(1000);
-
-        printf("ir %3i; %3i; %3i; %3i; %3i; %3i\n", a, b, c, d, e, f);
 
 
         if (++state == 10) {
             state = 0;
 
             uint16_t v_bat = _bat_read();
+            ++seq;
 
-            printf("bat:%imV\n", (int)v_bat);
+            byteorder_htobebufs((uint8_t *)&_data->seq, seq);
+            byteorder_htobebufs((uint8_t *)&_data->bat, v_bat);
+            byteorder_htobebufs((uint8_t *)&_data->pulse_cnt, (uint16_t)ir_bg);
+            byteorder_htobebufs((uint8_t *)&_data->power, (uint16_t)ir_fg);
+
+            // printf("bat:%imV\n", (int)v_bat);
         }
 
         xtimer_usleep(SAMPLING_DELAY);

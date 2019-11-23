@@ -3,6 +3,7 @@ BOARD = particle-xenon
 RIOTBASE ?= $(CURDIR)/../..
 
 USEMODULE += stdio_rtt
+# USEMODULE += stdio_none
 USEMODULE += periph_adc
 USEMODULE += xtimer
 
