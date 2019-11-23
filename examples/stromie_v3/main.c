@@ -54,7 +54,7 @@
 
 #define AD_STATIC           { 0x02, 0x01, 0x06, 0x0c, 0xff, 0xfe, 0xaf, 5 }
 
-#define SAMPLE_RATE         (10u)
+#define SAMPLE_RATE         (5u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
 #define PULSE_THRESHOLD     (18u)
 #define PULSE_OVERSAMPLE    (2u)
@@ -121,8 +121,6 @@ int main(void)
             byteorder_htobebufs((uint8_t *)&_data->bat, v_bat);
             byteorder_htobebufs((uint8_t *)&_data->pulse_cnt, (uint16_t)ir_bg);
             byteorder_htobebufs((uint8_t *)&_data->power, (uint16_t)ir_fg);
-
-            // printf("bat:%imV\n", (int)v_bat);
         }
 
         xtimer_usleep(SAMPLING_DELAY);
