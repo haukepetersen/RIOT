@@ -123,7 +123,6 @@ int main(void)
 
         if (++state == 10) {
             state = 0;
-            LED1_TOGGLE;
 
             uint16_t v_bat = _bat_read();
 
