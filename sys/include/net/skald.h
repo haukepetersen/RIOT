@@ -80,8 +80,10 @@ typedef struct {
  */
 typedef struct {
     netdev_ble_pkt_t pkt;   /**< packet holding the advertisement (GAP) data */
+#ifndef MODULE_SKALD_MANUAL
     xtimer_t timer;         /**< timer for scheduling advertising events */
     uint32_t last;          /**< last timer trigger (for offset compensation) */
+#endif
     uint8_t cur_chan;       /**< keep track of advertising channels */
 } skald_ctx_t;
 
@@ -90,6 +92,7 @@ typedef struct {
  */
 void skald_init(void);
 
+#ifndef MODULE_SKALD_MANUAL
 /**
  * @brief   Start advertising the given packet
  *
@@ -106,6 +109,19 @@ void skald_adv_start(skald_ctx_t *ctx);
  * @param[in,out] ctx   stop advertising this context
  */
 void skald_adv_stop(skald_ctx_t *ctx);
+
+#else
+/**
+ * @brief   Execute a single advertising event
+ *
+ * TODO: explain that this function will send 3 packets (per default)
+ *
+ * @param SKALD_INTERVAL [description]
+ * @return [description]
+ */
+void skald_adv_trigger(skald_ctx_t *ctx);
+
+#endif /* #ifndef MODULE_SKALD_MANUAL */
 
 /**
  * @brief   Generate a random public address

@@ -184,6 +184,7 @@ NO_PSEUDOMODULES += periph_common
 
 # Submodules and auto-init code provided by Skald
 PSEUDOMODULES += auto_init_skald
+PSEUDOMODULES += skald_manual
 PSEUDOMODULES += skald_ibeacon
 PSEUDOMODULES += skald_eddystone
 

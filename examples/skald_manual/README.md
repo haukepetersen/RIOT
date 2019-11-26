@@ -1,0 +1,3 @@
+# Skald Manual Example
+
+FOO

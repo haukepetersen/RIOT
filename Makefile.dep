@@ -846,8 +846,10 @@ endif
 ifneq (,$(filter skald,$(USEMODULE)))
   FEATURES_REQUIRED += radio_nrfble
   USEMODULE += nrfble
-  USEMODULE += xtimer
-  USEMODULE += random
+  ifeq (,$(filter skald_manual,$(USEMODULE)))
+    USEMODULE += xtimer
+    USEMODULE += random
+  endif
 endif
 
 ifneq (,$(filter bluetil_addr,$(USEMODULE)))

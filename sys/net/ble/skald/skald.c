@@ -21,11 +21,14 @@
 #include <stdint.h>
 
 #include "assert.h"
-#include "random.h"
 #include "luid.h"
 
 #include "net/netdev/ble.h"
 #include "net/skald.h"
+
+#ifndef MODULE_SKALD_MANUAL
+#include "random.h"
+#endif
 
 /* include fitting radio driver */
 #if defined(MODULE_NRFBLE)
@@ -48,18 +51,30 @@
 
 static const uint8_t _adv_chan[] = SKALD_ADV_CHAN;
 
-static netdev_ble_ctx_t _ble_ctx = {
-    .aa.u32 = ADV_AA,
-    .crc = ADV_CRC,
-};
-
 static netdev_t *_radio;
+
+static void _send(skald_ctx_t *skald_ctx, uint8_t chan)
+{
+    if (_radio->context != NULL) {
+        return;
+    }
+    netdev_ble_ctx_t ble_ctx = {
+        .aa.u32 = ADV_AA,
+        .crc = ADV_CRC,
+        .chan = _adv_chan[chan],
+    };
+    _radio->context = skald_ctx;
+    netdev_ble_set_ctx(_radio, &ble_ctx);
+    netdev_ble_send(_radio, &skald_ctx->pkt);
+}
 
 static void _stop_radio(void)
 {
     netdev_ble_stop(_radio);
     _radio->context = NULL;
 }
+
+#ifndef MODULE_SKALD_MANUAL
 
 static void _sched_next(skald_ctx_t *ctx)
 {
@@ -79,11 +94,7 @@ static void _on_adv_evt(void *arg)
     /* advertise on the next adv channel - or skip this event if the radio is
      * busy */
     if ((ctx->cur_chan < ADV_CHAN_NUMOF) && (_radio->context == NULL)) {
-        _radio->context = ctx;
-        _ble_ctx.chan = _adv_chan[ctx->cur_chan];
-        netdev_ble_set_ctx(_radio, &_ble_ctx);
-        netdev_ble_send(_radio, &ctx->pkt);
-        ++ctx->cur_chan;
+        _send(ctx, ++ctx->cur_chan);
     }
     else {
         ctx->cur_chan = 0;
@@ -100,18 +111,6 @@ static void _on_radio_evt(netdev_t *netdev, netdev_event_t event)
         _stop_radio();
         xtimer_set(&ctx->timer, 150);
     }
-}
-
-void skald_init(void)
-{
-    /* setup and a fitting radio driver - potentially move to auto-init at some
-     * point */
-#if defined(MODULE_NRFBLE)
-    _radio = nrfble_setup();
-#endif
-
-    _radio->event_callback = _on_radio_evt;
-    _radio->driver->init(_radio);
 }
 
 void skald_adv_start(skald_ctx_t *ctx)
@@ -140,6 +139,45 @@ void skald_adv_stop(skald_ctx_t *ctx)
     if (_radio->context == (void *)ctx) {
         _stop_radio();
     }
+}
+
+#else
+
+static void _on_radio_evt(netdev_t *netdev, netdev_event_t event)
+{
+    (void)netdev;
+
+    if (event == NETDEV_EVENT_TX_COMPLETE) {
+        _stop_radio();
+
+        skald_ctx_t *ctx = _radio->context;
+        if (++ctx->cur_chan < ADV_CHAN_NUMOF) {
+            _send(ctx, ctx->cur_chan);
+        }
+        else {
+            ctx->cur_chan = 0;
+        }
+    }
+}
+
+void skald_adv_trigger(skald_ctx_t *ctx)
+{
+    ctx->cur_chan = 0;
+    _send(ctx, ctx->cur_chan);
+}
+
+#endif
+
+void skald_init(void)
+{
+    /* setup and a fitting radio driver - potentially move to auto-init at some
+     * point */
+#if defined(MODULE_NRFBLE)
+    _radio = nrfble_setup();
+#endif
+
+    _radio->event_callback = _on_radio_evt;
+    _radio->driver->init(_radio);
 }
 
 void skald_generate_random_addr(uint8_t *buf)
