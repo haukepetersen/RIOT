@@ -49,6 +49,8 @@ int main(void)
 {
     LOG_INFO("Skald and the tail of Eddystone\n");
 
+    printf("foo");
+
     int res;
     (void)res;
     bluetil_ad_t ad;

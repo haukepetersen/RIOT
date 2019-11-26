@@ -13,7 +13,7 @@ USEMODULE += random
 USEMODULE += periph_rtt
 USEMODULE += bluetil_ad
 
-USEMODULE += stdio_none
+# USEMODULE += stdio_none
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

@@ -150,6 +150,8 @@ static void _on_radio_evt(netdev_t *netdev, netdev_event_t event)
     if (event == NETDEV_EVENT_TX_COMPLETE) {
         _stop_radio();
 
+        printf("radio evt\n");
+
         skald_ctx_t *ctx = _radio->context;
         if (++ctx->cur_chan < ADV_CHAN_NUMOF) {
             _send(ctx, ctx->cur_chan);
