@@ -71,8 +71,6 @@ void gorm_l2cap_reply(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t data_len)
 
 void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
 {
-    (void)llid; /* for future use */
-
     size_t len = (size_t)gorm_util_letohs(&buf->pkt.pdu[0]);
     uint16_t cid = gorm_util_letohs(&buf->pkt.pdu[2]);
     uint8_t *data = &buf->pkt.pdu[4];
@@ -85,10 +83,11 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
             _on_signal_data(con, buf, data, len);
             break;
         case GORM_L2CAP_CID_SM:
-        default:
-            DEBUG("[gorm_l2cap] on_data: CID (%i) not supported (yet)\n",
-                  (int)cid);
+            DEBUG("[gorm_l2cap] on_data: CID_SM not handled\n");
             gorm_buf_return(buf);
+            break;
+        default:
+            gorm_coc_on_data(con, buf, cid, llid, data, len);
             break;
     }
 }

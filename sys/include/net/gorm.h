@@ -153,6 +153,7 @@ enum {
     GORM_ERR_CTX_BUSY = -1,     /**< the given context is not free to use */
     GORM_ERR_NOBUF    = -2,     /**< no buffer space available */
     GORM_ERR_DEV      = -3,     /**< BLE radio device error */
+    GORM_ERR_NOTCON   = -4,     /**< not connected */
 };
 
 /**
@@ -162,6 +163,9 @@ typedef struct {
     gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
     gorm_arch_evt_t event;  /**< event used for synchronizing ISRs and thread */
     /* add more context fields for higher level protocols on demand (e.g. SM) */
+#ifdef MODULE_GORM_L2CAP_COC
+    gorm_l2cap_ctx_t l2cap;
+#endif
 } gorm_ctx_t;
 
 /**
