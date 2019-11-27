@@ -21,6 +21,7 @@
 
 #include "net/gorm.h"
 #include "net/gorm/buf.h"
+#include "iolist.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,7 +101,9 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *data);
  */
 void gorm_coc_on_data(gorm_coc_t *coc, uint8_t llid?, gorm_buf_t *data);
 
-int gorm_coc_send(gorm_coc_t *coc, void *data, size_t len);
+int gorm_coc_send(gorm_coc_t *coc, iolist_t *data);
+
+int gorm_coc_send_flat(gorm_coc_t *coc, void *data, size_t len);
 
 int gorm_coc_connect(gorm_ctx_t *con, gorm_l2cap_coc_t *coc,
                      uint16_t cid, size_t mtu);

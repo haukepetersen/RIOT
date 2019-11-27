@@ -39,4 +39,28 @@ void gorm_coc_on_data(gorm_ctx_t *con, gorm_buf_t *buf,
 }
 
 
-void gorm_coc_on_data(gorm_coc_t *coc, uint8_t llid?, gorm_buf_t *data);
+int gorm_coc_send_flat(gorm_coc_t *coc, void *data, size_t len)
+{
+    if (len > coc->mtu) {
+        return GORM_ERR_OVERFLOW;
+    }
+
+    /* allocate enough buffers to fit the given data */
+    gorm_bufq_t tmpq = GORM_BUFQ_INIT;
+    unsigned num = ((len + 2) / (coc->peer_mps));
+
+    for (unsigned i = 0; i < num; i++) {
+        gorm_buf_t *buf = gorM_buf_get;
+        if (buf == NULL) {
+            gorm_buf_return_q(&tmp);
+            return GORM_ERR_NOBUF;
+        }
+        gorm_buf_enq(&tmp, buf);
+    }
+
+    /* copy data into buffers */
+    size_t pos = 0;
+
+
+
+}
