@@ -97,6 +97,25 @@ ifneq (,$(filter gorm_standalone,$(USEMODULE)))
   USEMODULE += gorm
 endif
 
+ifneq (,$(filter gorm_netif,$(USEMODULE)))
+  USEMODULE += gorm
+  USEMODULE += gorm_peripheral
+  USEMODULE += gorm_l2cap_coc
+#   USEMODULE += l2util
+#   USEMODULE += bluetil_addr
+  ifneq (,$(filter gnrc_ipv6_%,$(USEMODULE)))
+#     USEMODULE += gorm_svc_ipss
+    USEMODULE += gnrc_sixlowpan
+    USEMODULE += gnrc_sixlowpan_iphc
+  endif
+  ifneq (,$(filter gnrc_ipv6_router_default,$(USEMODULE)))
+    USEMODULE += gnrc_ipv6_nib_6lr
+  endif
+  ifneq (,$(filter gnrc_ipv6_default,$(USEMODULE)))
+    USEMODULE += gnrc_ipv6_nib_6ln
+  endif
+endif
+
 ifneq (,$(filter gorm_ibeacon,$(USEMODULE)))
   USEMODULE += gorm_peripheral
   USEMODULE += gorm_gatt

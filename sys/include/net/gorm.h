@@ -154,19 +154,42 @@ enum {
     GORM_ERR_NOBUF    = -2,     /**< no buffer space available */
     GORM_ERR_DEV      = -3,     /**< BLE radio device error */
     GORM_ERR_NOTCON   = -4,     /**< not connected */
+    GORM_ERR_OVERFLOW = -5,     /**< given data exceeds MTU */
 };
+
+typedef struct gorm_ctx gorm_ctx_t;
+
+typedef struct gorm_coc {
+    struct gorm_coc *next;
+    gorm_ctx_t *con;        /**< connection handle, if NULL than coc is not connected*/
+    uint16_t psm;
+    uint16_t cid_src;
+    uint16_t cid_dst;
+    uint16_t rx_len;
+    uint16_t rx_pos;
+    uint16_t credits;
+    uint16_t peer_mps;
+    uint16_t peer_mtu;
+    gorm_bufq_t rxq;
+    // uint8_t *rb;            /**< reassembly buffer */
+    void(*on_data)(struct gorm_coc *);
+} gorm_coc_t;
+
+typedef struct {
+    gorm_coc_t *cocs;
+} gorm_l2cap_ctx_t;
 
 /**
  * @brief   Context data holding the full context for each connection
  */
-typedef struct {
+struct gorm_ctx {
     gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
     gorm_arch_evt_t event;  /**< event used for synchronizing ISRs and thread */
     /* add more context fields for higher level protocols on demand (e.g. SM) */
 #ifdef MODULE_GORM_L2CAP_COC
     gorm_l2cap_ctx_t l2cap;
 #endif
-} gorm_ctx_t;
+};
 
 /**
  * @brief   Initialize Gorm

@@ -42,21 +42,11 @@
 #include <stdint.h>
 
 #include "net/ble.h"
+#include "net/bluetil/ad.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief   Maximum AD data length allowed [in bytes]
- */
-#define GORM_GAP_AD_MAXLEN          (31U)
-
-/**
- * @brief   Default flags to use when advertising
- */
-#define GORM_GAP_FLAGS_DEFAULT          (BLE_GAP_DISCOVERABLE | \
-                                         BLE_GAP_FLAG_BREDR_NOTSUP)
 
 /**
  * @brief   Structure holding an advertising context
@@ -64,9 +54,9 @@ extern "C" {
 typedef struct {
     uint32_t interval;                      /**< advertising interval [in us] */
     uint8_t addr[BLE_ADDR_LEN];             /**< device address */
-    uint8_t adv_data[GORM_GAP_AD_MAXLEN];   /**< advertising payload */
+    uint8_t adv_data[BLE_ADV_PDU_LEN];      /**< advertising payload */
     size_t adv_len;                         /**< size of adv_data */
-    uint8_t scan_data[GORM_GAP_AD_MAXLEN];  /**< SCAN_RESPONSE payload */
+    uint8_t scan_data[BLE_ADV_PDU_LEN];     /**< SCAN_RESPONSE payload */
     size_t scan_len;                        /**< size of scan_len */
 } gorm_gap_adv_ctx_t;
 
@@ -156,6 +146,8 @@ gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void);
 /**
  * @brief   Add advertising data field to the given buffer
  *
+ * @todo    remove in favor of bluetil/ad
+ *
  * @param[out] buf          buffer to write to
  * @param[in]  pos          position in @p buf to write to
  * @param[in]  type         advertising data type
@@ -170,20 +162,24 @@ size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
 /**
  * @brief   Convenience function for writing flags to given AD data
  *
+ * @todo    remove in favor of bluetil/ad
+ *
  * @param[out] buf          AD data buffer
  * @param[in]  pos          position in @p buf to write to
- * @param[in]  flags        flags to use, typically GORM_GAP_FLAGS_DEFAULT
+ * @param[in]  flags        flags to use, typically BLUETIL_AD_FLAGS_DEFAULT
  *
  * @return  always returns 3 (as the flag field is 3 bytes long)
  */
 static inline size_t gorm_gap_ad_add_flags(uint8_t *buf, size_t pos,
                                            uint8_t flags)
 {
-    return gorm_gap_ad_add(buf, pos, BLE_GAP_FLAGS, &flags, 1);
+    return gorm_gap_ad_add(buf, pos, BLUETIL_AD_FLAGS_DEFAULT, &flags, 1);
 }
 
 /**
  * @brief   Dump GAP configuration to STDOUT
+ *
+ * @todo    ifdef somehow?!
  */
 void gorm_gap_print(void);
 

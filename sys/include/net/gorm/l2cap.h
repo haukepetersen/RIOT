@@ -20,6 +20,7 @@
 #define GORM_L2CAP_H
 
 #include "net/gorm.h"
+#include "net/gorm/coc.h"
 #include "net/gorm/buf.h"
 #include "iolist.h"
 
@@ -43,27 +44,10 @@ extern "C" {
  * @brief   L2CAP header length in bytes
  */
 #define GORM_L2CAP_HDR_LEN          (4U)
+#define GORM_L2CAP_SDU_LEN          (2U)
+#define GORM_L2CAP_SDUHDR_LEN       (6U)
 
-typedef void (*gorm_l2cap_coc_cb_t)(gorm_coc_t *coc, void *data, size_t len);
 
-typedef struct gorm_l2cap_coc {
-    struct gorm_l2cap_coc *next;
-    gorm_ctx_t *con;        /**< connection handle, if NULL than coc is not connected*/
-    uint16_t psm;
-    uint16_t cid_src;
-    uint16_t cid_dst;
-    uint16_t rx_len;
-    uint16_t pos;
-    uint16_t credits;
-    uint16_t peer_mps;
-    uint16_t peer_mtu;
-    gorm_bufq_t rxq;
-    uint8_t *rb;            /**< reassembly buffer */
-} gorm_l2cap_coc_t;
-
-typedef struct {
-    gorm_l2cap_coc_t *cocs;
-} gorm_l2cap_ctx_t;
 
 
 /**
@@ -89,29 +73,6 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *data);
 
 
 
-
-/**
- * @internal
- * COC: receiving data
- * - ll gets L2cap packet (gorm_buf_t), passed to l2cap layer
- * - l2cap parses packet (gorm_l2cap_on_data)
- *   - get CID field from L2CAP header
- *   - search cocs list for that CID entry
- *   - call gorm_coc_on_data(coc, gorm_buf) for that coc
- */
-void gorm_coc_on_data(gorm_coc_t *coc, uint8_t llid?, gorm_buf_t *data);
-
-int gorm_coc_send(gorm_coc_t *coc, iolist_t *data);
-
-int gorm_coc_send_flat(gorm_coc_t *coc, void *data, size_t len);
-
-int gorm_coc_connect(gorm_ctx_t *con, gorm_l2cap_coc_t *coc,
-                     uint16_t cid, size_t mtu);
-
-/* conveninece function, use instead of gap_connect + coc_connect */
-int gorm_coc_connect_full(gorm_ctx_t *con, gorm_l2cap_coc_t *coc,
-                          const uint8_t *addr);
-/* timings are set globally -> use gorm_gap_x() */
 
 
 #ifdef __cplusplus

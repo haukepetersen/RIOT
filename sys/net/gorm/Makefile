@@ -15,8 +15,16 @@ ifneq (,$(filter gorm_gap,$(USEMODULE)))
   DIRS += $(RIOTBASE)/sys/net/gorm/gap
 endif
 
+ifneq (,$(filter gorm_l2cap_coc,$(USEMODULE)))
+  SRC += coc.c
+endif
+
 ifneq (,$(filter gorm_arch_riot,$(USEMODULE)))
   DIRS += $(RIOTBASE)/sys/net/gorm/arch/riot
+endif
+
+ifneq (,$(filter gorm_netif,$(USEMODULE)))
+  DIRS += $(RIOTBASE)/sys/net/gorm/netif
 endif
 
 # include select build-in services

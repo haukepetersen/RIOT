@@ -17,9 +17,11 @@
  * @}
  */
 
+#include "net/gorm.h"
+#include "net/gorm/coc.h"
+#include "net/gorm/gatt.h"
 #include "net/gorm/util.h"
 #include "net/gorm/l2cap.h"
-#include "net/gorm/gatt.h"
 
 #define ENABLE_DEBUG    (1)
 #include "debug.h"

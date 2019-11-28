@@ -60,9 +60,9 @@ void gorm_gap_init(const uint8_t *addr, const char *name, uint16_t appearance)
 
     /* generate default scan data PDU */
     config.data.adv_len = gorm_gap_ad_add_flags(config.data.adv_data, 0,
-                                                GORM_GAP_FLAGS_DEFAULT);
+                                                BLUETIL_AD_FLAGS_DEFAULT);
     config.data.adv_len = gorm_gap_ad_add(config.data.adv_data,
-                                          config.data.adv_len, BLE_GAP_NAME,
+                                          config.data.adv_len, BLE_GAP_AD_NAME,
                                           config.name, strlen(config.name));
 
     /* per default, we do not send any payload on SCAN_REQUESTS */
@@ -106,7 +106,7 @@ gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void)
 size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
                        uint8_t type, const void *data, size_t len)
 {
-    assert(buf && ((pos + 2 + len) <= GORM_GAP_AD_MAXLEN));
+    assert(buf && ((pos + 2 + len) <= BLE_ADV_PDU_LEN));
 
     uint8_t *ptr = buf + pos;
     *ptr++ = (uint8_t)(len + 1);

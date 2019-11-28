@@ -120,6 +120,16 @@ extern "C" {
 #define GORM_CFG_POOLSIZE                           (10U)
 #endif
 
+
+
+// TODO: move into gorm/netif.h or similar?
+#ifndef GORM_NETIF_CONCNT
+#define GORM_NETIF_CONCNT                           (3U)
+#endif
+#ifndef GORM_NETIF_MTU
+#define GORM_NETIF_MTU                              (1280U)
+#endif
+
 /**
  * @brief   Thread priority assigned to the Gorm thread in standalone mode
  *

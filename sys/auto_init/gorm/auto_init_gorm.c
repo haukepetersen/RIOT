@@ -30,13 +30,6 @@
 #error "[auto_init_gorm] error: now compatible radio driver found"
 #endif
 
-/* set CREATE_STACKTEST flag depending on log level */
-#if (LOG_LEVEL >= LOG_DEBUG)
-#define TFLAGS              THREAD_CREATE_STACKTEST
-#else
-#define TFLAGS              (0)
-#endif
-
 /* allocate stack(s) */
 #ifdef MODULE_GORM_STANDALONE
 static char _host_stack[GORM_CFG_THREAD_STACKSIZE_HOST]
@@ -73,7 +66,7 @@ void auto_init_gorm(void)
     thread_create(_host_stack,
                   sizeof(_host_stack),
                   GORM_CFG_THREAD_PRIO_HOST,
-                  TFLAGS,
+                  THREAD_CREATE_STACKTEST,
                   _host_thread,
                   NULL,
                   GORM_CFG_THREAD_NAME_HOST);
