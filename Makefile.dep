@@ -84,6 +84,7 @@ ifneq (,$(filter tinydtls_sock_dtls, $(USEMODULE)))
 endif
 
 ifneq (,$(filter mia,$(USEMODULE)))
+  USEMODULE += core_thread_flags
   USEMODULE += inet_csum
   USEMODULE += xtimer
   USEMODULE += mia_dhcp

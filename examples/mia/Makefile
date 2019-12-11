@@ -16,7 +16,7 @@ USEMODULE += xtimer
 
 
 ifneq (,$(filter native,$(BOARD)))
-  USEMODULE += netdev2_tap
+  USEMODULE += netdev_tap
 endif
 ifneq (,$(filter stm32f4discovery,$(BOARD)))
   USEMODULE += enc28j60

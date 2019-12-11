@@ -19,7 +19,7 @@ int mia_udp_bind(mia_bind_t *ctx)
     for (mia_bind_t *ep = endpoints; ep; ep = ep->next) {
         if (ep->port == ctx->port) {
             DEBUG("[mia] udp: bind error: port %i in use\n", (int)ctx->port);
-            return MIA_NOPORT;
+            return MIA_ERR_NO_PORT;
         }
     }
 
@@ -46,7 +46,7 @@ int mia_udp_unbind(mia_bind_t *ep)
         }
     }
 
-    return MIA_NOPORT;
+    return MIA_ERR_NO_PORT;
 }
 
 void mia_udp_process(void)

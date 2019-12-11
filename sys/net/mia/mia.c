@@ -1,6 +1,7 @@
 
 #include <errno.h>
 
+#include "thread_flags.h"
 #include "net/ethernet.h"
 
 #include "net/mia.h"
@@ -18,7 +19,7 @@
 #define ENABLE_DEBUG            (0)
 #include "debug.h"
 
-
+#define RXFLAG                  (0x0400)
 
 
 netdev_t *mia_dev;
@@ -27,17 +28,13 @@ uint8_t mia_buf[MIA_BUFSIZE];
 
 const uint8_t mia_bcast[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-static msg_t msg_queue[MIA_MSG_QUEUESIZE];
-static kernel_pid_t mia_pid;
+static thread_t *_mia_thread;
 
-static void on_evt(netdev_t *dev, netdev_event_t evt)
+static void _on_evt(netdev_t *dev, netdev_event_t evt)
 {
-    msg_t msg;
-
     switch (evt) {
         case NETDEV_EVENT_ISR:
-            msg.type = MIA_MSG_ISR;
-            msg_send(&msg, mia_pid);
+            thread_flags_set(_mia_thread, RXFLAG);
             break;
         case NETDEV_EVENT_RX_COMPLETE:
             mia_lock();
@@ -54,10 +51,12 @@ static void on_evt(netdev_t *dev, netdev_event_t evt)
 int mia_run(netdev_t *netdev)
 {
     uint16_t type;
-    msg_t msg;
     mia_dev = netdev;
+    _mia_thread = (thread_t *)thread_get(thread_getpid());
 
     DEBUG("[mia] starting stack initialization\n");
+    /* init mutex */
+    mutex_init(&mia_mutex);
 
     /* device must be given */
     if (mia_dev == NULL) {
@@ -69,14 +68,9 @@ int mia_run(netdev_t *netdev)
         return -ENOTSUP;
     }
 
-    /* init mutex */
-    mutex_init(&mia_mutex);
-    /* setup the message queue and remember the PID */
-    msg_init_queue(msg_queue, MIA_MSG_QUEUESIZE);
-    mia_pid = thread_getpid();
     /* bootstrap the network device */
     mia_dev->driver->init(mia_dev);
-    mia_dev->event_callback = on_evt;
+    mia_dev->event_callback = _on_evt;
     mia_dev->context = NULL;
 
     /* bind build-in endpoints */
@@ -92,10 +86,8 @@ int mia_run(netdev_t *netdev)
 
     DEBUG("[mia] initialization seems ok, running now\n");
     while (1) {
-        msg_receive(&msg);
-        if (msg.type == MIA_MSG_ISR) {
-            mia_dev->driver->isr(mia_dev);
-        }
+        thread_flags_wait_all(RXFLAG);
+        mia_dev->driver->isr(mia_dev);
     }
 
     /* we should not end up here... */

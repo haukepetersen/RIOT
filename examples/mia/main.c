@@ -54,7 +54,7 @@ static enc28j60_t dev;
 #include "w5100.h"
 #include "w5100_params.h"
 static w5100_t dev;
-#elif defined(MODULE_NETDEV2_TAP)
+#elif defined(MODULE_NETDEV_TAP)
 #include "netdev_tap.h"
 extern netdev_tap_t netdev_tap;
 static const uint8_t native_addr[] = { 0x0a, 0x0a, 0x0a, 0x17 };
@@ -75,7 +75,7 @@ static void *run_mia_run(void *arg)
 #endif
 
     puts("MIA: starting the stack now");
-#ifdef MODULE_NETDEV2_TAP
+#ifdef MODULE_NETDEV_TAP
     mia_run((netdev_t *)&netdev_tap);
 #else
     mia_run((netdev_t *)&dev);
@@ -281,7 +281,7 @@ int main(void)
     mia_udp_bind(&udp_print_ep);
 
     /* trying to get an IP via DHCP */
-#ifdef MODULE_NETDEV2_TAP
+#ifdef MODULE_NETDEV_TAP
     puts("not doing DHCP");
     mia_ip_mask = 24;
     memcpy(mia_ip_addr, native_addr, 4);
