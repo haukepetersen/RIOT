@@ -66,6 +66,24 @@ ifneq (,$(filter littlefs2,$(USEMODULE)))
   USEMODULE += mtd
 endif
 
+ifneq (,$(filter l2filter_%,$(USEMODULE)))
+  USEMODULE += l2filter
+endif
+
+ifneq (,$(filter gcoap,$(USEMODULE)))
+  USEMODULE += nanocoap
+  USEMODULE += sock_udp
+  USEMODULE += sock_util
+endif
+
+ifneq (,$(filter luid,$(USEMODULE)))
+  FEATURES_OPTIONAL += periph_cpuid
+endif
+
+ifneq (,$(filter nanocoap_%,$(USEMODULE)))
+  USEMODULE += nanocoap
+endif
+
 ifneq (,$(filter fatfs_vfs,$(USEMODULE)))
   USEPKG += fatfs
   USEMODULE += vfs
