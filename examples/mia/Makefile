@@ -3,6 +3,7 @@ APPLICATION = mia
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
+PORT ?= tap0
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
@@ -14,16 +15,8 @@ USEMODULE += shell_commands
 USEMODULE += ps
 USEMODULE += xtimer
 
-
 ifneq (,$(filter native,$(BOARD)))
   USEMODULE += netdev_tap
-endif
-ifneq (,$(filter stm32f4discovery,$(BOARD)))
-  USEMODULE += enc28j60
-  CFLAGS += -DENC28J60_PARAM_SPI=SPI_1
-  CFLAGS += -DENC28J60_PARAM_CS=GPIO_PIN\(PORT_B,12\)
-  CFLAGS += -DENC28J60_PARAM_INT=GPIO_PIN\(PORT_B,11\)
-  CFLAGS += -DENC28J60_PARAM_RESET=GPIO_PIN\(PORT_B,10\)
 endif
 
 # Comment this out to disable code in RIOT that does safety checking

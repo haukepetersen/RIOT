@@ -49,14 +49,19 @@ static char stack[STACKSIZE];
 #if defined(MODULE_ENC28J60)
 #include "enc28j60.h"
 #include "enc28j60_params.h"
-static enc28j60_t dev;
+static enc28j60_t _dev;
 #elif defined(MODULE_W5100)
 #include "w5100.h"
 #include "w5100_params.h"
-static w5100_t dev;
+static w5100_t _dev;
+#elif defined(MODULE_ENCX24J600)
+#include "encx24j600.h"
+#include "encx24j600_params.h"
+static encx24j600_t _dev;
 #elif defined(MODULE_NETDEV_TAP)
 #include "netdev_tap.h"
-extern netdev_tap_t netdev_tap;
+#include "netdev_tap_params.h"
+static netdev_tap_t _dev;
 static const uint8_t native_addr[] = { 0x0a, 0x0a, 0x0a, 0x17 };
 static const uint8_t native_bcast[] = { 0x0a, 0x0a, 0x0a, 0xff };
 static const uint8_t native_gateway[] = { 0x0a, 0x0a, 0x0a, 0x01 };
@@ -69,17 +74,18 @@ static void *run_mia_run(void *arg)
     (void)arg;
     puts("MIA: initializing the given Ethernet interface");
 #if defined(MODULE_ENC28J60)
-    enc28j60_setup(&dev, &enc28j60_params[0]);
+    enc28j60_setup(&_dev, &enc28j60_params[0]);
 #elif defined(MODULE_W5100)
-    w5100_setup(&dev, &w5100_params[0]);
+    w5100_setup(&_dev, &w5100_params[0]);
+#elif defined(MODULE_ENCX24J600)
+    encx24j600_setup(&_dev, &encx24j600_params[0]);
+#elif defined(MODULE_NETDEV_TAP)
+    netdev_tap_setup(&_dev, &netdev_tap_params[0]);
 #endif
 
     puts("MIA: starting the stack now");
-#ifdef MODULE_NETDEV_TAP
-    mia_run((netdev_t *)&netdev_tap);
-#else
-    mia_run((netdev_t *)&dev);
-#endif
+    mia_run((netdev_t *)&_dev);
+
     return NULL;
 }
 
