@@ -9,9 +9,9 @@
 /**
  * @defgroup    sys_mia MIA
  * @ingroup     mia
- * @brief       MIA - a minimal IPv4 network stack
+ * @brief       MIA - a minimalistic IPv4 network stack
  *
- * This is MIA. It can do Ethernet, IPv4, and UDP.
+ * This is MIA. It can do Ethernet, IPv4, and UDP. Thats what you get.
  *
  * Restrictions:
  * - only a single instance (network interface)
@@ -107,6 +107,12 @@ typedef struct mia_bind_t {
 } mia_bind_t;
 
 
+/**
+ * @brief   Initialize MIA and run her main loop. This will block take over
+ *          the calling thread context.
+ *
+ * @param[in,out] dev   netdev interface to use
+ */
 int mia_run(netdev_t *dev);
 
 static inline uint8_t *mia_ptr(const int pos)

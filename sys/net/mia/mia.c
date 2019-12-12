@@ -93,10 +93,3 @@ int mia_run(netdev_t *netdev)
     /* we should not end up here... */
     return 0;
 }
-
-int mia_init(void)
-{
-
-
-    return MIA_OK;
-}
