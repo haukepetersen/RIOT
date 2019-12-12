@@ -134,8 +134,9 @@ uint16_t get_foo_bar(void)
 //     {NULL, NULL}
 // };
 
-void mia_coap_process(void)
+void mia_coap_process(mia_bind_t *ep)
 {
+    (void)ep;
     // mia_cb_t *handler;
     uint16_t pos;
 

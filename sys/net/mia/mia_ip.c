@@ -27,7 +27,7 @@ uint8_t mia_ip_bcast[] = MIA_IP_BCAST;
 uint8_t mia_ip_gateway[] = MIA_IP_GATEWAY;
 
 
-static void ip_csum(uint16_t len)
+static void _ip_csum(uint16_t len)
 {
     mia_ston(MIA_IP_LEN, len);
     memset(mia_ptr(MIA_IP_CSUM), 0, 2);
@@ -60,7 +60,7 @@ void mia_ip_reply(uint16_t len)
 {
     memcpy(mia_ptr(MIA_IP_DST), mia_ptr(MIA_IP_SRC), MIA_IP_ADDR_LEN);
     memcpy(mia_ptr(MIA_IP_SRC), mia_ip_addr, MIA_IP_ADDR_LEN);
-    ip_csum(MIA_IP_HDR_LEN + len);
+    _ip_csum(MIA_IP_HDR_LEN + len);
     DEBUG("[mia]  ip: sending reply\n");
     mia_eth_reply(MIA_IP_HDR_LEN + len);
 }
@@ -91,7 +91,7 @@ int mia_ip_send(const uint8_t *ip, uint8_t proto, uint16_t len)
     memcpy(mia_ptr(MIA_IP_DST), ip, MIA_IP_ADDR_LEN);
     memcpy(mia_ptr(MIA_IP_SRC), mia_ip_addr, MIA_IP_ADDR_LEN);
     /* and finish by calculating the checksum */
-    ip_csum(MIA_IP_HDR_LEN + len);
+    _ip_csum(MIA_IP_HDR_LEN + len);
     /* finally send out the packet */
     mia_eth_send(mac, ETHERTYPE_IPV4, MIA_IP_HDR_LEN + len);
     return 0;

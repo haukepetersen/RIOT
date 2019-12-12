@@ -17,7 +17,7 @@ extern mia_bind_t mia_dhcp_ep;
 
 void mia_dhcp_request(void);
 
-void mia_dhcp_process(void);
+void mia_dhcp_process(mia_bind_t *ep);
 
 #ifdef __cplusplus
 }

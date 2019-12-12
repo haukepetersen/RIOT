@@ -97,14 +97,16 @@ extern uint8_t mia_mac[];
 
 extern const uint8_t mia_bcast[];
 
+typedef struct mia_bind mia_bind_t;
 
-typedef void (*mia_cb_t)(void);
+typedef void(*mia_cb_t)(void);
+typedef void(*mia_data_cb_t)(mia_bind_t *ep);
 
-typedef struct mia_bind_t {
-    struct mia_bind_t *next;
-    mia_cb_t cb;
+struct mia_bind {
+    struct mia_bind *next;
+    mia_data_cb_t cb;
     uint16_t port;
-} mia_bind_t;
+};
 
 
 /**

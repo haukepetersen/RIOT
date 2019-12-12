@@ -23,14 +23,11 @@ extern "C" {
 #define MIA_ICMP_ECHO_SEQ       (MIA_ICMP_POS + 6U)
 #define MIA_ICMP_ECHO_DATA      (MIA_ICMP_POS + 8U)
 
-
 void mia_icmp_process(void);
-
 
 int mia_icmp_ping(uint8_t *addr, mia_cb_t cb);
 
 void mia_icmp_unreachable(uint8_t code);
-
 
 #ifdef __cplusplus
 }

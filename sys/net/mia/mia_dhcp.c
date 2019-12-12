@@ -135,8 +135,9 @@ void mia_dhcp_request(void)
     mia_unlock();
 }
 
-void mia_dhcp_process(void)
+void mia_dhcp_process(mia_bind_t *ep)
 {
+    (void)ep;
     int opt = DHCP_FIRST_OP;
 
     /* we expect the DHCP message type as first option! */

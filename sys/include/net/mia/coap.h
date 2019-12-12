@@ -21,7 +21,7 @@ typedef struct {
     mia_coap_cb cb;
 } mia_coap_ep_t;
 
-void mia_coap_process(void);
+void mia_coap_process(mia_bind_t *ep);
 
 
 #ifdef __cplusplus

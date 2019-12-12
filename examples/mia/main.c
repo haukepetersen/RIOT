@@ -27,6 +27,7 @@
 #include "xtimer.h"
 #include "periph/spi.h"
 
+#include "net/af.h"
 #include "net/sock/udp.h"
 
 #include "net/mia.h"
@@ -129,7 +130,7 @@ static int cmd_ifconfig(int argc, char **argv)
     mia_print_ip_addr(mia_ip_addr);
     printf("  Bcast:");
     mia_print_ip_addr(mia_ip_bcast);
-    printf("  Mask:/%i  Gateway:", (8 * mia_ip_mask));
+    printf("  Mask:/%i  Gateway:", mia_ip_mask);
     mia_print_ip_addr(mia_ip_gateway);
     puts("");
     return 0;
@@ -256,8 +257,10 @@ static void udp_info(void)
            mia_ntos(MIA_UDP_SRC), mia_ntos(MIA_UDP_DST));
 }
 
-static void udp_print(void)
+static void udp_print(mia_bind_t *ep)
 {
+    (void)ep;
+
     udp_info();
     for (uint16_t i = 0; i < (mia_ntos(MIA_UDP_LEN) - MIA_UDP_HDR_LEN); i++) {
         printf("%c", *mia_ptr(MIA_APP_POS + i));
@@ -265,8 +268,10 @@ static void udp_print(void)
     puts("\n~~~EOF~~~");
 }
 
-static void udp_echo(void)
+static void udp_echo(mia_bind_t *ep)
 {
+    (void)ep;
+
     udp_info();
     mia_udp_reply();
 }

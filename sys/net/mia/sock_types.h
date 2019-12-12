@@ -9,7 +9,9 @@ extern "C" {
 #endif
 
 struct _sock_tl_ep {
-    mia_bind_t ep;
+    mia_bind_t bind;
+    sock_udp_ep_t remote;
+    uint16_t flags;
 };
 
 

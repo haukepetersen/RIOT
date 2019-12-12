@@ -22,18 +22,19 @@
 #define SOCK_TYPES_H
 
 #include <stdint.h>
+
+#include "net/mia.h"
 #include "net/sock/udp.h"
-// #include "net/af.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct sock_udp {
-    sock_udp_ep_t local;
+    mia_bind_t bind;
     sock_udp_ep_t remote;
     uint16_t flags;
-}
+};
 
 #ifdef __cplusplus
 }

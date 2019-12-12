@@ -16,13 +16,13 @@
 #define ARP_OPER_RPLY           (2U)
 
 
-static const uint8_t arp_head[] = {0x00, 0x01, 0x08, 0x00, 0x06, 0x04};
+static const uint8_t _arp_head[] = {0x00, 0x01, 0x08, 0x00, 0x06, 0x04};
 
 
 void mia_arp_process(void)
 {
     /* check hardware type and protocol type as well as HLEN and PLEN*/
-    if (memcmp(mia_ptr(MIA_ARP_POS), arp_head, 6) != 0) {
+    if (memcmp(mia_ptr(MIA_ARP_POS), _arp_head, 6) != 0) {
         DEBUG("[mia] arp: error: packet is not IPv4 over Ethernet\n");
         return;
     }
@@ -48,7 +48,7 @@ void mia_arp_process(void)
 void mia_arp_request(const uint8_t *ip)
 {
     /* build ARP header */
-    memcpy(mia_ptr(MIA_ARP_POS), arp_head, 6);
+    memcpy(mia_ptr(MIA_ARP_POS), _arp_head, 6);
     mia_ston(MIA_ARP_OPER, ARP_OPER_REQ);
     memcpy(mia_ptr(MIA_ARP_SHA), mia_mac, ETHERNET_ADDR_LEN);
     memcpy(mia_ptr(MIA_ARP_SPA), mia_ip_addr, MIA_IP_ADDR_LEN);

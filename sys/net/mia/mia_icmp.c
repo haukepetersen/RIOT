@@ -17,8 +17,8 @@
 #define ICMP_ECHO_ID            (0xdeed)
 
 
-static mia_cb_t ping_cb = NULL;
-static uint16_t ping_seq = 0;
+static mia_cb_t _ping_cb = NULL;
+static uint16_t _ping_seq = 0;
 
 
 void mia_icmp_process(void)
@@ -33,8 +33,8 @@ void mia_icmp_process(void)
         mia_ip_reply(mia_ntos(MIA_IP_LEN) - MIA_IP_HDR_LEN);
     }
     else if (mia_buf[MIA_ICMP_TYPE] == ICMP_TYPE_ECHO_RPLY) {
-        if (ping_cb) {
-            ping_cb();
+        if (_ping_cb) {
+            _ping_cb();
         }
     }
     else {
@@ -50,11 +50,11 @@ int mia_icmp_ping(uint8_t *addr, mia_cb_t cb)
 
     mia_lock();
 
-    ping_cb = cb;
+    _ping_cb = cb;
     mia_buf[MIA_ICMP_TYPE] = ICMP_TYPE_ECHO_REQ;
     mia_buf[MIA_ICMP_CODE] = 0;
     memset(mia_ptr(MIA_ICMP_CSUM), 0, 4);   /* also sets the identifier to 0 */
-    mia_ston(MIA_ICMP_ECHO_SEQ, ping_seq++);
+    mia_ston(MIA_ICMP_ECHO_SEQ, _ping_seq++);
     memcpy(mia_ptr(MIA_ICMP_ECHO_DATA), &now, 4);
     mia_ston(MIA_ICMP_CSUM,
          ~inet_csum(0, mia_ptr(MIA_ICMP_POS), MIA_ICMP_HDR_LEN + 4));

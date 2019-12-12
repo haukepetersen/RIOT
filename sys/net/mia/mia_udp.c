@@ -54,7 +54,7 @@ void mia_udp_process(void)
     for (mia_bind_t *ep = endpoints; ep; ep = ep->next) {
         if (ep->port == mia_ntos(MIA_UDP_DST)) {
             DEBUG("[mia] udp: relaying request to port %i\n", (int)ep->port);
-            ep->cb();
+            ep->cb(ep);
             return;
         }
     }
