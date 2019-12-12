@@ -71,6 +71,8 @@ LINKFLAGS += -ffunction-sections
 # set the tap interface for term/valgrind
 ifneq (,$(filter netdev_tap,$(USEMODULE)))
   PORT ?= tap0
+else
+  PORT ?=
 endif
 
 # Configure default eeprom file
