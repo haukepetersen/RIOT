@@ -38,6 +38,9 @@ extern "C" {
 #ifndef MIA_IP_GATEWAY
 #define MIA_IP_GATEWAY          {0xff, 0xff, 0xff, 0xff}
 #endif
+// #ifndef MIA_IP_DNS
+// #define MIA_IP_DNS              {0xff, 0xff, 0xff, 0xff}
+// #endif
 /** @} */
 
 #define MIA_IP_POS              (14U)

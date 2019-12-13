@@ -22,6 +22,7 @@ extern "C" {
 #define MIA_UDP_MAX_PAYLOAD     (MIA_BUFSIZE - MIA_APP_POS)
 
 int mia_udp_bind(mia_bind_t *ep);
+int mia_udp_bind_eph(mia_bind_t *ep);
 int mia_udp_unbind(mia_bind_t *ep);
 
 void mia_udp_process(void);

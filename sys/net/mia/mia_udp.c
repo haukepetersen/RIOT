@@ -8,11 +8,26 @@
 #include "net/mia.h"
 #include "net/mia/ip.h"
 #include "net/mia/udp.h"
+#include "net/iana/portrange.h"
 
 #define ENABLE_DEBUG            (0)
 #include "debug.h"
 
+#define EPH_PORT_INC            (17u)
+
+static uint16_t _eph_port = IANA_DYNAMIC_PORTRANGE_MIN;
+
 static mia_bind_t *endpoints = NULL;
+
+static uint16_t _eph_get(void)
+{
+    /* TODO: comply to RFC6056 sec-3.3.3 ?! */
+    _eph_port += EPH_PORT_INC;
+    if (_eph_port < IANA_DYNAMIC_PORTRANGE_MIN) {
+        _eph_port += IANA_DYNAMIC_PORTRANGE_MIN;
+    }
+    return _eph_port;
+}
 
 int mia_udp_bind(mia_bind_t *ctx)
 {
@@ -28,6 +43,16 @@ int mia_udp_bind(mia_bind_t *ctx)
     endpoints = ctx;
 
     return MIA_OK;
+}
+
+int mia_udp_bind_eph(mia_bind_t *ctx)
+{
+    int res = MIA_ERR_NO_PORT;
+    while (res == MIA_ERR_NO_PORT) {
+        ctx->port = _eph_get();
+        res = mia_udp_bind(ctx);
+    }
+    return res;
 }
 
 int mia_udp_unbind(mia_bind_t *ep)

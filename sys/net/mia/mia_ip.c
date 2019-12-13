@@ -25,6 +25,7 @@ uint8_t mia_ip_addr[] = MIA_IP_ADDR;
 uint8_t mia_ip_mask = MIA_IP_MASK;
 uint8_t mia_ip_bcast[] = MIA_IP_BCAST;
 uint8_t mia_ip_gateway[] = MIA_IP_GATEWAY;
+// uint8_t mia_ip_dns[] = MIA_IP_DNS;
 
 
 static void _ip_csum(uint16_t len)
