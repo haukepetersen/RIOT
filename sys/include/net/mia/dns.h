@@ -13,18 +13,25 @@ extern "C" {
 /**
  * how we do it:
  * - call mia_dns_request(), pass request ctx
+ */
 
 #define MIA_DNS_CLI_PORT        (53726U)     /* TODO: use ephemeral port */
 #define MIA_DNS_SRV_PORT        (53U)
 
 extern mia_bind_t mia_dns_ep;
 
-typedef struct {
+typedef struct mia_dns_req mia_dns_req_t;
+
+typedef void(*mia_dns_cb_t)(mia_dns_req_t *req, uint8_t *addr);
+
+struct mia_dns_req {
     mia_bind_t bind;
     // xtimer_t timeout;    /* TODO: timeout */
-} mia_dns_req_t;
+    mia_dns_cb_t cb;
+};
 
-void mia_dns_request(mia_dns_req_t *req);
+
+int mia_dns_request(mia_dns_req_t *req, mia_dns_cb_t cb, const char *url);
 
 void mia_dns_process(mia_bind_t *ep);
 
