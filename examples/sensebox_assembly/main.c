@@ -18,7 +18,7 @@
  * @}
  */
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -59,7 +59,7 @@ typedef struct {
 /*********** Configurations ******************/
 #define WATERING_THREAD_ON
 //#define HARDWARE_TEST_ON
-//#define LORA_DATA_SEND_ON
+#define LORA_DATA_SEND_ON
 
 #define WATERING_THREAD_PERIOD              (5U)      /* watering done every 5 secs */
 #define MSG_THREAD_PERIOD                   (7200U)   /* messages sent every 2 hours */
@@ -78,7 +78,7 @@ typedef struct {
 extern void hardware_test(void);
 extern uint8_t lora_join(void);
 extern void lora_send_data(data_t* data, int len);
-extern int s_and_a_init_all(data_t* data); 
+extern int s_and_a_init_all(data_t* data);
 extern void s_and_a_update_all(data_t* data);
 extern void s_and_a_hardware_test(void);
 
@@ -116,7 +116,7 @@ static void *_watering(void *arg)
     DEBUG_PRINT("Watering thread started.\n");
 
     while (1) {
-        
+
 
         DEBUG_PRINT("Watering thread.\n");
         msg_receive(&msg);
@@ -229,7 +229,7 @@ int main(void)
      */
     gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
     gpio_set(GPIO_PIN(PB, 2));
-    
+
     mutex_init(&mutex);
 
     s_and_a_init_all(data);
