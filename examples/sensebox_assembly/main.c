@@ -38,10 +38,22 @@
 #define SENDER_PRIO         (THREAD_PRIORITY_MAIN - 1)
 #define WATERING_PRIO         (THREAD_PRIORITY_MAIN - 2)
 
+/*********** Configurations ******************/
+#define WATERING_THREAD_ON
+#define HARDWARE_TEST_ON
+#define LORA_DATA_SEND_ON
+
+#define WATERING_THREAD_PERIOD              (5U)      /* watering done every 5 secs */
+#define MSG_THREAD_PERIOD                   (7200U)   /* messages sent every 2 hours */
+/***********************************************/
+
 static kernel_pid_t send_pid;
 static char send_stack[THREAD_STACKSIZE_MAIN / 2];
+
+#ifdef WATERING_THREAD_ON
 static kernel_pid_t watering_pid;
 static char watering_stack[THREAD_STACKSIZE_MAIN / 2];
+#endif
 
 mutex_t mutex;
 
@@ -56,14 +68,6 @@ typedef struct {
     data_type_te type;
 } data_t;
 
-/*********** Configurations ******************/
-#define WATERING_THREAD_ON
-//#define HARDWARE_TEST_ON
-#define LORA_DATA_SEND_ON
-
-#define WATERING_THREAD_PERIOD              (5U)      /* watering done every 5 secs */
-#define MSG_THREAD_PERIOD                   (7200U)   /* messages sent every 2 hours */
-/***********************************************/
 
 /* TODO: go through and make sure that everything is encapsulated:
  * modules only know about things they need to know about. eg the main module
@@ -88,6 +92,7 @@ data_t data[7];
 
 #define DATA_NUMOF      sizeof(data) / sizeof(data[0])
 
+#ifdef WATERING_THREAD_ON
 static void rtc_cb_watering(void *arg)
 {
     (void) arg;
@@ -147,6 +152,7 @@ static void *_watering(void *arg)
     /* this should never be reached */
     return NULL;
 }
+#endif
 
 static void rtc_cb(void *arg)
 {
@@ -251,8 +257,11 @@ int main(void)
      /* trigger the first send */
     msg_t msg_datasend;
     msg_send(&msg_datasend, send_pid);
+
+#ifdef WATERING_THREAD_ON
     msg_t msg_watering;
     msg_send(&msg_watering, watering_pid);
+#endif
 
     return 0;
 }
