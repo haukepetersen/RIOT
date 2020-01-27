@@ -40,10 +40,11 @@ typedef struct {
 /* TODO: put into hygrometer_params.h */
 /* TODO: implement one 10s startup time for all sensors */
 #define HYGROMETER_1_READ_PIN      ADC_LINE(0)
-#define HYGROMETER_2_READ_PIN      ADC_LINE(2)
-#define HYGROMETER_3_READ_PIN      ADC_LINE(5)
+#define HYGROMETER_2_READ_PIN      ADC_LINE(1)
+#define HYGROMETER_3_READ_PIN      ADC_LINE(2)
+#define HYGROMETER_4_READ_PIN      ADC_LINE(3)
 
-static const hygrometer_params_t hygrometer_params[] = 
+static const hygrometer_params_t hygrometer_params[] =
 {
     {
         .read_pin = HYGROMETER_1_READ_PIN
@@ -53,6 +54,9 @@ static const hygrometer_params_t hygrometer_params[] =
     },
     {
         .read_pin = HYGROMETER_3_READ_PIN
+    },
+    {
+        .read_pin = HYGROMETER_4_READ_PIN
     }
 };
 
@@ -114,6 +118,7 @@ static ds18_t ds18_dev;
 static hygrometer_t hygrometer_1_dev;
 static hygrometer_t hygrometer_2_dev;
 static hygrometer_t hygrometer_3_dev;
+static hygrometer_t hygrometer_4_dev;
 
 static sensor_t sensors[] =
 {
@@ -172,12 +177,20 @@ static sensor_t sensors[] =
         .sensor_type = SENSOR_T_HYGROMETER,
         .config_no = 2,
         .dev = &hygrometer_3_dev
-    }
+    },
+    {
+        .name = "hygrometer 4",
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_UINT16,
+        .sensor_type = SENSOR_T_HYGROMETER,
+        .config_no = 3,
+        .dev = &hygrometer_4_dev
+    },
 };
 
 #define SENSOR_NUMOF           sizeof(sensors) / sizeof(sensors[0])
 
-static valve_t valves[] = 
+static valve_t valves[] =
 {
     {
         .watering_time =  VALVE_1_WATERING_TIME,
@@ -211,7 +224,7 @@ static valve_t valves[] =
 //#define DS18_PARAM_PULL            (GPIO_OD_PU)
 
 /*TODO: the sensor switching is different on the two setups. On mine, it
- * switches the valves too but not soil temp sensor, and vice versa for 
+ * switches the valves too but not soil temp sensor, and vice versa for
  * Stefan's. Could this be handled in config too?
  */
 
@@ -312,7 +325,7 @@ void s_and_a_sensor_update(sensor_t* sensor)
 
         case SENSOR_T_DS18:
 
-            DEBUG_PRINT("2.1\n");
+            // DEBUG_PRINT("2.1\n");
             ds18_get_temperature(sensor->dev, &(sensor->raw_data));
             break;
 
@@ -436,11 +449,11 @@ void s_and_a_update_all(data_t* data)
 
     /* Collect data from sensors */
     for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
-        DEBUG_PRINT("1\n");
+        // DEBUG_PRINT("1\n");
         assert(data + i);
-        DEBUG_PRINT("2\n");
+        // DEBUG_PRINT("2\n");
         s_and_a_sensor_update(&sensors[i]);
-        DEBUG_PRINT("3\n");
+        // DEBUG_PRINT("3\n");
         (data + i)->raw = sensors[i].raw_data;
         DEBUG_PRINT("Sensor %d, raw data %d\n", i, (data + i)->raw);
     }
@@ -465,6 +478,7 @@ void s_and_a_init_all(data_t* data)
     if ((ret = gpio_init(GLOBAL_POWER_PIN, GPIO_OUT)) < 0) {
         printf("Couldn't initialise global power pin: %d\n", ret);
     }
+    gpio_clear(GLOBAL_POWER_PIN);
 
     for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
         if ((ret = s_and_a_sensor_init(&sensors[i], data + i)) < 0) {
