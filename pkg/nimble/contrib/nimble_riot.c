@@ -51,9 +51,9 @@
 #include "nrf_clock.h"
 #endif
 
-#ifdef MODULE_NIMBLE_NETIF_RPBLE
-#include "nimble_netif_rpble.h"
-#include "nimble_netif_rpble_params.h"
+#ifdef MODULE_NIMBLE_RPBLE
+#include "nimble_rpble.h"
+#include "nimble_rpble_params.h"
 #endif
 
 static char _stack_controller[NIMBLE_CONTROLLER_STACKSIZE];
@@ -159,5 +159,10 @@ void nimble_riot_init(void)
 #ifdef MODULE_NIMBLE_NETIF_RPBLE
     res = nimble_netif_rpble_init(&nimble_netif_rpble_params);
     assert(res == NIMBLE_NETIF_RPBLE_OK);
+#endif
+
+#ifdef MODULE_NIMBLE_RPBLE
+    res = nimble_rpble_init(&nimble_rpble_params);
+    assert(res == NIMBLE_RPBLE_OK);
 #endif
 }

@@ -18,6 +18,9 @@ USEMODULE += auto_init_gnrc_rpl
 USEMODULE += nimble_rpble
 NIMBLE_MAX_CONN := 3
 
+DEVELHELP = 1
+CFLAGS += -DDEBUG_ASSERT_VERBOSE
+
 TEST_ON_CI_WHITELIST += nrf52dk
 
 include $(RIOTBASE)/Makefile.include

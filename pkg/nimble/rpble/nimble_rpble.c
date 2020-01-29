@@ -74,7 +74,7 @@ static struct ble_gap_conn_params _conn_params = { 0 };
 static uint32_t _conn_timeout;   /* in ms */
 
 /* local RPL context */
-static nimble_netif_rpble_ctx_t _local_rpl_ctx;
+static nimble_rpble_ctx_t _local_rpl_ctx;
 static int _current_parent = PARENT_NONE;
 /* table for keeping possible parents */
 static ppt_entry_t _ppt[NIMBLE_RPBLE_PPTSIZE];
@@ -146,7 +146,7 @@ static unsigned _ppt_score(uint8_t *buf, size_t len)
 }
 
 static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
-                     const nimble_netif_rpble_ctx_t *ctx, uint8_t free_slots)
+                     const nimble_rpble_ctx_t *ctx, uint8_t free_slots)
 {
     int res;
 
@@ -264,8 +264,11 @@ static void _parent_select(struct ble_npl_event *ev)
     }
 }
 
-static void _on_netif_evt(int handle, nimble_netif_event_t event)
+static void _on_netif_evt(int handle, nimble_netif_event_t event,
+                          const uint8_t *addr)
 {
+    (void)addr;
+
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
     assert(conn);
 
@@ -290,30 +293,27 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event)
             DEBUG("[rpble] CHILD lost %02x\n", (int)conn->addr[0]);
             _children_accept();
             break;
-        case NIMBLE_NETIF_CONNECT_ABORT:
-            if (_current_parent == handle) {
-                printf("[rpble] PARENT abort (0x%02x)\n", (int)conn->addr[0]);
-                _current_parent = PARENT_NONE;
-                _parent_find();
-            }
-            else {
-                printf("[rpble] CHILD abort (0x%02x)\n", (int)conn->addr[0]);
-                _children_accept();
-            }
+        case NIMBLE_NETIF_ABORT_MASTER:
+            printf("[rpble] PARENT abort (0x%02x)\n", (int)conn->addr[0]);
+            _current_parent = PARENT_NONE;
+            _parent_find();
+        case NIMBLE_NETIF_ABORT_SLAVE:
+            printf("[rpble] CHILD abort (0x%02x)\n", (int)conn->addr[0]);
+            _children_accept();
             break;
         case NIMBLE_NETIF_CONN_UPDATED:
             printf("[rpble] conn param update (0x%02x)\n", (int)conn->addr[0]);
             break;
         default:
-            /* should never be reached */
-            assert(0);
+            /* ignore all other events */
             break;
     }
 }
 
-int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
+int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
 {
     assert(cfg);
+
 
     /** initialize the eval event */
     ble_npl_time_ms_to_ticks(cfg->eval_itvl, &_eval_itvl);
@@ -345,19 +345,21 @@ int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg)
     scan_params.filter_duplicates = 1;
     nimble_scanner_init(&scan_params, _on_scan_evt);
 
+    DEBUG("[rpble] initialization done, starting to look for parents\n");
+
     /* start to look for parents */
     _parent_find();
 
     return NIMBLE_RPBLE_OK;
 }
 
-int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
+int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
 {
     assert(ctx != NULL);
 
     /* XXX: if the update context is equal to what we have, ignore it */
     _local_rpl_ctx.free_slots = 0;
-    if (memcmp(&_local_rpl_ctx, ctx, sizeof(nimble_netif_rpble_ctx_t)) == 0) {
+    if (memcmp(&_local_rpl_ctx, ctx, sizeof(nimble_rpble_ctx_t)) == 0) {
         DEBUG("[rpble] RPL update: ignored (no ctx data change)\n");
         return NIMBLE_RPBLE_NO_CHANGE;
     }
@@ -366,7 +368,7 @@ int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx)
           (int)ctx->rank, (int)ctx->inst_id);
 
     /* save rpl context for future reference */
-    memcpy(&_local_rpl_ctx, ctx, sizeof(nimble_netif_rpble_ctx_t));
+    memcpy(&_local_rpl_ctx, ctx, sizeof(nimble_rpble_ctx_t));
 
     if (ctx->role == GNRC_RPL_ROOT_NODE) {
         _parent_find_stop();

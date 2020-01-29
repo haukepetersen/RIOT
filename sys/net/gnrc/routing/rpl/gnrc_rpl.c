@@ -34,8 +34,8 @@
 #include "net/gnrc/rpl/p2p_dodag.h"
 #endif
 
-#ifdef MODULE_NIMBLE_NETIF_RPBLE
-#include "nimble_netif_rpble.h"
+#ifdef MODULE_NIMBLE_RPBLE
+#include "nimble_rpble.h"
 #endif
 
 #define ENABLE_DEBUG 0
@@ -154,14 +154,14 @@ gnrc_rpl_instance_t *gnrc_rpl_root_init(uint8_t instance_id, ipv6_addr_t *dodag_
                   (1 << dodag->dio_min), dodag->dio_interval_doubl,
                   dodag->dio_redun);
 
-#ifdef MODULE_NIMBLE_NETIF_RPBLE
-    nimble_netif_rpble_ctx_t ctx;
+#ifdef MODULE_NIMBLE_RPBLE
+    nimble_rpble_ctx_t ctx;
     ctx.inst_id = instance_id;
     memcpy(ctx.dodag_id, dodag_id, 16);
     ctx.version = dodag->version;
     ctx.rank = dodag->my_rank;
 
-    nimble_netif_rpble_update(&ctx);
+    nimble_rpble_update(&ctx);
 #endif
 
     return inst;
