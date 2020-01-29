@@ -357,6 +357,8 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
 {
     assert(ctx != NULL);
 
+    DEBUG("[rpble] RPL update\n");
+
     /* XXX: if the update context is equal to what we have, ignore it */
     _local_rpl_ctx.free_slots = 0;
     if (memcmp(&_local_rpl_ctx, ctx, sizeof(nimble_rpble_ctx_t)) == 0) {
