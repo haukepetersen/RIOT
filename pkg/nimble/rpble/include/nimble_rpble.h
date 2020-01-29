@@ -80,9 +80,9 @@ enum {
 };
 
 typedef struct {
-    uint32_t period_scan;
-    uint32_t period_adv;
-    uint32_t period_jitter;
+    // uint32_t period_scan;
+    // uint32_t period_adv;
+    // uint32_t period_jitter;
 
     uint32_t scan_itvl;
     uint32_t scan_win;
@@ -99,7 +99,7 @@ typedef struct {
     uint32_t eval_itvl;
 
     const char *name;
-} nimble_netif_rpble_cfg_t;
+} nimble_rpble_cfg_t;
 
 typedef struct {
     uint8_t inst_id;
@@ -108,11 +108,11 @@ typedef struct {
     uint8_t role;
     uint16_t rank;
     uint8_t free_slots;
-} nimble_netif_rpble_ctx_t;
+} nimble_rpble_ctx_t;
 
-int nimble_netif_rpble_init(const nimble_netif_rpble_cfg_t *cfg);
+int nimble_rpble_init(const nimble_rpble_cfg_t *cfg);
 
-int nimble_netif_rpble_update(const nimble_netif_rpble_ctx_t *ctx);
+int nimble_rpble_update(const nimble_rpble_ctx_t *ctx);
 
 #ifdef __cplusplus
 }
