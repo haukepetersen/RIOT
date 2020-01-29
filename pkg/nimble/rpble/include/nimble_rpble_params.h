@@ -64,6 +64,9 @@ extern "C" {
 // #ifndef NIMBLE_RPBLE_CLEAR_TIMEOUT
 // #define NIMBLE_RPBLE_CLEAR_TIMEOUT      (30000000U)
 // #endif
+#ifndef NIMBLE_RPBLE_EVAL_ITVL
+#define NIMBLE_RPBLE_EVAL_ITVL          (10000U)
+#endif
 #ifndef NIMBLE_RPBLE_NAME
 #define NIMBLE_RPBLE_NAME               "R"  /* 1 char max */
 #endif
@@ -79,6 +82,7 @@ extern "C" {
       .conn_latency  = NIMBLE_RPBLE_CONN_LATENCY,  \
       .conn_super_to = NIMBLE_RPBLE_CONN_SUPER_TO, \
       .conn_timeout  = NIMBLE_RPBLE_CONN_TIMEOUT,  \
+      .eval_itvl     = NIMBLE_RPBLE_EVAL_ITVL,     \
       .name          = NIMBLE_RPBLE_NAME }
 #endif
       // .clear_timeout = NIMBLE_RPBLE_CLEAR_TIMEOUT,
