@@ -160,6 +160,7 @@ gnrc_rpl_instance_t *gnrc_rpl_root_init(uint8_t instance_id, ipv6_addr_t *dodag_
     memcpy(ctx.dodag_id, dodag_id, 16);
     ctx.version = dodag->version;
     ctx.rank = dodag->my_rank;
+    ctx.role = dodag->node_status;
 
     nimble_rpble_update(&ctx);
 #endif

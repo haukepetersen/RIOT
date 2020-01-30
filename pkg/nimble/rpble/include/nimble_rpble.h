@@ -80,17 +80,12 @@ enum {
 };
 
 typedef struct {
-    // uint32_t period_scan;
-    // uint32_t period_adv;
-    // uint32_t period_jitter;
-
     uint32_t scan_itvl;
     uint32_t scan_win;
 
     uint32_t adv_itvl;
 
     uint32_t conn_scanitvl;
-    uint32_t conn_scanwin;      // merge...
     uint32_t conn_itvl;
     uint16_t conn_latency;
     uint32_t conn_super_to;
