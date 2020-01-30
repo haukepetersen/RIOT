@@ -30,42 +30,33 @@ extern "C" {
  * @{
  */
 #ifndef NIMBLE_RPBLE_SCAN_ITVL
-#define NIMBLE_RPBLE_SCAN_ITVL          (1000000U)
+#define NIMBLE_RPBLE_SCAN_ITVL          (1000000U)  /* 1s */
 #endif
 #ifndef NIMBLE_RPBLE_SCAN_WIN
-#define NIMBLE_RPBLE_SCAN_WIN           (200000U)
+#define NIMBLE_RPBLE_SCAN_WIN           (120000U)   /* 120ms */
 #endif
 
 #ifndef NIMBLE_RPBLE_ADV_ITVL
-#define NIMBLE_RPBLE_ADV_ITVL           (100000U)
+#define NIMBLE_RPBLE_ADV_ITVL           (100000U)   /* 100ms */
 #endif
 
 #ifndef NIMBLE_RPBLE_CONN_SCANITVL
-#define NIMBLE_RPBLE_CONN_SCANITVL      (2000000U)
-#endif
-#ifndef NIMBLE_RPBLE_CONN_SCANWIN
-#define NIMBLE_RPBLE_CONN_SCANWIN       (2000000U)
+#define NIMBLE_RPBLE_CONN_SCANITVL      (120000U)   /* 120ms */
 #endif
 #ifndef NIMBLE_RPBLE_CONN_ITVL
-#define NIMBLE_RPBLE_CONN_ITVL          (25000U)
+#define NIMBLE_RPBLE_CONN_ITVL          (90000U)    /* 90ms */
 #endif
 #ifndef NIMBLE_RPBLE_CONN_LATENCY
 #define NIMBLE_RPBLE_CONN_LATENCY       (0)
 #endif
 #ifndef NIMBLE_RPBLE_CONN_SUPER_TO
-#define NIMBLE_RPBLE_CONN_SUPER_TO      (1000000U)
+#define NIMBLE_RPBLE_CONN_SUPER_TO      (2000000U)
 #endif
 #ifndef NIMBLE_RPBLE_CONN_TIMEOUT
-#define NIMBLE_RPBLE_CONN_TIMEOUT       (2000000U)
+#define NIMBLE_RPBLE_CONN_TIMEOUT       (1000000U)  /* 1s */
 #endif
-// #ifndef NIMBLE_RPBLE_EVAL_TIMEOUT
-// #define NIMBLE_RPBLE_EVAL_TIMEOUT       (5000000U)
-// #endif
-// #ifndef NIMBLE_RPBLE_CLEAR_TIMEOUT
-// #define NIMBLE_RPBLE_CLEAR_TIMEOUT      (30000000U)
-// #endif
 #ifndef NIMBLE_RPBLE_EVAL_ITVL
-#define NIMBLE_RPBLE_EVAL_ITVL          (10000U)
+#define NIMBLE_RPBLE_EVAL_ITVL          (10000000U) /* 10s */
 #endif
 #ifndef NIMBLE_RPBLE_NAME
 #define NIMBLE_RPBLE_NAME               "R"  /* 1 char max */
@@ -77,7 +68,6 @@ extern "C" {
       .scan_win      = NIMBLE_RPBLE_SCAN_WIN,      \
       .adv_itvl      = NIMBLE_RPBLE_ADV_ITVL,      \
       .conn_scanitvl = NIMBLE_RPBLE_CONN_SCANITVL, \
-      .conn_scanwin  = NIMBLE_RPBLE_CONN_SCANWIN,  \
       .conn_itvl     = NIMBLE_RPBLE_CONN_ITVL,     \
       .conn_latency  = NIMBLE_RPBLE_CONN_LATENCY,  \
       .conn_super_to = NIMBLE_RPBLE_CONN_SUPER_TO, \
@@ -85,8 +75,6 @@ extern "C" {
       .eval_itvl     = NIMBLE_RPBLE_EVAL_ITVL,     \
       .name          = NIMBLE_RPBLE_NAME }
 #endif
-      // .clear_timeout = NIMBLE_RPBLE_CLEAR_TIMEOUT,
-      // .eval_timeout  = NIMBLE_RPBLE_EVAL_TIMEOUT,
 /**@}*/
 
 /**

@@ -73,6 +73,21 @@ static struct ble_gap_adv_params _adv_params = { 0 };
 static struct ble_gap_conn_params _conn_params = { 0 };
 static uint32_t _conn_timeout;   /* in ms */
 
+#if ENABLE_DEBUG
+static void _dbg_msg(const char *text, const uint8_t *addr)
+{
+    printf("[rpble] %s (", text);
+    bluetil_addr_print(addr);
+    printf(")\n");
+}
+#else
+static void _dbg_msg(const char *text, const uint8_t *addr)
+{
+    (void)text;
+    (void)addr;
+}
+#endif
+
 /* local RPL context */
 static nimble_rpble_ctx_t _local_rpl_ctx;
 static int _current_parent = PARENT_NONE;
@@ -171,6 +186,13 @@ static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
 
 static void _children_accept(void)
 {
+    /* we only start advertising (accepting) if we do have an active parent and
+     * if we have resources for new connections */
+    if ((_current_parent == PARENT_NONE) ||
+        (nimble_netif_conn_count(NIMBLE_NETIF_UNUSED) == 0)) {
+        return;
+    }
+
     /* generate the new advertisement data */
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
     bluetil_ad_t ad;
@@ -180,6 +202,9 @@ static void _children_accept(void)
      * set of advertising data by killing any ongoing advertisements */
     nimble_netif_accept_stop();
     int res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
+    if (res != NIMBLE_NETIF_OK) {
+        DEBUG("[rpble] children_accept: fail to start accepting: %i\n", res);
+    }
     assert(res == NIMBLE_NETIF_OK);
     (void)res;
 }
@@ -256,7 +281,7 @@ static void _parent_select(struct ble_npl_event *ev)
     pp->tries++;
     int res = nimble_netif_connect(&pp->addr, &_conn_params, _conn_timeout);
     if (res < 0) {
-        DEBUG("# parent_handler: err: unable to connect to preferred parent");
+        DEBUG("# parent_handler: err: unable to connect to preferred parent\n");
         _parent_find();
     }
     else {
@@ -269,40 +294,38 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event,
 {
     (void)addr;
 
-    nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
-    assert(conn);
-
     switch (event) {
         case NIMBLE_NETIF_CONNECTED_MASTER:
             assert(_current_parent == handle);
-            DEBUG("[rpble] PARENT selected: %02x\n", (int)conn->addr[0]);
+            _dbg_msg("PARENT selected", addr);
             _children_accept();
             break;
         case NIMBLE_NETIF_CONNECTED_SLAVE:
-            DEBUG("[rpble] CHILD added: %02x\n", (int)conn->addr[0]);
+            _dbg_msg("CHILD added", addr);
             _children_accept();
             break;
         case NIMBLE_NETIF_CLOSED_MASTER:
-            DEBUG("[rpble] PARENT lost: %02x\n", (int)conn->addr[0]);
+            _dbg_msg("PARENT lost", addr);
             _current_parent = PARENT_NONE;
             nimble_netif_accept_stop();
             /* back to 0, now we need to find a new parent... */
             _parent_find();
             break;
         case NIMBLE_NETIF_CLOSED_SLAVE:
-            DEBUG("[rpble] CHILD lost %02x\n", (int)conn->addr[0]);
+            _dbg_msg("CHILD lost", addr);
             _children_accept();
             break;
         case NIMBLE_NETIF_ABORT_MASTER:
-            printf("[rpble] PARENT abort (0x%02x)\n", (int)conn->addr[0]);
+            _dbg_msg("PARENT abort", addr);
             _current_parent = PARENT_NONE;
             _parent_find();
+            break;
         case NIMBLE_NETIF_ABORT_SLAVE:
-            printf("[rpble] CHILD abort (0x%02x)\n", (int)conn->addr[0]);
+            _dbg_msg("CHILD abort", addr);
             _children_accept();
             break;
         case NIMBLE_NETIF_CONN_UPDATED:
-            printf("[rpble] conn param update (0x%02x)\n", (int)conn->addr[0]);
+            _dbg_msg("param update", addr);
             break;
         default:
             /* ignore all other events */
@@ -316,7 +339,7 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
 
 
     /** initialize the eval event */
-    ble_npl_time_ms_to_ticks(cfg->eval_itvl, &_eval_itvl);
+    ble_npl_time_ms_to_ticks(cfg->eval_itvl / 1000, &_eval_itvl);
     ble_npl_callout_init(&_evt_eval, nimble_port_get_dflt_eventq(),
                          _parent_select, NULL);
 
@@ -326,7 +349,7 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
     _adv_params.itvl_max = (cfg->adv_itvl / BLE_HCI_ADV_ITVL);
 
     _conn_params.scan_itvl = (cfg->conn_scanitvl / BLE_HCI_SCAN_ITVL);
-    _conn_params.scan_window = (cfg->conn_scanwin / BLE_HCI_SCAN_ITVL);
+    _conn_params.scan_window = (cfg->conn_scanitvl / BLE_HCI_SCAN_ITVL);
     _conn_params.itvl_min = (cfg->conn_itvl / BLE_HCI_CONN_ITVL);
     _conn_params.itvl_max = (cfg->conn_itvl / BLE_HCI_CONN_ITVL);
     _conn_params.latency = cfg->conn_latency;
@@ -378,9 +401,7 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
     }
 
     /* advertise the updated context */
-    if (_current_parent != PARENT_NONE) {
-        _children_accept();
-    }
+    _children_accept();
 
     return NIMBLE_RPBLE_OK;
 }
