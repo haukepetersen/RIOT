@@ -4,50 +4,42 @@
 #include "lora_serialization.h"
 #include "fmt.h"
 
+#include "app.h"
+
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
-typedef enum {
-    SENSOR_DATA_T_TEMP,
-    SENSOR_DATA_T_HUM,
-    SENSOR_DATA_T_UINT16
-} data_type_te;
 
-typedef struct {
-    uint16_t raw;
-    data_type_te type;
-} data_t;
-
-semtech_loramac_t loramac;
-lora_serialization_t serialization;
+static semtech_loramac_t loramac;
+// static lora_serialization_t serialization;
 
 static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_t* serialization)
 {
     assert(data);
 
     lora_serialization_reset(serialization);
-    DEBUG_PRINT("LoRa serialization reset.\n");
+    DEBUG("LoRa serialization reset.\n");
 
     for (int i = 0; i < data_len; i++) {
 
-        DEBUG_PRINT("Data point %d, data type %d, raw data %d\n", i, data->type, data->raw);
+        DEBUG("Data point %d, data type %d, raw data %d\n", i, data->type, data->raw);
         fflush(stdout);
 
         float cents = (float)data->raw/100;
         switch ( data->type ) {
-            case SENSOR_DATA_T_TEMP:	
+            case SENSOR_DATA_T_TEMP:
                 lora_serialization_write_temperature(serialization, cents);
                 break;
 
-            case SENSOR_DATA_T_HUM:	
+            case SENSOR_DATA_T_HUM:
                 lora_serialization_write_humidity(serialization, cents);
                 break;
 
-            case SENSOR_DATA_T_UINT16:	
+            case SENSOR_DATA_T_UINT16:
                 lora_serialization_write_uint16(serialization, data->raw);
                 break;
 
-            default:	
+            default:
                 break;
         }
 
@@ -57,23 +49,23 @@ static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_
 
 void lora_send_data(data_t *data, int len)
 {
-    DEBUG_PRINT("Sending data.\n");
+    DEBUG("Sending data.\n");
 
     lora_serialization_t serialization;
 
     _lora_serialize_data(data, len, &serialization);
 
-    DEBUG_PRINT("Data serialized.\n");
-    
+    DEBUG("Data serialized.\n");
+
     /* The send call blocks until done */
     semtech_loramac_send(&loramac, serialization.buffer, serialization.cursor);
 
-    DEBUG_PRINT("Data sent.\n");
+    DEBUG("Data sent.\n");
 
     /* Wait until the send cycle has completed */
     semtech_loramac_recv(&loramac);
 
-    DEBUG_PRINT("Data confirmation received.\n");
+    DEBUG("Data confirmation received.\n");
 
 }
 
@@ -101,15 +93,19 @@ uint8_t lora_join(void)
      * generated device address and to get the network and application session
      * keys.
      */
-    puts("Starting join procedure");
+    puts("[lora] starting join procedure");
 
-    for(int retries = 0; retries < 3; retries++) {
-        if (semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA) == SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
-            puts("Join procedure succeeded");
-            return 0;
+    int res = -1;
+    // for(int retries = 0; retries < 3; retries++) {
+    do {
+        res = semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA);
+        if (res == SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
         }
-    }
+        else {
+            printf("[lora] join failed (%i)\n", res);
+        }
+    } while (res != SEMTECH_LORAMAC_JOIN_SUCCEEDED);
 
-    puts("Join procedure failed. LoRaWAN not joined.");
-    return 1;
+    puts("[lora] join procedure succeeded");
+    return 0;
 }

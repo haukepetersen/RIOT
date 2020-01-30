@@ -8,17 +8,8 @@
 #include "ds18.h"
 #include "ds18_params.h"
 
-typedef enum {
-    SENSOR_DATA_T_TEMP,
-    SENSOR_DATA_T_HUM,
-    SENSOR_DATA_T_UINT16
-} data_type_te;
+#include "app.h"
 
-/*TODO: make this defined in only one place in the code */
-typedef struct {
-    uint16_t raw;
-    data_type_te type;
-} data_t;
 
 /*TODO: this depends on the hardware. any way to remove it from here? */
 #define RES                 ADC_RES_10BIT
@@ -55,9 +46,9 @@ static const hygrometer_params_t hygrometer_params[] =
     {
         .read_pin = HYGROMETER_3_READ_PIN
     },
-    {
-        .read_pin = HYGROMETER_4_READ_PIN
-    }
+    // {
+    //     .read_pin = HYGROMETER_4_READ_PIN
+    // }
 };
 
 /* TODO: put into s_and_a.h */
@@ -118,7 +109,7 @@ static ds18_t ds18_dev;
 static hygrometer_t hygrometer_1_dev;
 static hygrometer_t hygrometer_2_dev;
 static hygrometer_t hygrometer_3_dev;
-static hygrometer_t hygrometer_4_dev;
+// static hygrometer_t hygrometer_4_dev;
 
 static sensor_t sensors[] =
 {
@@ -178,14 +169,14 @@ static sensor_t sensors[] =
         .config_no = 2,
         .dev = &hygrometer_3_dev
     },
-    {
-        .name = "hygrometer 4",
-        .raw_data = 0,
-        .data_type = SENSOR_DATA_T_UINT16,
-        .sensor_type = SENSOR_T_HYGROMETER,
-        .config_no = 3,
-        .dev = &hygrometer_4_dev
-    },
+    // {
+    //     .name = "hygrometer 4",
+    //     .raw_data = 0,
+    //     .data_type = SENSOR_DATA_T_UINT16,
+    //     .sensor_type = SENSOR_T_HYGROMETER,
+    //     .config_no = 3,
+    //     .dev = &hygrometer_4_dev
+    // },
 };
 
 #define SENSOR_NUMOF           sizeof(sensors) / sizeof(sensors[0])
