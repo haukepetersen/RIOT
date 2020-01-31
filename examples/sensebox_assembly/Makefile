@@ -34,6 +34,7 @@ DRIVER ?= sx1276
 REGION ?= EU868
  # Include the Semtech-loramac package
 USEPKG += semtech-loramac
+USEMODULE += semtech_loramac_rx
 USEMODULE += $(DRIVER)
 USEMODULE += fmt
  # Add the lora serialization package
