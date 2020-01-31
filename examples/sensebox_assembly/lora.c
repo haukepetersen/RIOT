@@ -11,7 +11,6 @@
 
 
 static semtech_loramac_t loramac;
-// static lora_serialization_t serialization;
 
 static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_t* serialization)
 {
@@ -49,24 +48,23 @@ static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_
 
 void lora_send_data(data_t *data, int len)
 {
-    DEBUG("Sending data.\n");
+    DEBUG("[lora] sending data\n");
 
     lora_serialization_t serialization;
-
     _lora_serialize_data(data, len, &serialization);
 
-    DEBUG("Data serialized.\n");
+    DEBUG("[lora] data serialized\n");
 
-    /* The send call blocks until done */
+    /* send data and wait for confirmation */
+    DEBUG("[lora] sending data and waiting for confirmation\n");
     semtech_loramac_send(&loramac, serialization.buffer, serialization.cursor);
-
-    DEBUG("Data sent.\n");
-
-    /* Wait until the send cycle has completed */
-    semtech_loramac_recv(&loramac);
-
-    DEBUG("Data confirmation received.\n");
-
+    uint8_t res = semtech_loramac_recv(&loramac);
+    if (res != SEMTECH_LORAMAC_RX_CONFIRMED) {
+        DEBUG("[lora] warning: received no ACK frame after sending data...");
+    }
+    else {
+        DEBUG("[lora] data confirmation received\n");
+    }
 }
 
 uint8_t lora_join(void)
@@ -85,7 +83,6 @@ uint8_t lora_join(void)
     semtech_loramac_set_deveui(&loramac, deveui);
     semtech_loramac_set_appeui(&loramac, appeui);
     semtech_loramac_set_appkey(&loramac, appkey);
-
      /* Use a fast datarate, e.g. BW125/SF7 in EU868 */
     semtech_loramac_set_dr(&loramac, LORAMAC_DR_5);
 

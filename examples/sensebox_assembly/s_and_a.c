@@ -74,29 +74,29 @@ typedef struct {
     void* dev;
 } sensor_t;
 
-typedef struct {
-    uint8_t watering_time;
-    uint16_t watering_level;
-    uint16_t safety_margin_lower;
-    uint16_t safety_margin_upper;
-    bool low_disable;
-    bool high_disable;
-    gpio_t control_pin;
-    sensor_t* control_sensor;
-} valve_t;
+// typedef struct {
+//     uint8_t watering_time;
+//     uint16_t watering_level;
+//     uint16_t safety_margin_lower;
+//     uint16_t safety_margin_upper;
+//     bool low_disable;
+//     bool high_disable;
+//     gpio_t control_pin;
+//     sensor_t* control_sensor;
+// } valve_t;
 
 /* TODO: put into s_and_a_params.h */
-#define VALVE_1_CONTROL_PIN        GPIO_PIN(PA, 5)
-#define VALVE_1_WATERING_LEVEL     (800)
-#define VALVE_1_WATERING_TIME      (3)                /* seconds */
-#define VALVE_1_SAFETY_LOWER       (100)
-#define VALVE_1_SAFETY_UPPER       (400)
+// #define VALVE_1_CONTROL_PIN        GPIO_PIN(PA, 5)
+// #define VALVE_1_WATERING_LEVEL     (800)
+// #define VALVE_1_WATERING_TIME      (3)                /* seconds */
+// #define VALVE_1_SAFETY_LOWER       (100)
+// #define VALVE_1_SAFETY_UPPER       (400)
 
-#define VALVE_2_CONTROL_PIN        GPIO_PIN(PA, 7)
-#define VALVE_2_WATERING_LEVEL     (800)
-#define VALVE_2_WATERING_TIME      (3)                /* seconds */
-#define VALVE_2_SAFETY_LOWER       (100)
-#define VALVE_2_SAFETY_UPPER       (400)
+// #define VALVE_2_CONTROL_PIN        GPIO_PIN(PA, 7)
+// #define VALVE_2_WATERING_LEVEL     (800)
+// #define VALVE_2_WATERING_TIME      (3)                /* seconds */
+// #define VALVE_2_SAFETY_LOWER       (100)
+// #define VALVE_2_SAFETY_UPPER       (400)
 
 /* TODO: separate out a sensor_conf and a valve_conf, following
  * the style of periph_conf.h. Change the init function accordingly,
@@ -181,31 +181,31 @@ static sensor_t sensors[] =
 
 #define SENSOR_NUMOF           sizeof(sensors) / sizeof(sensors[0])
 
-static valve_t valves[] =
-{
-    {
-        .watering_time =  VALVE_1_WATERING_TIME,
-        .watering_level = VALVE_1_WATERING_LEVEL,
-        .safety_margin_lower = VALVE_1_SAFETY_LOWER,
-        .safety_margin_upper = VALVE_1_SAFETY_UPPER,
-        .low_disable = false,
-        .high_disable = false,
-        .control_pin = VALVE_1_CONTROL_PIN,
-        .control_sensor = &sensors[4]
-    },
-    {
-        .watering_time =  VALVE_2_WATERING_TIME,
-        .watering_level = VALVE_2_WATERING_LEVEL,
-        .safety_margin_lower = VALVE_2_SAFETY_LOWER,
-        .safety_margin_upper = VALVE_2_SAFETY_UPPER,
-        .low_disable = false,
-        .high_disable = false,
-        .control_pin = VALVE_2_CONTROL_PIN,
-        .control_sensor = &sensors[5]
-    }
-};
+// static valve_t valves[] =
+// {
+//     {
+//         .watering_time =  VALVE_1_WATERING_TIME,
+//         .watering_level = VALVE_1_WATERING_LEVEL,
+//         .safety_margin_lower = VALVE_1_SAFETY_LOWER,
+//         .safety_margin_upper = VALVE_1_SAFETY_UPPER,
+//         .low_disable = false,
+//         .high_disable = false,
+//         .control_pin = VALVE_1_CONTROL_PIN,
+//         .control_sensor = &sensors[4]
+//     },
+//     {
+//         .watering_time =  VALVE_2_WATERING_TIME,
+//         .watering_level = VALVE_2_WATERING_LEVEL,
+//         .safety_margin_lower = VALVE_2_SAFETY_LOWER,
+//         .safety_margin_upper = VALVE_2_SAFETY_UPPER,
+//         .low_disable = false,
+//         .high_disable = false,
+//         .control_pin = VALVE_2_CONTROL_PIN,
+//         .control_sensor = &sensors[5]
+//     }
+// };
 
-#define VALVE_NUMOF           sizeof(valves) / sizeof(valves[0])
+// #define VALVE_NUMOF           sizeof(valves) / sizeof(valves[0])
 
 /* TODO: try this from here, rather than in sensebox/include/periph_conf.h */
 //#define ADC_0_REF_DEFAULT                  ADC_REFCTRL_REFSEL_AREFA
@@ -224,31 +224,31 @@ static valve_t valves[] =
  * removed
  */
 
-bool _valve_safety_test(valve_t* valve, int sample)
-{
-    if (sample < (valve->watering_level - valve->safety_margin_lower)){
-        valve->low_disable = true;
-    }
+// bool _valve_safety_test(valve_t* valve, int sample)
+// {
+//     if (sample < (valve->watering_level - valve->safety_margin_lower)){
+//         valve->low_disable = true;
+//     }
 
-    if (sample > (valve->watering_level)) {
-        valve->low_disable = false;
-    }
+//     if (sample > (valve->watering_level)) {
+//         valve->low_disable = false;
+//     }
 
-    if (sample > (valve->watering_level + valve->safety_margin_upper)){
-        valve->high_disable = true;
-    }
+//     if (sample > (valve->watering_level + valve->safety_margin_upper)){
+//         valve->high_disable = true;
+//     }
 
-    DEBUG_PRINT("valve: watering level - %4d, sample value - %4d,",
-            valve->watering_level, sample);
-    DEBUG_PRINT("low disable - %1d, high disable - %1d\n",
-            valve->low_disable, valve->high_disable);
+//     DEBUG_PRINT("valve: watering level - %4d, sample value - %4d,",
+//             valve->watering_level, sample);
+//     DEBUG_PRINT("low disable - %1d, high disable - %1d\n",
+//             valve->low_disable, valve->high_disable);
 
-    if (valve->low_disable || valve->high_disable) {
-        return false;
-    }
+//     if (valve->low_disable || valve->high_disable) {
+//         return false;
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
 void hygrometer_read(hygrometer_t* dev, int16_t* val)
 {
@@ -268,30 +268,30 @@ int hygrometer_init(hygrometer_t* dev, const hygrometer_params_t* params)
     return 0;
 }
 
-void s_and_a_water(valve_t* valve)
-{
+// void s_and_a_water(valve_t* valve)
+// {
 
-    int moisture_level = 0;
+//     int moisture_level = 0;
 
-    if (!valve->control_sensor) {
-        for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
-            moisture_level += sensors[i].raw_data;
-        }
-        moisture_level = moisture_level / SENSOR_NUMOF;
-    }
-    else {
-        moisture_level = valve->control_sensor->raw_data;
-    }
+//     if (!valve->control_sensor) {
+//         for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
+//             moisture_level += sensors[i].raw_data;
+//         }
+//         moisture_level = moisture_level / SENSOR_NUMOF;
+//     }
+//     else {
+//         moisture_level = valve->control_sensor->raw_data;
+//     }
 
-    if ((moisture_level > valve->watering_level) &&
-         _valve_safety_test(valve, moisture_level)) {
+//     if ((moisture_level > valve->watering_level) &&
+//          _valve_safety_test(valve, moisture_level)) {
 
-        gpio_set(valve->control_pin);
-        xtimer_sleep(valve->watering_time);
-        gpio_clear(valve->control_pin);
-    }
+//         gpio_set(valve->control_pin);
+//         xtimer_sleep(valve->watering_time);
+//         gpio_clear(valve->control_pin);
+//     }
 
-}
+// }
 
 void s_and_a_sensor_update(sensor_t* sensor)
 {
@@ -344,15 +344,15 @@ void s_and_a_hardware_test(void)
     gpio_set(GLOBAL_POWER_PIN);
 
     /* Test the valves */
-    puts("Testing the valves. Valves should click on and off three times each.");
-    for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
-        for (int j = 0; j < 3; j++) {
-            gpio_set(valves[i].control_pin);
-            xtimer_sleep(1);
-            gpio_clear(valves[i].control_pin);
-            xtimer_sleep(1);
-        }
-    }
+    // puts("Testing the valves. Valves should click on and off three times each.");
+    // for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
+    //     for (int j = 0; j < 3; j++) {
+    //         gpio_set(valves[i].control_pin);
+    //         xtimer_sleep(1);
+    //         gpio_clear(valves[i].control_pin);
+    //         xtimer_sleep(1);
+    //     }
+    // }
 
     /* Test the sensors */
     puts("Testing the sensors. Check the readings are sensible.");
@@ -379,10 +379,10 @@ void s_and_a_hardware_test(void)
     puts("Hardware test complete.");
 }
 
-int s_and_a_valve_init(valve_t* valve)
-{
-    return gpio_init(valve->control_pin, GPIO_OUT);
-}
+// int s_and_a_valve_init(valve_t* valve)
+// {
+//     return gpio_init(valve->control_pin, GPIO_OUT);
+// }
 
 int s_and_a_sensor_init(sensor_t* sensor, data_t* data)
 {
@@ -452,12 +452,12 @@ void s_and_a_update_all(data_t* data)
  * the same size, eg by using the same variable to declare
  */
 
-    for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
-        /* TODO: why am I passing around &valves when it's defined in module
-         * level? Get the architecture clear.
-         */
-        s_and_a_water(&valves[i]);
-    }
+    // for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
+    //      TODO: why am I passing around &valves when it's defined in module
+    //      * level? Get the architecture clear.
+
+    //     s_and_a_water(&valves[i]);
+    // }
 
     gpio_clear(GLOBAL_POWER_PIN);
 }
@@ -477,9 +477,9 @@ void s_and_a_init_all(data_t* data)
         }
     }
 
-    for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
-        if ((ret = s_and_a_valve_init(&valves[i])) < 0) {
-            printf("Couldn't initialise valve %d: %d\n", i, ret);
-        }
-    }
+    // for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
+    //     if ((ret = s_and_a_valve_init(&valves[i])) < 0) {
+    //         printf("Couldn't initialise valve %d: %d\n", i, ret);
+    //     }
+    // }
 }
