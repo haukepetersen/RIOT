@@ -41,8 +41,15 @@
 #ifndef HARDWARE_TEST
 #define HARDWARE_TEST           (1)
 #endif
+#ifndef ENALBE_LORA
+#define ENABLE_LORA             (0)
+#endif
 
+#if ENALBE_LORA
 #define SAMPLING_ITVL           (300U)      /* every 5min */
+#else
+#define SAMPLING_ITVL           (1U)
+#endif
 
 #define SENSOR_NUMOF            (7U)
 
@@ -54,7 +61,9 @@ int main(void)
     puts("=====================================");
     puts("Integration with TTN and openSenseMap");
     puts("=====================================");
+#if ENALBE_LORA
     lora_join();
+#endif
 
     /* Enable the UART 5V lines */
     /* TODO: I don't actually need this for Stefan's setup. But I do for mine.
@@ -73,9 +82,11 @@ int main(void)
         /* read sensor data */
         DEBUG("[main] collecting new sensor data\n");
         s_and_a_update_all(data);
+#if ENALBE_LORA
         /* publish the data to OpenSenseMap */
         DEBUG("[main] publishing data now\n");
         lora_send_data(data, SENSOR_NUMOF);
+#endif
         /* wait until next event */
         DEBUG("[main] waiting for next event\n");
         xtimer_sleep(SAMPLING_ITVL);
