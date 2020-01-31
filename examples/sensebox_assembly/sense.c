@@ -20,39 +20,22 @@
 
 #include <stdint.h>
 
+#include "board.h"
 #include "assert.h"
 #include "xtimer.h"
 #include "hdc1000.h"
+#include "hdc1000_params.h"
 #include "tsl4531x.h"
+#include "tsl4531x_params.h"
 #include "ds18.h"
+#include "ds18_params.h"
 #include "periph/gpio.h"
 #include "periph/adc.h"
 
 #include "app.h"
-#include "sense_params.h"
 
 #define ENABLE_DEBUG        (1)
 #include "debug.h"
-
-static const hdc1000_params_t _hdc1000_params = {
-    .i2c            = I2C_DEV(0),
-    .addr           = HDC1000_I2C_ADDRESS,
-    .res            = HDC1000_14BIT,
-    .renew_interval = 1000000ul,
-};
-
-static const tsl4531x_params_t _tsl4531x_params = {
-    .i2c_dev          = I2C_DEV(0),
-    .i2c_addr         = TSL45315_ADDR,
-    .integration_time = TSL4531X_INTEGRATE_400MS,
-    .low_power_mode   = false,
-    .part_number      = TSL45315_PARTNO,
-};
-
-static const ds18_params_t _ds18_params = {
-    .pin      = GPIO_PIN(PB, 9),
-    .out_mode = GPIO_OD_PU,
-};
 
 static const adc_t _hygro_params[] = {
     ADC_LINE(0),
@@ -80,15 +63,12 @@ static void _pwr_on(uint32_t delay)
 {
     gpio_set(SENSE_PWR_PIN);
     xtimer_sleep(delay);
-    DEBUG("[sense] power on\n");
 }
 
 static void _pwr_off(void)
 {
     gpio_clear(SENSE_PWR_PIN);
-    DEBUG("[sense] power off\n");
 }
-
 
 int sense_init(void)
 {
@@ -103,19 +83,19 @@ int sense_init(void)
     }
     _pwr_on(SENSE_PWR_STARTDELAY);
 
-    res = hdc1000_init(&_hdc1000, &_hdc1000_params);
+    res = hdc1000_init(&_hdc1000, &hdc1000_params[0]);
     if (res != HDC1000_OK) {
         DEBUG("[sense] error initializing HDC1000 sensor (%i)\n", res);
         return -1;
     }
 
-    res = tsl4531x_init(&_tsl4531x, &_tsl4531x_params);
+    res = tsl4531x_init(&_tsl4531x, &tsl4531x_params[0]);
     if (res != 0) {
         DEBUG("[sense] error initializing TSL4531x sensor(%i)\n", res);
         return -1;
     }
 
-    res = ds18_init(&_ds18, &_ds18_params);
+    res = ds18_init(&_ds18, &ds18_params[0]);
     if (res != 0) {
         DEBUG("[sense] error initializing DS18 sensor(%i)\n", res);
         return -1;
@@ -167,8 +147,6 @@ int sense_readall(appdata_t *data)
         data[0].raw = 0;
         data[1].raw = 0;
     }
-
-    DEBUG("FOOBAR\n");
 
     /* read light value */
     data[2].raw = (int16_t)tsl4531x_simple_read(&_tsl4531x);

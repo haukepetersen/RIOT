@@ -34,7 +34,6 @@
 #include "mutex.h"
 
 #include "app.h"
-#include "sense_params.h"
 
 #define ENABLE_DEBUG            (1)
 #include "debug.h"
@@ -43,10 +42,10 @@
 #define HARDWARE_TEST           (1)
 #endif
 #ifndef ENABLE_LORA
-#define ENABLE_LORA             (0)
+#define ENABLE_LORA             (1)
 #endif
 
-#if ENALBE_LORA
+#if ENABLE_LORA
 #define SAMPLING_ITVL           (300U)      /* every 5min */
 #else
 #define SAMPLING_ITVL           (1U)

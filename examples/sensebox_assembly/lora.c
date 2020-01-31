@@ -5,7 +5,6 @@
 #include "fmt.h"
 
 #include "app.h"
-#include "sense_params.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -60,13 +59,14 @@ void lora_send_data(const appdata_t *data)
     /* send data and wait for confirmation */
     DEBUG("[lora] sending data and waiting for confirmation\n");
     semtech_loramac_send(&loramac, serialization.buffer, serialization.cursor);
-    uint8_t res = semtech_loramac_recv(&loramac);
-    if (res != SEMTECH_LORAMAC_RX_CONFIRMED) {
-        DEBUG("[lora] warning: received no ACK frame after sending data...");
-    }
-    else {
-        DEBUG("[lora] data confirmation received\n");
-    }
+    DEBUG("[lora] data is away\n");
+    // uint8_t res = semtech_loramac_recv(&loramac);
+    // if (res != SEMTECH_LORAMAC_RX_CONFIRMED) {
+    //     DEBUG("[lora] warning: received no ACK frame after sending data...");
+    // }
+    // else {
+    //     DEBUG("[lora] data confirmation received\n");
+    // }
 }
 
 uint8_t lora_join(void)

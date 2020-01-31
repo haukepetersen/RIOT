@@ -24,6 +24,17 @@
 extern "C" {
 #endif
 
+#define HYGRO_NUMOF             (4U)
+#define HYGRO_RES               ADC_RES_10BIT
+
+#define SENSE_NUMOF             (HYGRO_NUMOF + 4U)
+
+#define SENSE_PWR_PIN           GPIO_PIN(PB, 8)
+#define SENSE_PWR_STARTDELAY    (5U)
+#define SENSE_PWR_TESTCYCLES    (3U)
+#define SENSE_PWR_TESTDELAY     (1U)
+
+
 typedef enum {
     SENSOR_DATA_T_TEMP,
     SENSOR_DATA_T_HUM,
