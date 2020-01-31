@@ -10,16 +10,12 @@
 
 #include "app.h"
 
-
-/*TODO: this depends on the hardware. any way to remove it from here? */
 #define RES                 ADC_RES_10BIT
-#define GLOBAL_POWER_PIN    GPIO_PIN(PB, 8)
 #define GLOBAL_STARTUP_TIME (5)
 
 #define ENABLE_DEBUG        (1)
 #include "debug.h"
 
-/* TODO: put into hygrometer.h */
 typedef struct {
     adc_t read_pin;
 } hygrometer_params_t;
@@ -28,37 +24,7 @@ typedef struct {
     const hygrometer_params_t* params;
 } hygrometer_t;
 
-/* TODO: put into hygrometer_params.h */
-/* TODO: implement one 10s startup time for all sensors */
-#define HYGROMETER_1_READ_PIN      ADC_LINE(0)
-#define HYGROMETER_2_READ_PIN      ADC_LINE(1)
-#define HYGROMETER_3_READ_PIN      ADC_LINE(2)
-#define HYGROMETER_4_READ_PIN      ADC_LINE(3)
 
-static const hygrometer_params_t hygrometer_params[] =
-{
-    {
-        .read_pin = HYGROMETER_1_READ_PIN
-    },
-    {
-        .read_pin = HYGROMETER_2_READ_PIN
-    },
-    {
-        .read_pin = HYGROMETER_3_READ_PIN
-    },
-    // {
-    //     .read_pin = HYGROMETER_4_READ_PIN
-    // }
-};
-
-/* TODO: put into s_and_a.h */
-typedef enum {
-    SENSOR_T_HDC1000_TEMP,
-    SENSOR_T_HDC1000_HUM,
-    SENSOR_T_TSL4531X,
-    SENSOR_T_DS18,
-    SENSOR_T_HYGROMETER
-} sensor_type_te;
 
 typedef struct {
     /* TODO: deduplicate raw_data and data_type. maybe a pointer to a data_t?
@@ -74,42 +40,13 @@ typedef struct {
     void* dev;
 } sensor_t;
 
-// typedef struct {
-//     uint8_t watering_time;
-//     uint16_t watering_level;
-//     uint16_t safety_margin_lower;
-//     uint16_t safety_margin_upper;
-//     bool low_disable;
-//     bool high_disable;
-//     gpio_t control_pin;
-//     sensor_t* control_sensor;
-// } valve_t;
-
-/* TODO: put into s_and_a_params.h */
-// #define VALVE_1_CONTROL_PIN        GPIO_PIN(PA, 5)
-// #define VALVE_1_WATERING_LEVEL     (800)
-// #define VALVE_1_WATERING_TIME      (3)                /* seconds */
-// #define VALVE_1_SAFETY_LOWER       (100)
-// #define VALVE_1_SAFETY_UPPER       (400)
-
-// #define VALVE_2_CONTROL_PIN        GPIO_PIN(PA, 7)
-// #define VALVE_2_WATERING_LEVEL     (800)
-// #define VALVE_2_WATERING_TIME      (3)                /* seconds */
-// #define VALVE_2_SAFETY_LOWER       (100)
-// #define VALVE_2_SAFETY_UPPER       (400)
-
-/* TODO: separate out a sensor_conf and a valve_conf, following
- * the style of periph_conf.h. Change the init function accordingly,
- * so that periph is linked to the dev pointer during init
- */
-
 static hdc1000_t hdc1000_dev;
 static tsl4531x_t tsl4531x_dev;
 static ds18_t ds18_dev;
 static hygrometer_t hygrometer_1_dev;
 static hygrometer_t hygrometer_2_dev;
 static hygrometer_t hygrometer_3_dev;
-// static hygrometer_t hygrometer_4_dev;
+static hygrometer_t hygrometer_4_dev;
 
 static sensor_t sensors[] =
 {
@@ -169,95 +106,28 @@ static sensor_t sensors[] =
         .config_no = 2,
         .dev = &hygrometer_3_dev
     },
-    // {
-    //     .name = "hygrometer 4",
-    //     .raw_data = 0,
-    //     .data_type = SENSOR_DATA_T_UINT16,
-    //     .sensor_type = SENSOR_T_HYGROMETER,
-    //     .config_no = 3,
-    //     .dev = &hygrometer_4_dev
-    // },
+    {
+        .name = "hygrometer 4",
+        .raw_data = 0,
+        .data_type = SENSOR_DATA_T_UINT16,
+        .sensor_type = SENSOR_T_HYGROMETER,
+        .config_no = 3,
+        .dev = &hygrometer_4_dev
+    },
 };
 
 #define SENSOR_NUMOF           sizeof(sensors) / sizeof(sensors[0])
 
-// static valve_t valves[] =
-// {
-//     {
-//         .watering_time =  VALVE_1_WATERING_TIME,
-//         .watering_level = VALVE_1_WATERING_LEVEL,
-//         .safety_margin_lower = VALVE_1_SAFETY_LOWER,
-//         .safety_margin_upper = VALVE_1_SAFETY_UPPER,
-//         .low_disable = false,
-//         .high_disable = false,
-//         .control_pin = VALVE_1_CONTROL_PIN,
-//         .control_sensor = &sensors[4]
-//     },
-//     {
-//         .watering_time =  VALVE_2_WATERING_TIME,
-//         .watering_level = VALVE_2_WATERING_LEVEL,
-//         .safety_margin_lower = VALVE_2_SAFETY_LOWER,
-//         .safety_margin_upper = VALVE_2_SAFETY_UPPER,
-//         .low_disable = false,
-//         .high_disable = false,
-//         .control_pin = VALVE_2_CONTROL_PIN,
-//         .control_sensor = &sensors[5]
-//     }
-// };
-
-// #define VALVE_NUMOF           sizeof(valves) / sizeof(valves[0])
-
-/* TODO: try this from here, rather than in sensebox/include/periph_conf.h */
-//#define ADC_0_REF_DEFAULT                  ADC_REFCTRL_REFSEL_AREFA
-
-/*TODO: try this from here, rather than in ds18/include/ds18_params.h */
-//#define DS18_PARAM_PIN             (GPIO_PIN(PB, 9))
-//#define DS18_PARAM_PULL            (GPIO_OD_PU)
-
-/*TODO: the sensor switching is different on the two setups. On mine, it
- * switches the valves too but not soil temp sensor, and vice versa for
- * Stefan's. Could this be handled in config too?
- */
-
-/* TODO: once this is made truly generic, i.e. no code needs to be changed
- * for adding or removing sensors, then these descriptors will be able to be
- * removed
- */
-
-// bool _valve_safety_test(valve_t* valve, int sample)
-// {
-//     if (sample < (valve->watering_level - valve->safety_margin_lower)){
-//         valve->low_disable = true;
-//     }
-
-//     if (sample > (valve->watering_level)) {
-//         valve->low_disable = false;
-//     }
-
-//     if (sample > (valve->watering_level + valve->safety_margin_upper)){
-//         valve->high_disable = true;
-//     }
-
-//     DEBUG_PRINT("valve: watering level - %4d, sample value - %4d,",
-//             valve->watering_level, sample);
-//     DEBUG_PRINT("low disable - %1d, high disable - %1d\n",
-//             valve->low_disable, valve->high_disable);
-
-//     if (valve->low_disable || valve->high_disable) {
-//         return false;
-//     }
-
-//     return true;
-// }
-
-void hygrometer_read(hygrometer_t* dev, int16_t* val)
+int16_t hygrometer_read(hygrometer_t* dev, int16_t* val)
 {
-    *val = adc_sample(dev->params->read_pin, RES);
+    return (int16_t)adc_sample(dev->params->read_pin, RES);
 }
 
 int hygrometer_init(hygrometer_t* dev, const hygrometer_params_t* params)
 {
     int ret;
+
+    DEBUG("[sens] init hygromter %i\n", (int)params->pin);
 
     if ((ret = adc_init(params->read_pin)) < 0) {
         return ret;
@@ -321,7 +191,7 @@ void s_and_a_sensor_update(sensor_t* sensor)
             break;
 
         case SENSOR_T_HYGROMETER:
-            hygrometer_read(sensor->dev, &(sensor->raw_data));
+            sensor->raw_data = hygrometer_read(sensor->dev);
             break;
 
         default:
@@ -334,14 +204,14 @@ void s_and_a_hardware_test(void)
     /* Test the power line for the moisture sensors */
     puts("Testing moisture sensor power lines. Light on control boards should be blinking on and off.");
     for (int i = 0; i < 5; i++) {
-        gpio_set(GLOBAL_POWER_PIN);
+        gpio_set(SENSOR_POWER_PIN);
         xtimer_sleep(1);
-        gpio_clear(GLOBAL_POWER_PIN);
+        gpio_clear(SENSOR_POWER_PIN);
         xtimer_sleep(1);
     }
 
     /* Leave the power on for the rest of the test. */
-    gpio_set(GLOBAL_POWER_PIN);
+    gpio_set(SENSOR_POWER_PIN);
 
     /* Test the valves */
     // puts("Testing the valves. Valves should click on and off three times each.");
@@ -374,7 +244,7 @@ void s_and_a_hardware_test(void)
         }
     }
 
-    gpio_clear(GLOBAL_POWER_PIN);
+    gpio_clear(SENSOR_POWER_PIN);
 
     puts("Hardware test complete.");
 }
@@ -435,7 +305,7 @@ int s_and_a_sensor_init(sensor_t* sensor, data_t* data)
 
 void s_and_a_update_all(data_t* data)
 {
-    gpio_set(GLOBAL_POWER_PIN);
+    gpio_set(SENSOR_POWER_PIN);
     xtimer_sleep(GLOBAL_STARTUP_TIME);
 
     /* Collect data from sensors */
@@ -448,38 +318,22 @@ void s_and_a_update_all(data_t* data)
         (data + i)->raw = sensors[i].raw_data;
         DEBUG_PRINT("Sensor %d, raw data %d\n", i, (data + i)->raw);
     }
-/* TODO: make sure there's a compile time check that data[] and sensors[] are
- * the same size, eg by using the same variable to declare
- */
 
-    // for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
-    //      TODO: why am I passing around &valves when it's defined in module
-    //      * level? Get the architecture clear.
-
-    //     s_and_a_water(&valves[i]);
-    // }
-
-    gpio_clear(GLOBAL_POWER_PIN);
+    gpio_clear(SENSOR_POWER_PIN);
 }
 
 void s_and_a_init_all(data_t* data)
 {
     int ret;
 
-    if ((ret = gpio_init(GLOBAL_POWER_PIN, GPIO_OUT)) < 0) {
+    if ((ret = gpio_init(SENSOR_POWER_PIN, GPIO_OUT)) < 0) {
         printf("Couldn't initialise global power pin: %d\n", ret);
     }
-    gpio_clear(GLOBAL_POWER_PIN);
+    gpio_clear(SENSOR_POWER_PIN);
 
     for (uint8_t i = 0; i < SENSOR_NUMOF; i++) {
         if ((ret = s_and_a_sensor_init(&sensors[i], data + i)) < 0) {
             printf("Couldn't initialise sensor %d: %d\n", i, ret);
         }
     }
-
-    // for (uint8_t i = 0; i < VALVE_NUMOF; i++) {
-    //     if ((ret = s_and_a_valve_init(&valves[i])) < 0) {
-    //         printf("Couldn't initialise valve %d: %d\n", i, ret);
-    //     }
-    // }
 }

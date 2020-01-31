@@ -34,6 +34,7 @@
 #include "mutex.h"
 
 #include "app.h"
+#include "sense_params.h"
 
 #define ENABLE_DEBUG            (1)
 #include "debug.h"
@@ -41,7 +42,7 @@
 #ifndef HARDWARE_TEST
 #define HARDWARE_TEST           (1)
 #endif
-#ifndef ENALBE_LORA
+#ifndef ENABLE_LORA
 #define ENABLE_LORA             (0)
 #endif
 
@@ -51,17 +52,17 @@
 #define SAMPLING_ITVL           (1U)
 #endif
 
-#define SENSOR_NUMOF            (7U)
-
 int main(void)
 {
-    static data_t data[SENSOR_NUMOF];
+    int res;
+    (void)res;
+    appdata_t data[SENSE_NUMOF];
 
     puts("LoRaWAN Class A low-power application");
     puts("=====================================");
     puts("Integration with TTN and openSenseMap");
     puts("=====================================");
-#if ENALBE_LORA
+#if ENABLE_LORA
     lora_join();
 #endif
 
@@ -69,23 +70,29 @@ int main(void)
     /* TODO: I don't actually need this for Stefan's setup. But I do for mine.
      * Move to sensebox config and raise a PR.
      */
-    gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
-    gpio_set(GPIO_PIN(PB, 2));
+    // gpio_init(GPIO_PIN(PB, 2), GPIO_OUT);
+    // gpio_set(GPIO_PIN(PB, 2));
 
     /* initialize sensors */
-    s_and_a_init_all(data);
+    res = sense_init();
+    if (res != 0) {
+        DEBUG("[main] error initializing sensors!\n");
+    }
 #if HARDWARE_TEST
-    s_and_a_hardware_test();
+    res = sense_hwtest();
+    if (res != 0) {
+        DEBUG("[main] error in hardware selftest\n");
+    }
 #endif
 
     while (1) {
         /* read sensor data */
         DEBUG("[main] collecting new sensor data\n");
-        s_and_a_update_all(data);
-#if ENALBE_LORA
+        sense_readall(data);
+#if ENABLE_LORA
         /* publish the data to OpenSenseMap */
         DEBUG("[main] publishing data now\n");
-        lora_send_data(data, SENSOR_NUMOF);
+        lora_send_data(data);
 #endif
         /* wait until next event */
         DEBUG("[main] waiting for next event\n");

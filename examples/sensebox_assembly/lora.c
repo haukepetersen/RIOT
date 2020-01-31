@@ -5,6 +5,7 @@
 #include "fmt.h"
 
 #include "app.h"
+#include "sense_params.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -12,7 +13,8 @@
 
 static semtech_loramac_t loramac;
 
-static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_t* serialization)
+static void _lora_serialize_data(const appdata_t* data, int data_len,
+                                 lora_serialization_t* serialization)
 {
     assert(data);
 
@@ -46,12 +48,12 @@ static void _lora_serialize_data(data_t* data, int data_len, lora_serialization_
     }
 }
 
-void lora_send_data(data_t *data, int len)
+void lora_send_data(const appdata_t *data)
 {
     DEBUG("[lora] sending data\n");
 
     lora_serialization_t serialization;
-    _lora_serialize_data(data, len, &serialization);
+    _lora_serialize_data(data, SENSE_NUMOF, &serialization);
 
     DEBUG("[lora] data serialized\n");
 

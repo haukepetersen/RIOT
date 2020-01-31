@@ -1,28 +1,16 @@
 # name of your application
 APPLICATION = sensebox_assembly
-
-# If no BOARD is found in the environment, use this default:
 BOARD ?= sensebox_samd21
-
-# This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
-BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-uno
+# modules we need
+USEMODULE += fmt
+USEMODULE += xtimer
 
-# we want to use SAUL:
-#USEMODULE += saul_default
-# include the shell:
-USEMODULE += shell
-USEMODULE += shell_commands
-# additional modules for debugging:
-USEMODULE += ps
-#USEMODULE += xtimer
 USEMODULE += tsl4531x
 USEMODULE += hdc1000
 USEMODULE += ds18
-USEMODULE += printf_float
-
-FEATURES_REQUIRED = periph_adc
+USEMODULE += periph_adc
 
 DEVEUI ?= 00FA3F26B4128C7D
 APPEUI ?= 70B3D57ED001193D
@@ -36,10 +24,8 @@ REGION ?= EU868
 USEPKG += semtech-loramac
 USEMODULE += semtech_loramac_rx
 USEMODULE += $(DRIVER)
-USEMODULE += fmt
  # Add the lora serialization package
 USEPKG += lora-serialization
-FEATURES_REQUIRED += periph_rtc
 CFLAGS += -DREGION_$(REGION)
 CFLAGS += -DDEVEUI=\"$(DEVEUI)\" -DAPPEUI=\"$(APPEUI)\" -DAPPKEY=\"$(APPKEY)\"
 CFLAGS += -DLORAMAC_ACTIVE_REGION=LORAMAC_REGION_$(REGION)

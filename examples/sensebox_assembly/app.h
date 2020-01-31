@@ -28,22 +28,19 @@ typedef enum {
     SENSOR_DATA_T_TEMP,
     SENSOR_DATA_T_HUM,
     SENSOR_DATA_T_UINT16
-} data_type_te;
+} appdata_type_t;
 
-/*TODO: make this defined in only one place in the code */
 typedef struct {
     uint16_t raw;
-    data_type_te type;
-} data_t;
+    appdata_type_t type;
+} appdata_t;
 
-
-void s_and_a_init_all(data_t* data);
-void s_and_a_hardware_test(void);
-void s_and_a_update_all(data_t* data);
+int sense_init(void);
+int sense_hwtest(void);
+int sense_readall(appdata_t *data);
 
 uint8_t lora_join(void);
-void lora_send_data(data_t *data, int len);
-
+void lora_send_data(const appdata_t *data);
 
 #ifdef __cplusplus
 }
