@@ -46,7 +46,7 @@
 #endif
 
 #if ENABLE_LORA
-#define SAMPLING_ITVL           (300U)      /* every 5min */
+#define SAMPLING_ITVL           (900U)      /* every 15min */
 #else
 #define SAMPLING_ITVL           (1U)
 #endif
