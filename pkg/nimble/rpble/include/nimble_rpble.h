@@ -16,7 +16,11 @@
  * connections between BLE nodes based on information provided by the RPL
  * routing protocol.
  *
- * # Strategy
+ * # Concept
+ *
+ * ##
+ *
+ * ## Strategy
  * - parents are advertising their presence (if slots are open)
  * - children are scanning for potential parents
  * - children will initiate connection procedure 'best' parent
@@ -26,7 +30,7 @@
  *    -most free connection slots
  *    --> all compiled into a single score value
  *
- * # State Machine
+ * ## State Machine
  * initial: is master?
  * -> yes: start accepting (advertising)
  * -> no: start discovery loop
@@ -35,8 +39,15 @@
  * -> stop scanning
  * -> start accepting (advertising)
  *
- * # Architecture
- * TODO
+ * # Parameters
+ * - advertising itvl T_A (+ advertising timeout period T_ATO?)
+ * - scan interval T_S + scan window T_W
+ *
+ * - initial parent selection window T_IPSW -> time to wait until selecting a
+ *   parent from discovered options
+ *
+ * - conn timeout -> deduct from T_A
+ * - connection itvl, supervision timeout, slave latency -> 0
  *
  * # TODOs
  * @todo        never remove active parents from ppt
@@ -50,10 +61,10 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
+#ifndef NIMBLE_RPBLE_H
+#define NIMBLE_RPBLE_H
 
-#ifndef NIMBLE_NETIF_RPBLE_H
-#define NIMBLE_NETIF_RPBLE_H
-
+#include "nimble_netif.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,9 +85,7 @@ extern "C" {
 
 enum {
     NIMBLE_RPBLE_OK         =  0,
-    NIMBLE_RPBLE_STACKERR   = -1,
-    NIMBLE_RPBLE_ERR_ADV    = -2,
-    NIMBLE_RPBLE_NO_CHANGE  = -3,
+    NIMBLE_RPBLE_NO_CHANGE  = -1,
 };
 
 typedef struct {
@@ -107,11 +116,13 @@ typedef struct {
 
 int nimble_rpble_init(const nimble_rpble_cfg_t *cfg);
 
+int nimble_rpble_eventcb(nimble_netif_eventcb_t cb);
+
 int nimble_rpble_update(const nimble_rpble_ctx_t *ctx);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NIMBLE_NETIF_RPBLE_H */
+#endif /* NIMBLE_RPBLE_H */
 /** @} */
