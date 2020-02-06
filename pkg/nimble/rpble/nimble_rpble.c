@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Freie Universität Berlin
+ * Copyright (C) 2019-2020 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       RPL over BLE implementation for NimBLE
+ * @brief       RPL-over-BLE (rpble) implementation for NimBLE and GNRC
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Cenk Gündoğan <cenk.guendogan@haw-hamburg.de>
@@ -24,12 +24,9 @@
 #include "mutex.h"
 #include "thread.h"
 #include "random.h"
-#include "event/timeout.h"
-#include "net/eui48.h"
 #include "net/bluetil/ad.h"
 #include "net/bluetil/addr.h"
 #include "net/gnrc/rpl.h"
-#include "event/timeout.h"
 
 #include "nimble_netif.h"
 #include "nimble_netif_conn.h"
@@ -38,11 +35,11 @@
 #include "host/ble_gap.h"
 #include "nimble/nimble_port.h"
 
+#define ENABLE_DEBUG        (0)
+#include "debug.h"
+
 #define PARENT_NONE         (-1)
 #define PARENT_ROOT         (-2)
-
-#define ENABLE_DEBUG        (1)
-#include "debug.h"
 
 #define VENDOR_FIELD_LEN    (23U)
 
@@ -62,6 +59,7 @@
 #define PARENT_NUM          (NIMBLE_RPBLE_MAXPARENTS)
 #define CHILD_NUM           (CONN_NUMOF - PARENT_NUM)
 
+
 typedef struct {
     ble_addr_t addr;    /**< potential parents address */
     unsigned score;         /* 0 := not used, larger is better! */
@@ -73,21 +71,6 @@ static struct ble_gap_adv_params _adv_params = { 0 };
 static struct ble_gap_conn_params _conn_params = { 0 };
 static uint32_t _conn_timeout;   /* in ms */
 
-#if ENABLE_DEBUG
-static void _dbg_msg(const char *text, const uint8_t *addr)
-{
-    printf("[rpble] %s (", text);
-    bluetil_addr_print(addr);
-    printf(")\n");
-}
-#else
-static void _dbg_msg(const char *text, const uint8_t *addr)
-{
-    (void)text;
-    (void)addr;
-}
-#endif
-
 /* local RPL context */
 static nimble_rpble_ctx_t _local_rpl_ctx;
 static int _current_parent = PARENT_NONE;
@@ -97,6 +80,9 @@ static ppt_entry_t _ppt[NIMBLE_RPBLE_PPTSIZE];
 /* eval event used for periodical state updates */
 static uint32_t _eval_itvl;
 static struct ble_npl_callout _evt_eval;
+
+static nimble_netif_eventcb_t _eventcb = NULL;
+
 
 static void _parent_find(void);
 static void _parent_select(struct ble_npl_event *ev);
@@ -289,6 +275,21 @@ static void _parent_select(struct ble_npl_event *ev)
     }
 }
 
+#if ENABLE_DEBUG
+static void _dbg_msg(const char *text, const uint8_t *addr)
+{
+    printf("[rpble] %s (", text);
+    bluetil_addr_print(addr);
+    printf(")\n");
+}
+#else
+static void _dbg_msg(const char *text, const uint8_t *addr)
+{
+    (void)text;
+    (void)addr;
+}
+#endif
+
 static void _on_netif_evt(int handle, nimble_netif_event_t event,
                           const uint8_t *addr)
 {
@@ -328,8 +329,13 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event,
             _dbg_msg("param update", addr);
             break;
         default:
-            /* ignore all other events */
+            /* nothing to do for all other events */
             break;
+    }
+
+    /* pass events to high-level user if activated */
+    if (_eventcb) {
+        _eventcb(handle, event, addr);
     }
 }
 
@@ -373,6 +379,12 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
     /* start to look for parents */
     _parent_find();
 
+    return NIMBLE_RPBLE_OK;
+}
+
+int nimble_rpble_eventcb(nimble_netif_eventcb_t cb)
+{
+    _eventcb = cb;
     return NIMBLE_RPBLE_OK;
 }
 
