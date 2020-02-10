@@ -172,6 +172,9 @@ static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
 
 static void _children_accept(void)
 {
+    /* stop advertising for updating */
+    nimble_netif_accept_stop();
+
     /* we only start advertising (accepting) if we do have an active parent and
      * if we have resources for new connections */
     if ((_current_parent == PARENT_NONE) ||
@@ -184,9 +187,7 @@ static void _children_accept(void)
     bluetil_ad_t ad;
     _make_ad(&ad, buf, &_local_rpl_ctx,
              (uint8_t)nimble_netif_conn_count(NIMBLE_NETIF_UNUSED) + 1);
-    /* start advertising this node. In any case we make sure to use the newest
-     * set of advertising data by killing any ongoing advertisements */
-    nimble_netif_accept_stop();
+    /* start advertising this node */
     int res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
     if (res != NIMBLE_NETIF_OK) {
         DEBUG("[rpble] children_accept: fail to start accepting: %i\n", res);
