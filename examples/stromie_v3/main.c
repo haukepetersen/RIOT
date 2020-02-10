@@ -20,6 +20,8 @@
  *   - increment counter
  *   - recalc
  *
+ * -> max rotation: 1 per 2 seconds
+ *
  *
  * What to show in Grafana:
  * - current power consumption (W)
@@ -30,9 +32,10 @@
  * @}
  */
 
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
+#include <limits.h>
 
 #include "xtimer.h"
 #include "byteorder.h"
@@ -52,27 +55,47 @@
 #define TYPE_GAS            (0x03)
 #define TYPE_EL             (0x04)
 
-#define AD_STATIC           { 0x02, 0x01, 0x06, 0x0c, 0xff, 0xfe, 0xaf, 5 }
+#define AD_STATIC           { 0x02, 0x01, 0x06, 0x0f, 0xff, 0xfe, 0xaf, 0x04 }
 
-#define SAMPLE_RATE         (5u)
+#define SAMPLE_RATE         (20u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
-#define PULSE_THRESHOLD     (18u)
-#define PULSE_OVERSAMPLE    (2u)
 
-#define POWER_TIMEOUT       (300000u)   /* assume 0W power after 5 minutes */
-#define POWER_CONST         (48000000u) /* MS_PER_HOUR / U per Wh */
+#define POWER_CONST         (48000000u)     /* MS_PER_HOUR / U per kWh */
+
+#define CMA_HIGH            (25U)
+#define CMA_LOW             (100U)
+
+#define TH_INIT             (50U)
+#define HI_INIT             (100U)
+#define LO_INIT             (5U)
 
 typedef struct __attribute__((packed)) {
     uint16_t seq;
     uint16_t bat;
     uint16_t pulse_cnt;
     uint16_t power;
+    uint8_t low;
+    uint8_t th;
+    uint8_t high;
 } eldata_t;
 
 static const uint8_t _ad_static[] = AD_STATIC;
 static skald_ctx_t _adv;
 static eldata_t *_data = NULL;
 
+#if 0
+#define HIGH_CNT            (50U)
+
+static uint8_t _tmax = 0;
+static uint8_t _tmin = UINT8_MAX;
+static uint8_t _thold = UINT8_MAX;
+#endif
+
+/* cumulative moving average */
+static unsigned _cma(unsigned csm, uint8_t val, unsigned n)
+{
+    return ((csm * n) + val) / (n + 1);
+}
 
 static uint16_t _bat_read(void)
 {
@@ -90,6 +113,8 @@ int main(void)
     memcpy(pdu + 6, _ad_static, sizeof(_ad_static));
     _data = (eldata_t *)(pdu + 6 + sizeof(_ad_static));
     memset(_data, 0, sizeof(eldata_t));
+    /* initialize power meter sampling input */
+    skald_adv_start(&_adv);
 
     /* initialize pins */
     adc_init(A0);
@@ -97,11 +122,16 @@ int main(void)
     gpio_init(D_ON, GPIO_OUT);
     gpio_clear(D_ON);
 
-    /* initialize power meter sampling input */
-    skald_adv_start(&_adv);
+    /* determine the state */
+    uint8_t th = TH_INIT;
+    unsigned hi = HI_INIT;
+    unsigned lo = LO_INIT;
 
+    unsigned update_cnt = 0;
     unsigned state = 0;
     uint16_t seq = 0;
+    uint16_t pulse_cnt = 0;
+    uint32_t last_pulse = 0;
 
     while (1) {
         int ir_bg = adc_sample(A0, ADC_RES_8BIT);
@@ -110,17 +140,39 @@ int main(void)
         int ir_fg = adc_sample(A0, ADC_RES_8BIT);
         gpio_clear(D_ON);
 
+        uint8_t val = (uint8_t)(ir_fg - ir_bg);
+        printf("sample: bg:%i fg:%i\n", ir_bg, ir_fg);
 
-        if (++state == 10) {
+        if (val > th) {
+            ++state;
+            if (state == 1) {
+                ++state;    /* make sure we only increment once per pulse */
+
+                ++pulse_cnt;
+                uint32_t now = xtimer_now_usec();
+                uint32_t dur_ms = (now - last_pulse) / 1000;
+                last_pulse = now;
+                uint16_t power = POWER_CONST / dur_ms;
+            }
+            hi = _cma(hi, val, CMA_HIGH);
+        }
+        else {
+            lo = _cma(lo, val, CMA_LOW);
             state = 0;
+        }
+        th = (uint8_t)(lo + ((hi - lo) / 2));
 
-            uint16_t v_bat = _bat_read();
+        if (++update_cnt == SAMPLE_RATE) {
             ++seq;
+            uint16_t v_bat = _bat_read();
 
             byteorder_htobebufs((uint8_t *)&_data->seq, seq);
             byteorder_htobebufs((uint8_t *)&_data->bat, v_bat);
             byteorder_htobebufs((uint8_t *)&_data->pulse_cnt, (uint16_t)ir_bg);
             byteorder_htobebufs((uint8_t *)&_data->power, (uint16_t)ir_fg);
+            _data->low = lo;
+            _data->th = th;
+            _data->high = hi;
         }
 
         xtimer_usleep(SAMPLING_DELAY);

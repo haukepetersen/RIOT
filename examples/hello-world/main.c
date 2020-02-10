@@ -21,12 +21,24 @@
 
 #include <stdio.h>
 
+typedef enum {
+    A,
+    B,
+} foo_t;
+
+void a(foo_t f)
+{
+    printf("%i\n", f);
+}
+
 int main(void)
 {
-    puts("Hello World!");
+    a(A);
+    a(B);
+    a(23);
 
-    printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
-    printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+    foo_t foo = 23;
+    a(foo);
 
     return 0;
 }
