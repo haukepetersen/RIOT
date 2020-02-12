@@ -35,7 +35,7 @@
 #include "host/ble_gap.h"
 #include "nimble/nimble_port.h"
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
 
 #define PARENT_NONE         (-1)
@@ -61,7 +61,7 @@
 
 
 typedef struct {
-    ble_addr_t addr;    /**< potential parents address */
+    ble_addr_t addr;        /**< potential parents address */
     unsigned score;         /* 0 := not used, larger is better! */
     uint8_t tries;
 } ppt_entry_t;
@@ -82,10 +82,6 @@ static uint32_t _eval_itvl;
 static struct ble_npl_callout _evt_eval;
 
 static nimble_netif_eventcb_t _eventcb = NULL;
-
-
-static void _parent_find(void);
-static void _parent_select(struct ble_npl_event *ev);
 
 static ppt_entry_t *_ppt_find_best(void)
 {
@@ -393,7 +389,8 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
 {
     assert(ctx != NULL);
 
-    DEBUG("[rpble] RPL update\n");
+    DEBUG("[rpble] RPL update [inst_id:%i, rank:%i]\n",
+          (int)ctx->inst_id, (int)ctx->rank);
 
     /* XXX: if the update context is equal to what we have, ignore it */
     _local_rpl_ctx.free_slots = 0;
@@ -409,6 +406,7 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
     memcpy(&_local_rpl_ctx, ctx, sizeof(nimble_rpble_ctx_t));
 
     if (ctx->role == GNRC_RPL_ROOT_NODE) {
+        DEBUG("[rpble] RPL update: we are root, advertising now\n");
         _parent_find_stop();
         _current_parent = PARENT_ROOT;
     }
