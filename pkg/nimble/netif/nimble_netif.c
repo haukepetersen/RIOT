@@ -562,6 +562,9 @@ int nimble_netif_connect(const ble_addr_t *addr,
 
     int res = ble_gap_connect(nimble_riot_own_addr_type, addr, timeout,
                               conn_params, _on_gap_master_evt, (void *)handle);
+    if (res != 0) {
+        printf("gap_connect fail (%i)\n", res);
+    }
     assert(res == 0);
     (void)res;
 
