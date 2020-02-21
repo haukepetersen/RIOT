@@ -55,16 +55,11 @@
 #define POS_FREE_SLOTS      (20)
 
 /* get shortcuts for the max number of connections, parents, and children */
+#define PARENT_NUM          (1U)
 #define CONN_NUMOF          (MYNEWT_VAL_BLE_MAX_CONNECTIONS)
-#define PARENT_NUM          (NIMBLE_RPBLE_MAXPARENTS)
 #define CHILD_NUM           (CONN_NUMOF - PARENT_NUM)
 
 
-typedef struct {
-    ble_addr_t addr;        /**< potential parents address */
-    unsigned score;         /* 0 := not used, larger is better! */
-    uint8_t tries;
-} ppt_entry_t;
 
 /* keep the timing parameters for connections and advertisements */
 static struct ble_gap_adv_params _adv_params = { 0 };
@@ -74,8 +69,10 @@ static uint32_t _conn_timeout;   /* in ms */
 /* local RPL context */
 static nimble_rpble_ctx_t _local_rpl_ctx;
 static int _current_parent = PARENT_NONE;
-/* table for keeping possible parents */
-static ppt_entry_t _ppt[NIMBLE_RPBLE_PPTSIZE];
+struct {
+    ble_addr_t addr;        /**< address of highest scored potential parent */
+    uint16_t score;         /* 0 := not used, larger is better! */
+} _psel;
 
 /* eval event used for periodical state updates */
 static uint32_t _eval_itvl;
@@ -83,63 +80,9 @@ static struct ble_npl_callout _evt_eval;
 
 static nimble_netif_eventcb_t _eventcb = NULL;
 
-static ppt_entry_t *_ppt_find_best(void)
+static uint16_t _psel_score(uint16_t rank, uint8_t free)
 {
-    ppt_entry_t *best = &_ppt[0];
-
-    for (unsigned i = 1; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        if (_ppt[i].score > best->score) {
-            best = &_ppt[i];
-        }
-    }
-
-    return (best->score > 0) ? best : NULL;
-}
-
-static ppt_entry_t *_ppt_find_worst(void)
-{
-    ppt_entry_t *worst = &_ppt[0];
-
-    for (unsigned i = 1; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        if (worst->score == 0) {
-            return worst;
-        }
-        if (_ppt[i].score < worst->score) {
-            worst = &_ppt[i];
-        }
-    }
-
-    return worst;
-}
-
-static void _ppt_clear(void)
-{
-    memset(_ppt, 0, sizeof(_ppt));
-}
-
-static void _ppt_add(const ble_addr_t *addr, unsigned score)
-{
-    /* if peer is already in table, update its entry */
-    for (unsigned i = 0; i < NIMBLE_RPBLE_PPTSIZE; i++) {
-        if (memcmp(addr, &_ppt[i].addr, sizeof(ble_addr_t)) == 0) {
-            _ppt[i].score = score;
-        }
-    }
-
-    /* if not, find the worst entry in the table and override it if feasible */
-    ppt_entry_t *e  = _ppt_find_worst();
-    if (score > e->score) {
-        memcpy(&e->addr, addr, sizeof(ble_addr_t));
-        e->score = score;
-        e->tries = 0;
-    }
-}
-
-static unsigned _ppt_score(uint8_t *buf, size_t len)
-{
-    uint16_t rank = ((int16_t)buf[POS_RANK + 1] << 8) | buf[POS_RANK];  // TODO: proper byteorder
-    unsigned free = (unsigned)buf[POS_FREE_SLOTS];
-    return (60000 - rank + free); // TODO: how large can RPL ranks become?
+    return (UINT16_MAX - rank + free);
 }
 
 static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
@@ -154,8 +97,7 @@ static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
     msd[2 + POS_INST_ID] = ctx->inst_id;
     memcpy(&msd[2 + POS_DODAG_ID], ctx->dodag_id, 16);
     msd[2 + POS_VERSION] = ctx->version;
-    msd[2 + POS_RANK] = (ctx->rank & 0xff);     /* TODO: fix byteorder conversion */
-    msd[2 + POS_RANK + 1] = (ctx->rank >> 8);
+    byteorder_htobebufs(&msd[2 + POS_RANK], ctx->rank);
     msd[2 + POS_FREE_SLOTS] = free_slots;
 
     res = bluetil_ad_init_with_flags(ad, buf, BLE_HS_ADV_MAX_SZ,
@@ -215,27 +157,32 @@ static void _on_scan_evt(uint8_t type,
         return;
     }
 
-    // TODO: filter peer for DODAG-ID, version, or similar?
-    /* lets score the result */
-    unsigned score = _ppt_score((msd_field.data + 2), (msd_field.len - 2));
-    _ppt_add(addr, score);
+    // TODO: filter peer for Instance ID, maybe DODAG-ID, and more?
+
+    /* score and compare advertising peer */
+    uint16_t rank = byteorder_bebuftohs(msd_field.data[2 + POS_RANK]);
+    uint8_t free = msd_field.data[2 + POS_FREE_SLOTS];
+    uint16_t score = _psel_score(rank, free);
+    if ((rank < _local_rpl_ctx->rank) && (score > _psel.score)) {
+        _psel.score = score;
+        memcpy(&_psel.addr, addr);
+    }
 }
 
 static void _parent_find(void)
 {
-    _ppt_clear();
+    _psel.score = 0;
     nimble_scanner_start();
     ble_npl_callout_reset(&_evt_eval, _eval_itvl);
 }
 
 static void _parent_find_stop(void)
 {
-    nimble_scanner_stop();
     ble_npl_callout_stop(&_evt_eval);
-    _ppt_clear();
+    nimble_scanner_stop();
 }
 
-static void _parent_select(struct ble_npl_event *ev)
+static void _parent_connect(struct ble_npl_event *ev)
 {
     (void)ev;
 
@@ -345,7 +292,7 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
     uint32_t itvl = random_uint32_range(cfg->eval_itvl, (2 * cfg->eval_itvl));
     ble_npl_time_ms_to_ticks(itvl / 1000, &_eval_itvl);
     ble_npl_callout_init(&_evt_eval, nimble_port_get_dflt_eventq(),
-                         _parent_select, NULL);
+                         _parent_connect, NULL);
 
     _adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     _adv_params.disc_mode = BLE_GAP_DISC_MODE_LTD;
