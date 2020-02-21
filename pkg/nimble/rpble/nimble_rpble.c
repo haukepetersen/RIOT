@@ -40,6 +40,7 @@
 
 #define PARENT_NONE         (-1)
 #define PARENT_ROOT         (-2)
+#define SCORE_NONE          (0U)
 
 #define VENDOR_FIELD_LEN    (23U)
 
@@ -72,7 +73,7 @@ static int _current_parent = PARENT_NONE;
 struct {
     ble_addr_t addr;        /**< address of highest scored potential parent */
     uint16_t score;         /* 0 := not used, larger is better! */
-} _psel;
+} _psel = { { 0 }, SCORE_NONE };
 
 /* eval event used for periodical state updates */
 static uint32_t _eval_itvl;
@@ -80,13 +81,28 @@ static struct ble_npl_callout _evt_eval;
 
 static nimble_netif_eventcb_t _eventcb = NULL;
 
+
+#if ENABLE_DEBUG
+static void _dbg_msg(const char *text, const uint8_t *addr)
+{
+    printf("[rpble] %s (", text);
+    bluetil_addr_print(addr);
+    printf(")\n");
+}
+#else
+static void _dbg_msg(const char *text, const uint8_t *addr)
+{
+    (void)text;
+    (void)addr;
+}
+#endif
+
 static uint16_t _psel_score(uint16_t rank, uint8_t free)
 {
     return (UINT16_MAX - rank + free);
 }
 
-static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
-                     const nimble_rpble_ctx_t *ctx, uint8_t free_slots)
+static void _make_ad(bluetil_ad_t *ad, uint8_t *buf)
 {
     int res;
 
@@ -94,11 +110,11 @@ static void _make_ad(bluetil_ad_t *ad, uint8_t *buf,
     uint8_t msd[VENDOR_FIELD_LEN];
     msd[0] = 0xff;  /* vendor ID part 1 */
     msd[1] = 0xff;  /* vendor ID part 2 */
-    msd[2 + POS_INST_ID] = ctx->inst_id;
-    memcpy(&msd[2 + POS_DODAG_ID], ctx->dodag_id, 16);
-    msd[2 + POS_VERSION] = ctx->version;
-    byteorder_htobebufs(&msd[2 + POS_RANK], ctx->rank);
-    msd[2 + POS_FREE_SLOTS] = free_slots;
+    msd[2 + POS_INST_ID] = _local_rpl_ctx.inst_id;
+    memcpy(&msd[2 + POS_DODAG_ID], _local_rpl_ctx.dodag_id, 16);
+    msd[2 + POS_VERSION] = _local_rpl_ctx.version;
+    byteorder_htobebufs(&msd[2 + POS_RANK], _local_rpl_ctx.rank);
+    msd[2 + POS_FREE_SLOTS] = (uint8_t)nimble_netif_conn_count(NIMBLE_NETIF_UNUSED);
 
     res = bluetil_ad_init_with_flags(ad, buf, BLE_HS_ADV_MAX_SZ,
                                      BLUETIL_AD_FLAGS_DEFAULT);
@@ -123,8 +139,7 @@ static void _children_accept(void)
     /* generate the new advertisement data */
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
     bluetil_ad_t ad;
-    _make_ad(&ad, buf, &_local_rpl_ctx,
-             (uint8_t)nimble_netif_conn_count(NIMBLE_NETIF_UNUSED) + 1);
+    _make_ad(&ad, buf);
     /* start advertising this node */
     int res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
     if (res != NIMBLE_NETIF_OK) {
@@ -160,18 +175,19 @@ static void _on_scan_evt(uint8_t type,
     // TODO: filter peer for Instance ID, maybe DODAG-ID, and more?
 
     /* score and compare advertising peer */
-    uint16_t rank = byteorder_bebuftohs(msd_field.data[2 + POS_RANK]);
+    uint16_t rank = byteorder_bebuftohs(&msd_field.data[2 + POS_RANK]);
     uint8_t free = msd_field.data[2 + POS_FREE_SLOTS];
     uint16_t score = _psel_score(rank, free);
-    if ((rank < _local_rpl_ctx->rank) && (score > _psel.score)) {
+    if (((_local_rpl_ctx.rank == 0) || (_local_rpl_ctx.rank > rank)) &&
+        (score > _psel.score)) {
         _psel.score = score;
-        memcpy(&_psel.addr, addr);
+        memcpy(&_psel.addr, addr, sizeof(ble_addr_t));
     }
 }
 
 static void _parent_find(void)
 {
-    _psel.score = 0;
+    _psel.score = SCORE_NONE;
     nimble_scanner_start();
     ble_npl_callout_reset(&_evt_eval, _eval_itvl);
 }
@@ -186,53 +202,35 @@ static void _parent_connect(struct ble_npl_event *ev)
 {
     (void)ev;
 
+    // TODO: we probably need to make this thread safe... */
     /* for now, we only try to connect to a parent if we have none */
     assert(_current_parent == PARENT_NONE);
-
-    /* reset timer and stop scanner  */
-    ble_npl_callout_stop(&_evt_eval);
-    nimble_scanner_stop();
-
     /* just in case this event is triggered while we were configured to be the
      * RPL root */
     if (_local_rpl_ctx.role == GNRC_RPL_ROOT_NODE) {
-        DEBUG("# eval: we are root, so no more parent evalutations\n");
+        DEBUG("[rpble] we are root, so no more parent evalutations\n");
         return;
     }
 
-    ppt_entry_t *pp = _ppt_find_best();
-    if (pp == NULL) {
-        DEBUG("# parent_select: no fitting parent in PPT, continue search\n");
+    /* reset timer and stop scanner  */
+    _parent_find_stop();
+
+    if (_psel.score == SCORE_NONE) {
+        /* no potential parent found, restarting search for one */
+        DEBUG("[rpble] no parent found, restarting search\n");
         _parent_find();
         return;
     }
 
-    DEBUG("# parent selected. will connect now: %02x\n", (int)pp->addr.val[5]);
-    pp->tries++;
-    int res = nimble_netif_connect(&pp->addr, &_conn_params, _conn_timeout);
+    _dbg_msg("parent found, trying to connect", _psel.addr.val);
+    int res = nimble_netif_connect(&_psel.addr, &_conn_params, _conn_timeout);
     if (res < 0) {
-        DEBUG("# parent_handler: err: unable to connect to preferred parent\n");
+        DEBUG("# err: unable to start connection to parent\n");
         _parent_find();
+        return;
     }
-    else {
-        _current_parent = res;
-    }
+    _current_parent = res;
 }
-
-#if ENABLE_DEBUG
-static void _dbg_msg(const char *text, const uint8_t *addr)
-{
-    printf("[rpble] %s (", text);
-    bluetil_addr_print(addr);
-    printf(")\n");
-}
-#else
-static void _dbg_msg(const char *text, const uint8_t *addr)
-{
-    (void)text;
-    (void)addr;
-}
-#endif
 
 static void _on_netif_evt(int handle, nimble_netif_event_t event,
                           const uint8_t *addr)
@@ -288,6 +286,8 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
 {
     assert(cfg);
 
+    memset(&_local_rpl_ctx, 0, sizeof(_local_rpl_ctx));
+
     /** initialize the eval event */
     uint32_t itvl = random_uint32_range(cfg->eval_itvl, (2 * cfg->eval_itvl));
     ble_npl_time_ms_to_ticks(itvl / 1000, &_eval_itvl);
@@ -337,8 +337,8 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
 {
     assert(ctx != NULL);
 
-    DEBUG("[rpble] RPL update [inst_id:%i, rank:%i]\n",
-          (int)ctx->inst_id, (int)ctx->rank);
+    // DEBUG("[rpble] RPL update [inst_id:%i, rank:%i]\n",
+    //       (int)ctx->inst_id, (int)ctx->rank);
 
     /* XXX: if the update context is equal to what we have, ignore it */
     _local_rpl_ctx.free_slots = 0;
