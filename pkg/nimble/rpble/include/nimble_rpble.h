@@ -70,19 +70,6 @@
 extern "C" {
 #endif
 
-#ifndef NIMBLE_RPBLE_MAXPARENTS
-#define NIMBLE_RPBLE_MAXPARENTS         (1U)
-#endif
-
-#ifndef NIMBLE_RPBLE_PPTSIZE
-#define NIMBLE_RPBLE_PPTSIZE            (5U)
-#endif
-
-#ifndef NIMBLE_RPBLE_MAXTRIES
-#define NIMBLE_RPBLE_MAXTRIES           (3U)
-#endif
-
-
 enum {
     NIMBLE_RPBLE_OK         =  0,
     NIMBLE_RPBLE_NO_CHANGE  = -1,
