@@ -100,6 +100,8 @@ typedef struct {
     uint32_t conn_super_to;
     uint32_t conn_timeout;
 
+    /* time the node searches and ranks potential parents
+     * -> itvl := rand([eval_itvl:2*eval_itvl)) */
     uint32_t eval_itvl;
 
     const char *name;
