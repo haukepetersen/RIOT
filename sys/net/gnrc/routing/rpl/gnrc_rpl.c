@@ -288,7 +288,7 @@ static void *_event_loop(void *args)
 
     /* start event loop */
     while (1) {
-        DEBUG("RPL: waiting for incoming message.\n");
+        // DEBUG("RPL: waiting for incoming message.\n");
         msg_receive(&msg);
 
         switch (msg.type) {
@@ -316,21 +316,21 @@ static void *_event_loop(void *args)
                 }
                 break;
             case GNRC_RPL_MSG_TYPE_TRICKLE_MSG:
-                DEBUG("RPL: GNRC_RPL_MSG_TYPE_TRICKLE_MSG received\n");
+                // DEBUG("RPL: GNRC_RPL_MSG_TYPE_TRICKLE_MSG received\n");
                 trickle = msg.content.ptr;
                 if (trickle && (trickle->callback.func != NULL)) {
                     trickle_callback(trickle);
                 }
                 break;
             case GNRC_NETAPI_MSG_TYPE_RCV:
-                DEBUG("RPL: GNRC_NETAPI_MSG_TYPE_RCV received\n");
+                // DEBUG("RPL: GNRC_NETAPI_MSG_TYPE_RCV received\n");
                 _receive(msg.content.ptr);
                 break;
             case GNRC_NETAPI_MSG_TYPE_SND:
                 break;
             case GNRC_NETAPI_MSG_TYPE_GET:
             case GNRC_NETAPI_MSG_TYPE_SET:
-                DEBUG("RPL: reply to unsupported get/set\n");
+                // DEBUG("RPL: reply to unsupported get/set\n");
                 reply.content.value = -ENOTSUP;
                 msg_reply(&msg, &reply);
                 break;
