@@ -303,9 +303,9 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event,
             _children_accept();
             break;
         case NIMBLE_NETIF_CLOSED_MASTER:
+            nimble_netif_accept_stop();
             _dbg_msg("PARENT lost", addr);
             _current_parent = PARENT_NONE;
-            nimble_netif_accept_stop();
             /* back to 0, now we need to find a new parent... */
             _parent_find();
             break;
@@ -314,6 +314,7 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event,
             _children_accept();
             break;
         case NIMBLE_NETIF_ABORT_MASTER:
+            nimble_netif_accept_stop();
             _dbg_msg("PARENT abort", addr);
             _current_parent = PARENT_NONE;
             _parent_find();
@@ -340,9 +341,9 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
 {
     assert(cfg);
 
-
     /** initialize the eval event */
-    ble_npl_time_ms_to_ticks(cfg->eval_itvl / 1000, &_eval_itvl);
+    uint32_t itvl = random_uint32_range(cfg->eval_itvl, (2 * cfg->eval_itvl));
+    ble_npl_time_ms_to_ticks(itvl / 1000, &_eval_itvl);
     ble_npl_callout_init(&_evt_eval, nimble_port_get_dflt_eventq(),
                          _parent_select, NULL);
 
