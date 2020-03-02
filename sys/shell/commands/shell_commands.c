@@ -316,6 +316,10 @@ const shell_command_t _shell_command_list[] = {
 #ifdef MODULE_NIMBLE_STATCONN
     { "statconn", "NimBLE netif statconn", _nimble_statconn_handler},
 #endif
+#ifdef MODULE_TEST_UTILS_INTERACTIVE_SYNC
+    { "r", "Test sync, Ready query", _test_ready },
+    { "s", "Test sync, Start test trigger", _test_start },
+#endif
 #ifdef MODULE_SUIT_COAP
     { "suit", "Trigger a SUIT firmware update", _suit_handler },
 #endif
