@@ -29,37 +29,37 @@ extern "C" {
 
 enum {
     DS18B20_OK          =  0,
-    DS18B20_NO_DEV      = -1,
-    DS18B20_ERR_RES     = -2
+    DS18B20_NODEV       = -1,
+    DS18B20_ERR_RES     = -2,
 };
 
-typedef enum {
-    DS18B20_RES_9BIT    = 0x1f,     /**< conversion time ~93.75ms */
-    DS18B20_RES_10BIT   = 0x3f,     /**< conversion time ~187.5ms */
-    DS18B20_RES_11BIT   = 0x5f,     /**< conversion time ~375ms */
-    DS18B20_RES_12BIT   = 0x7f      /**< conversion time ~750ms */
-} ds18b20_res_t;
+enum {
+    DS18B20_RES_9BIT =  0,          /**< conversion time ~93.75ms */
+    DS18B20_RES_10BIT = 1,          /**< conversion time ~187.5ms */
+    DS18B20_RES_11BIT = 2,          /**< conversion time ~375ms */
+    DS18B20_RES_12BIT = 3,          /**< conversion time ~750ms */
+};
 
 typedef struct {
-    onewire_t bus;
     onewire_rom_t rom;
-    ds18b20_res_t res;
+    uint8_t res;
 } ds18b20_params_t;
 
 typedef struct {
-    ds18b20_params_t p;
+    onewire_t *bus;
+    onewire_rom_t rom;
     uint32_t t_conv;
 } ds18b20_t;
 
-void ds18b20_setup(ds18b20_t *dev, const ds18b20_params_t *params);
+int ds18b20_init(ds18b20_t *dev, const ds18b20_params_t *params);
 
-int ds18b20_init(ds18b20_t *dev);
+int ds18b20_trigger(const ds18b20_t *dev);
 
-void ds18b20_trigger(ds18b20_t *dev);
+int ds18b20_trigger_all(const ds18b20_t *dev);
 
-int16_t ds18b20_read(ds18b20_t *dev);
+int ds18b20_read(const ds18b20_t *dev, int16_t *temp);
 
-int16_t ds18b20_get_temp(ds18b20_t *dev);
+int ds18b20_get_temp(const ds18b20_t *dev, int16_t *temp);
 
 
 #ifdef __cplusplus

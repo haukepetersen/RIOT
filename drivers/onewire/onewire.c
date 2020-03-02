@@ -5,12 +5,8 @@
 #include "xtimer.h"
 #include "onewire.h"
 
-#define ENABLE_DEBUG    (1)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
-
-// #define MODE_OUT            (GPIO_OD)
-#define MODE_OUT            (GPIO_OUT)
-#define MODE_IN             (GPIO_IN)
 
 #define T_RESET_HOLD        (480)
 #define T_RESET_SAMPLE      (70)
@@ -86,8 +82,8 @@ static inline void write_bit(onewire_t *owi, int out)
 void onewire_setup(onewire_t *owi, const onewire_params_t *params)
 {
     owi->pin = params->pin;
-    owi->omode = params->mode;
-    owi->imode = (params->mode == GPIO_OD_PU) ? GPIO_IN_PU : GPIO_IN;
+    owi->omode = params->omode;
+    owi->imode = params->imode;
 }
 
 int onewire_init(onewire_t *owi)
@@ -99,7 +95,7 @@ int onewire_init(onewire_t *owi)
     return ONEWIRE_OK;
 }
 
-int onewire_reset(onewire_t *owi)
+int onewire_reset(onewire_t *owi, onewire_rom_t *rom)
 {
     int res = ONEWIRE_OK;
 
@@ -114,8 +110,13 @@ int onewire_reset(onewire_t *owi)
     }
 
     xtimer_usleep(T_RESET_HOLD - T_RESET_SAMPLE);
-    gpio_init(owi->pin,owi->omode);
+    gpio_init(owi->pin, owi->omode);
     gpio_set(owi->pin);
+
+    if ((res == ONEWIRE_OK) && (om != NULL)) {
+        onewire_write_byte(owi, ONEWIRE_ROM_MATCH);
+        onewire_write(owi, om->u8, sizeof(onewire_rom_t));
+    }
 
     return res;
 }
@@ -127,9 +128,9 @@ int onewire_search_first(onewire_t *owi, onewire_rom_t *rom)
     }
 
     /* read ROM command */
+    memset(rom, 0, sizeof(onewire_romt_t));
     onewire_write_byte(owi, ONEWIRE_ROM_READ);
-    memset(rom, 0, 8);
-    onewire_read(owi, rom->u8, 8);
+    onewire_read(owi, rom->u8, sizeof(onewire_rom_t));
 
     return ONEWIRE_OK;
 }
@@ -202,6 +203,27 @@ void onewire_write(onewire_t *owi, const uint8_t *data, size_t len)
             write_bit(owi, (data[pos] & (1 << i)));
         }
     }
+}
+
+// from https://lentz.com.au/blog/calculating-crc-with-a-tiny-32-entry-lookup-table
+static const uint8_t _crc8_lut[] = {
+    0x00, 0x5E, 0xBC, 0xE2, 0x61, 0x3F, 0xDD, 0x83,
+    0xC2, 0x9C, 0x7E, 0x20, 0xA3, 0xFD, 0x1F, 0x41,
+    0x00, 0x9D, 0x23, 0xBE, 0x46, 0xDB, 0x65, 0xF8,
+    0x8C, 0x11, 0xAF, 0x32, 0xCA, 0x57, 0xE9, 0x74
+};
+
+// from https://lentz.com.au/blog/calculating-crc-with-a-tiny-32-entry-lookup-table
+uint8_t onewire_crc8(const uint8_t *data, size_t len)
+{
+    uint8_t crc = 0;
+
+    for (unsigned i = 0; i < len; i++) {
+        crc ^= data[i];
+        crc = (_crc8_lut + (crc & 0x0f)) ^
+              (_crc8_lut + 16 + ((crc >> 4) & 0x0f));
+    }
+    return crc;
 }
 
 int onewire_rom_from_str(onewire_rom_t *rom, const char *str)

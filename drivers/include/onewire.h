@@ -82,7 +82,7 @@ int onewire_init(onewire_t *owi);
  * @return          ONEWIRE_OK if slave(s) were found
  * @return          ONEWIRE_NODEV if no slave answered the reset sequence
  */
-int onewire_reset(onewire_t *owi);
+int onewire_reset(const onewire_t *owi, onewire_rom_t *rom);
 
 int onewire_search_first(onewire_t *owi, onewire_rom_t *rom);
 int onewire_search_next(onewire_t *owi, onewire_rom_t *rom);
