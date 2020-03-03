@@ -93,14 +93,18 @@ static int _cmd_init(int argc, char **argv)
     // if (onewire_search_first(&owi, &rom) != ONEWIRE_OK) {
     //     puts("-> err: no devices found!");
     //     return 1;
-    // }
-    int state = 0;
-    res = onewire_search(&owi, &rom, &state);
-    while (res == ONEWIRE_OK) {
+    //
+    res = onewire_search(&owi, &rom, ONEWIRE_SEARCH_FIRST);
+    while (res > 0) {
         memcpy(&_dslist[cnt].rom, &rom, sizeof(onewire_rom_t));
         _dslist[cnt].res = dsres;
         ++cnt;
-        res = onewire_search(&owi, &rom, &state);
+        res = onewire_search(&owi, &rom, res);
+        if (res == 0) {
+            memcpy(&_dslist[cnt].rom, &rom, sizeof(onewire_rom_t));
+            _dslist[cnt].res = dsres;
+            ++cnt;
+        }
     }
     printf("-> found %u devices:\n", cnt);
 

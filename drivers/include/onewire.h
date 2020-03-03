@@ -17,6 +17,8 @@ extern "C" {
  */
 #define ONEWIRE_ROM_STR_LEN     (17U)
 
+#define ONEWIRE_SEARCH_FIRST    (0)
+
 /**
  * @brief   Return codes used by the 1-wire driver
  */
@@ -113,7 +115,16 @@ static inline void onewire_write_byte(const onewire_t *owi, uint8_t data)
 
 uint8_t onewire_crc8(const uint8_t *data, size_t len);
 
-int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int *state);
+/**
+ * @brief [brief description]
+ * @details [long description]
+ *
+ * @param owi [description]
+ * @param rom [description]
+ * @param[in] ld    position of last discrepancy
+ * @return [description]
+ */
+int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld);
 // int onewire_search_next(const onewire_t *owi, onewire_rom_t *rom);
 
 

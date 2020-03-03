@@ -131,11 +131,12 @@ static uint8_t b1[64];
 static uint8_t b2[64];
 static uint8_t w0[64];
 
-int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int *state)
+int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
 {
-    onewire_rom_t newrom;
-
-    memset(&newrom, 0, sizeof(newrom));
+    /* initialize the search state */
+    if (ld == ONEWIRE_SEARCH_FIRST) {
+        memset(rom, 0, sizeof(onewire_rom_t));
+    }
 
     /* send reset condition on the bus */
     if (onewire_reset(owi, NULL) != ONEWIRE_OK) {
@@ -143,93 +144,40 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int *state)
     }
 
     /* issue the search ROM command */
-
-    if (*state & 0x8000) {
-        return ONEWIRE_NODEV;
-    }
-
-    int pos = 0;
     int marker = 0;
+    int pos = 1;
     onewire_write_byte(owi, ONEWIRE_ROM_SEARCH);
 
     for (unsigned b = 0; b < sizeof(onewire_rom_t); b++) {
         for (int i = 0; i < 8; i++) {
-            int bit1 = (read_bit(owi)) ? 1 : 0;
-            int bit2 = (read_bit(owi)) ? 1 : 0;
+            int bit1 = read_bit(owi);
+            int bit2 = read_bit(owi);
 
-
-            b1[pos] = bit1;
-            b2[pos] = bit2;
+            b1[pos - 1] = bit1;
+            b2[pos - 1] = bit2;
 
             if (bit1 == bit2) {
-                if (pos == *state) {
+                if (pos < ld) {
+                    marker = pos;
+                    bit1 = (rom->u8[b] & (1 << i)) ? 1 : 0;
+                }
+                else if (pos == ld) {
                     bit1 = 1;
                 }
-                else if (pos > *state) {
-                    bit1 = 0;
-                    marker = pos;
-                }
                 else {
-                    if (!(rom->u8[b] & (1 << i))) {
-                        marker = pos;
-                    }
+                    marker = pos;
+                    bit1 = 0;
                 }
             }
 
-            newrom.u8[b] |= (bit1 << i);
+            w0[pos - 1] = bit1;
+
+            rom->u8[b] |= (bit1 << i);
             write_bit(owi, bit1);
             pos++;
         }
     }
 
-    *state = marker;
-    if (*state == 0) {
-        *state &= 0x8000;
-    }
-
-    return ONEWIRE_OK;
-
-
-
-    // int last_conflict = -1;
-
-
-
-
-    // for (unsigned b = 0; b < sizeof(onewire_rom_t); b++) {
-    //     for (int i = 0; i < 8; i++) {
-    //         int bit1 = (read_bit(owi)) ? 1 : 0;
-    //         int bit2 = (read_bit(owi)) ? 1 : 0;
-
-    //         b1[pos] = bit1;
-    //         b2[pos] = bit2;
-
-    //         int known = (rom->u8[b] & (1 << i)) ? 1 : 0;
-    //         oldrom[pos] = (uint8_t)known;
-
-    //         if (bit1 == bit2) {     /* collision at bit position */
-    //             if (pos > *state) {
-    //                 bit1 = 1;
-    //                 *state = pos;
-    //             }
-    //             else if (pos == *state) {
-    //                 if (last_conflict == -1) {
-    //                     return ONEWIRE_NODEV;
-    //                 }
-    //                 bit1 = 0;
-    //                 *state = last_conflict;
-    //             }
-    //             else {
-    //                 last_conflict = pos;
-    //             }
-    //         }
-
-    //         w0[pos++] = bit1;
-
-    //         newrom.u8[b] |= (bit1 << i);
-    //         write_bit(owi, bit1);
-    //     }
-    // }
 
     printf("\nbit 1 ");
     for (int i = 0; i < 64; i++) {
@@ -249,10 +197,5 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int *state)
     }
     puts("");
 
-    if (memcmp(&newrom, rom, sizeof(newrom)) == 0) {
-        return ONEWIRE_NODEV;
-    }
-
-    memcpy(rom, &newrom, sizeof(newrom));
-    return ONEWIRE_OK;
+    return marker;
 }
