@@ -38,7 +38,7 @@ static int _cmd_init(int argc, char **argv)
 {
     int portsel, pinsel, modesel, res;
     onewire_params_t params;
-    uint8_t dsres;
+    uint8_t dsres = DS18B20_RES_12BIT;
 
     if (argc < 3) {
         printf("usage: %s <port num> <pin num> [mode] [res]\n", argv[0]);
@@ -52,13 +52,13 @@ static int _cmd_init(int argc, char **argv)
     portsel = atoi(argv[1]);
     pinsel = atoi(argv[2]);
     params.pin = GPIO_PIN(portsel, pinsel);
-    params.mode = GPIO_OD_PU;
+    params.pin_mode = GPIO_OD_PU;
 
     if (argc >= 4) {
         modesel = atoi(argv[3]);
         switch (modesel) {
-            case 1: params.mode = GPIO_OD;      break;
-            case 2: params.mode = GPIO_OUT;     break;
+            case 1: params.pin_mode = GPIO_OD;      break;
+            case 2: params.pin_mode = GPIO_OUT;     break;
             default:
                 puts("err: unable to parse OneWire pin mode");
                 return 1;
@@ -76,8 +76,7 @@ static int _cmd_init(int argc, char **argv)
 
     /* initialize the one wire bus */
     printf("initializing OneWire bus on GPIO_PIN(%i, %i)...\n", portsel, pinsel);
-    onewire_setup(&owi, &params);
-    if (onewire_init(&owi) != ONEWIRE_OK) {
+    if (onewire_init(&owi, &params) != ONEWIRE_OK) {
         puts("err: open-drain pin mode not applicable\n");
         owi.pin = GPIO_UNDEF;
         return 1;
@@ -91,30 +90,32 @@ static int _cmd_init(int argc, char **argv)
     puts("discovering devices on the bus...");
     onewire_rom_t rom;
     unsigned cnt = 0;
-    if (onewire_search_first(&owi, &rom) != ONEWIRE_OK) {
-        puts("-> err: no devices found!");
-        return 1;
-    }
-    do {
+    // if (onewire_search_first(&owi, &rom) != ONEWIRE_OK) {
+    //     puts("-> err: no devices found!");
+    //     return 1;
+    // }
+    int state = 0;
+    res = onewire_search(&owi, &rom, &state);
+    while (res == ONEWIRE_OK) {
         memcpy(&_dslist[cnt].rom, &rom, sizeof(onewire_rom_t));
         _dslist[cnt].res = dsres;
         ++cnt;
-        res = onewire_search_next(&owi, &rom);
-    } while (res == ONEWIRE_OK);
+        res = onewire_search(&owi, &rom, &state);
+    }
     printf("-> found %u devices:\n", cnt);
 
     for (unsigned i = 0; i < cnt; i++) {
         printf("   [%2i] ROM ADDR: %02x%02x%02x%02x%02x%02x%02x%02x\n", i,
-                    (int)rom.u8[0], (int)rom.u8[1],
-                    (int)rom.u8[2], (int)rom.u8[3],
-                    (int)rom.u8[4], (int)rom.u8[5],
-                    (int)rom.u8[6], (int)rom.u8[7]);
+                    (int)_dslist[i].rom.u8[0], (int)_dslist[i].rom.u8[1],
+                    (int)_dslist[i].rom.u8[2], (int)_dslist[i].rom.u8[3],
+                    (int)_dslist[i].rom.u8[4], (int)_dslist[i].rom.u8[5],
+                    (int)_dslist[i].rom.u8[6], (int)_dslist[i].rom.u8[7]);
     }
 
     /* initialize all found devices */
     puts("\ninitializing DS18B20 sensors...");
     for (unsigned i = 0; i < cnt; i++) {
-        res = ds18b20_init(&_devlist[i], &_dslist[i]);
+        res = ds18b20_init(&_devlist[i], &owi, &_dslist[i]);
         if (res != DS18B20_OK) {
             _dslist[i].res = 0xff;  /* mark as invalid */
             printf("-> err: initialization for dev #%u failed\n", i);
@@ -136,10 +137,10 @@ static int _cmd_read(int argc, char **argv)
         if (_dslist[i].res != 0xff) {
             char out[20];
             int16_t temp;
-            int res = ds18b20_read(&_devlist[i], &temp);
+            int res = ds18b20_get_temp(&_devlist[i], &temp);
             if (res == DS18B20_OK) {
                 size_t pos = fmt_s16_dfp(out, temp, -2);
-                out[pos] = '\n';
+                out[pos] = '\0';
                 printf("dev #%u: %s°C\n", i, out);
             }
             else {
@@ -151,62 +152,62 @@ static int _cmd_read(int argc, char **argv)
     return 0;
 }
 
-// static int cmd_test(int argc, char **argv)
-// {
-//     (void)argc;
-//     (void)argv;
+static int cmd_test(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
 
-//     if (owi.pin == GPIO_UNDEF) {
-//         puts("error: onewire bus is not initialized");
-//         return 1;
-//     }
+    if (owi.pin == GPIO_UNDEF) {
+        puts("error: onewire bus is not initialized");
+        return 1;
+    }
 
-//     /* generate reset sequence */
-//     if (onewire_reset(&owi) == ONEWIRE_NODEV) {
-//         puts("no device present on the bus");
-//         return 1;
-//     }
+    /* generate reset sequence */
+    if (onewire_reset(&owi, NULL) == ONEWIRE_NODEV) {
+        puts("no device present on the bus");
+        return 1;
+    }
 
-//     /* read ROM command */
-//     onewire_write_byte(&owi, 0x33);
+    /* read ROM command */
+    onewire_write_byte(&owi, 0x33);
 
-//     uint8_t rom[8];
-//     memset(rom, 0, 8);
-//     onewire_read(&owi, rom, 8);
+    onewire_rom_t rom;
+    memset(rom.u8, 0, 8);
+    onewire_read(&owi, rom.u8, 8);
 
-//     printf("ROM found is ");
-//     for (int i = 0; i < 8; i++) {
-//         printf("0x%02x ", (int)rom[i]);
-//     }
-//     puts("");
+    printf("ROM found is ");
+    onewire_rom_print(&rom);
+    puts("");
+    uint8_t crc = onewire_crc8(rom.u8, 7);
+    printf("CRC: 0x%02x\n", (int)crc);
 
 
-//     uint8_t pad[9];
-//     memset(pad, 0, 9);
+    uint8_t pad[9];
+    memset(pad, 0, 9);
 
-//     onewire_reset(&owi);
-//     onewire_write_byte(&owi, 0x55);
-//     onewire_write(&owi, rom, 8);
+    onewire_reset(&owi, NULL);
+    onewire_write_byte(&owi, 0x55);
+    onewire_write(&owi, rom.u8, 8);
 
-//     onewire_write_byte(&owi, 0xbe);
-//     onewire_read(&owi, pad, 9);
-//     printf("Scratchpad is ");
-//     for (int i = 0; i < 9; i++) {
-//         printf("0x%02x ", (int)pad[i]);
-//     }
-//     puts("");
+    onewire_write_byte(&owi, 0xbe);
+    onewire_read(&owi, pad, 9);
+    printf("Scratchpad is ");
+    for (int i = 0; i < 9; i++) {
+        printf("0x%02x ", (int)pad[i]);
+    }
+    puts("");
 
-//     int16_t temp;
-//     temp = (pad[1] << 8 | pad[0]);
-//     printf("temperature is %i.%i\n", ((int)temp >> 4), ((int)temp & 0xf));
+    int16_t temp;
+    temp = (pad[1] << 8 | pad[0]);
+    printf("temperature is %i.%i\n", ((int)temp >> 4), ((int)temp & 0xf));
 
-//     return 0;
-// }
+    return 0;
+}
 
 static const shell_command_t shell_commands[] = {
     { "init", "initialize OneWire interface on given pin", _cmd_init },
     { "read", "get temperature reading from given DS18B20 sensor", _cmd_read },
-    // { "test", "foobar", cmd_test },
+    { "test", "foobar", cmd_test },
     { NULL, NULL, NULL }
 };
 

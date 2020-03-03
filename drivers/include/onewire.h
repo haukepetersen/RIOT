@@ -40,7 +40,7 @@ enum {
 
 typedef struct {
     gpio_t pin;
-    gpio_mode_t mode;
+    gpio_mode_t pin_mode;
 } onewire_params_t;
 
 typedef struct {
@@ -56,8 +56,6 @@ typedef union {
 } onewire_rom_t;
 
 
-void onewire_setup(onewire_t *owi, const onewire_params_t *params);
-
 /**
  * @brief   Initialize a 1-wire bus on the given GPIO pin
  *
@@ -69,7 +67,7 @@ void onewire_setup(onewire_t *owi, const onewire_params_t *params);
  * @return          ONEWIRE_OK on success
  * @return          ONEWIRE_ERR_PINCFG if open-drain mode unsupported
  */
-int onewire_init(onewire_t *owi);
+int onewire_init(onewire_t *owi, const onewire_params_t *params);
 
 /**
  * @brief   Generate a bus reset sequence and look for connected devices
@@ -82,10 +80,7 @@ int onewire_init(onewire_t *owi);
  * @return          ONEWIRE_OK if slave(s) were found
  * @return          ONEWIRE_NODEV if no slave answered the reset sequence
  */
-int onewire_reset(const onewire_t *owi, onewire_rom_t *rom);
-
-int onewire_search_first(onewire_t *owi, onewire_rom_t *rom);
-int onewire_search_next(onewire_t *owi, onewire_rom_t *rom);
+int onewire_reset(const onewire_t *owi, const onewire_rom_t *rom);
 
 /**
  * @brief   Read data from the bus
@@ -94,7 +89,7 @@ int onewire_search_next(onewire_t *owi, onewire_rom_t *rom);
  * @param[out] data buffer to write received bytes into
  * @param[in]  len  number of bytes to read from the bus
  */
-void onewire_read(onewire_t *owi, uint8_t *data, size_t len);
+void onewire_read(const onewire_t *owi, uint8_t *data, size_t len);
 
 /**
  * @brief   Write data to the bus
@@ -103,7 +98,7 @@ void onewire_read(onewire_t *owi, uint8_t *data, size_t len);
  * @param[in] data  buffer holding the data that is written to the bus
  * @param[in] len   number of bytes to write to the bus
  */
-void onewire_write(onewire_t *owi, const uint8_t *data, size_t len);
+void onewire_write(const onewire_t *owi, const uint8_t *data, size_t len);
 
 /**
  * @brief   Convenience function for writing a single byte to the bus
@@ -111,14 +106,22 @@ void onewire_write(onewire_t *owi, const uint8_t *data, size_t len);
  * @param[in] pin   GPIO pin the bus is connected to
  * @param[in] data  data byte to write to the bus
  */
-static inline void onewire_write_byte(onewire_t *owi, uint8_t data)
+static inline void onewire_write_byte(const onewire_t *owi, uint8_t data)
 {
     onewire_write(owi, &data, 1);
 }
 
+uint8_t onewire_crc8(const uint8_t *data, size_t len);
+
+int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int *state);
+// int onewire_search_next(const onewire_t *owi, onewire_rom_t *rom);
+
+
 int onewire_rom_from_str(onewire_rom_t *rom, const char *str);
 
-void onewire_rom_to_str(onewire_rom_t *rom, char *str);
+void onewire_rom_to_str(char *str, const onewire_rom_t *rom);
+
+void onewire_rom_print(const onewire_rom_t *rom);
 
 #ifdef __cplusplus
 }

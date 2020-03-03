@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Freie Universität Berlin
+ * Copyright (C) 2016-2020 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -31,6 +31,7 @@ enum {
     DS18B20_OK          =  0,
     DS18B20_NODEV       = -1,
     DS18B20_ERR_RES     = -2,
+    DS18B20_ERR_CRC     = -3,
 };
 
 enum {
@@ -51,7 +52,7 @@ typedef struct {
     uint32_t t_conv;
 } ds18b20_t;
 
-int ds18b20_init(ds18b20_t *dev, const ds18b20_params_t *params);
+int ds18b20_init(ds18b20_t *dev, onewire_t *owi, const ds18b20_params_t *params);
 
 int ds18b20_trigger(const ds18b20_t *dev);
 
