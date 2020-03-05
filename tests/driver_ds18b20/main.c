@@ -109,12 +109,15 @@ static int _cmd_init(int argc, char **argv)
     printf("-> found %u devices:\n", cnt);
 
     for (unsigned i = 0; i < cnt; i++) {
-        printf("   [%2i] ROM ADDR: %02x%02x%02x%02x%02x%02x%02x%02x\n", i,
+        printf("   [%2i] ROM ADDR: %02x%02x%02x%02x%02x%02x%02x%02x - ", i,
                     (int)_dslist[i].rom.u8[0], (int)_dslist[i].rom.u8[1],
                     (int)_dslist[i].rom.u8[2], (int)_dslist[i].rom.u8[3],
                     (int)_dslist[i].rom.u8[4], (int)_dslist[i].rom.u8[5],
                     (int)_dslist[i].rom.u8[6], (int)_dslist[i].rom.u8[7]);
+        uint8_t crc = onewire_crc8(_dslist[i].rom.u8, 7);
+        printf("last byte 0x%02x, crc: 0x%02x\n", (int)_dslist[i].rom.u8[7], (int)crc);
     }
+
 
     /* initialize all found devices */
     puts("\ninitializing DS18B20 sensors...");

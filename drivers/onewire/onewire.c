@@ -172,6 +172,7 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
 
             w0[pos - 1] = bit1;
 
+            rom->u8[b] &= ~(1 << i);
             rom->u8[b] |= (bit1 << i);
             write_bit(owi, bit1);
             pos++;
@@ -180,22 +181,28 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
 
 
     printf("\nbit 1 ");
-    for (int i = 0; i < 64; i++) {
+    for (int i = 16; i < 64; i++) {
         printf("%i", b1[i]);
     }
     printf("\nbit 2 ");
-    for (int i = 0; i < 64; i++) {
+    for (int i = 16; i < 64; i++) {
         printf("%i", b2[i]);
     }
     printf("\ndiff  ");
-    for (int i = 0; i < 64; i++) {
+    for (int i = 16; i < 64; i++) {
         printf("%i", b1[i] ^ b2[i]);
     }
     printf("\nwrite ");
-    for (int i = 0; i < 64; i++) {
+    for (int i = 16; i < 64; i++) {
         printf("%i", w0[i]);
     }
     puts("");
+    printf("marker: %i\n", marker - 16);
+    printf(" found %02x%02x%02x%02x%02x%02x%02x%02x\n",
+            (int)rom->u8[0], (int)rom->u8[1],
+            (int)rom->u8[2], (int)rom->u8[3],
+            (int)rom->u8[4], (int)rom->u8[5],
+            (int)rom->u8[6], (int)rom->u8[7]);
 
     return marker;
 }
