@@ -127,10 +127,6 @@ void onewire_write(const onewire_t *owi, const uint8_t *data, size_t len)
 //     return ONEWIRE_OK;
 // }
 
-static uint8_t b1[64];
-static uint8_t b2[64];
-static uint8_t w0[64];
-
 int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
 {
     /* initialize the search state */
@@ -138,31 +134,19 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
         memset(rom, 0, sizeof(onewire_rom_t));
     }
 
-    /* send reset condition on the bus */
+    /* send reset condition and issue search ROM command */
     if (onewire_reset(owi, NULL) != ONEWIRE_OK) {
         return ONEWIRE_NODEV;
     }
-
-    printf("\nstart: ld:%i\n", ld - 16);
-    printf("init  ");
-    for (int i = 16; i < 64; i++) {
-        int tmp = (rom->u8[i >> 3] & (1 << (i & 0x07))) ? 1 : 0;
-        printf("%i", tmp);
-    }
-    puts("");
-
-    /* issue the search ROM command */
-    int marker = 0;
-    int pos = 1;
     onewire_write_byte(owi, ONEWIRE_ROM_SEARCH);
 
+    /* start search */
+    int marker = 0;
+    int pos = 1;
     for (unsigned b = 0; b < sizeof(onewire_rom_t); b++) {
         for (int i = 0; i < 8; i++) {
             int bit1 = read_bit(owi);
             int bit2 = read_bit(owi);
-
-            b1[pos - 1] = bit1;
-            b2[pos - 1] = bit2;
 
             if (bit1 == bit2) {
                 if (pos < ld) {
@@ -180,39 +164,12 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
                 }
             }
 
-            w0[pos - 1] = bit1;
-
             rom->u8[b] &= ~(1 << i);
             rom->u8[b] |= (bit1 << i);
             write_bit(owi, bit1);
             pos++;
         }
     }
-
-
-    printf("bit 1 ");
-    for (int i = 16; i < 64; i++) {
-        printf("%i", b1[i]);
-    }
-    printf("\nbit 2 ");
-    for (int i = 16; i < 64; i++) {
-        printf("%i", b2[i]);
-    }
-    printf("\ndiff  ");
-    for (int i = 16; i < 64; i++) {
-        printf("%i", b1[i] ^ b2[i]);
-    }
-    printf("\nwrite ");
-    for (int i = 16; i < 64; i++) {
-        printf("%i", w0[i]);
-    }
-    puts("");
-    printf("marker: %i\n", marker - 16);
-    printf(" found %02x%02x%02x%02x%02x%02x%02x%02x\n",
-            (int)rom->u8[0], (int)rom->u8[1],
-            (int)rom->u8[2], (int)rom->u8[3],
-            (int)rom->u8[4], (int)rom->u8[5],
-            (int)rom->u8[6], (int)rom->u8[7]);
 
     return marker;
 }
