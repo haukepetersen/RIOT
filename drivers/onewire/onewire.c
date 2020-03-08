@@ -112,21 +112,6 @@ void onewire_write(const onewire_t *owi, const uint8_t *data, size_t len)
     }
 }
 
-// int onewire_search_first(const onewire_t *owi, onewire_rom_t *rom)
-// {
-//     memset(rom, 0, sizeof(onewire_rom_t));
-
-//     if (onewire_reset(owi, NULL) == ONEWIRE_NODEV) {
-//         return ONEWIRE_NODEV;
-//     }
-
-//     /* read ROM command */
-//     onewire_write_byte(owi, ONEWIRE_ROM_READ);
-//     onewire_read(owi, rom->u8, sizeof(onewire_rom_t));
-
-//     return ONEWIRE_OK;
-// }
-
 int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
 {
     /* initialize the search state */
