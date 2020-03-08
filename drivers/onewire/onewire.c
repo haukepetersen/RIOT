@@ -143,6 +143,14 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
         return ONEWIRE_NODEV;
     }
 
+    printf("\nstart: ld:%i\n", ld - 16);
+    printf("init  ");
+    for (int i = 16; i < 64; i++) {
+        int tmp = (rom->u8[i >> 3] & (1 << (i & 0x07))) ? 1 : 0;
+        printf("%i", tmp);
+    }
+    puts("");
+
     /* issue the search ROM command */
     int marker = 0;
     int pos = 1;
@@ -158,8 +166,10 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
 
             if (bit1 == bit2) {
                 if (pos < ld) {
-                    marker = pos;
                     bit1 = (rom->u8[b] & (1 << i)) ? 1 : 0;
+                    if (bit1 == 0) {
+                        marker = pos;
+                    }
                 }
                 else if (pos == ld) {
                     bit1 = 1;
@@ -180,7 +190,7 @@ int onewire_search(const onewire_t *owi, onewire_rom_t *rom, int ld)
     }
 
 
-    printf("\nbit 1 ");
+    printf("bit 1 ");
     for (int i = 16; i < 64; i++) {
         printf("%i", b1[i]);
     }
