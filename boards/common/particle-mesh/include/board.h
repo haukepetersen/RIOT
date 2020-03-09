@@ -20,6 +20,7 @@
 #define BOARD_H
 
 #include "cpu.h"
+#include "particle_mesh_pins.h"
 #include "board_common.h"
 
 #ifdef __cplusplus
