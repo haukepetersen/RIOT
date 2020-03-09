@@ -9,11 +9,6 @@
 #define ENABLE_DEBUG        (1)
 #include "debug.h"
 
-#define T_CONF_9BIT         (93750U)
-#define T_CONF_10BIT        (187500U)
-#define T_CONF_11BIT        (375000U)
-#define T_CONF_12BIT        (750000U)
-
 #define CMD_CONVERT         (0x44)
 #define CMD_READ            (0xbe)
 #define CMD_WRITE           (0x4e)
@@ -44,7 +39,10 @@ enum {
 };
 
 static const uint32_t _conv_time[RES_NUM] = {
-    T_CONF_9BIT, T_CONF_10BIT, T_CONF_11BIT, T_CONF_12BIT
+    DS18B20_T_CONV_9BIT,
+    DS18B20_T_CONV_10BIT,
+    DS18B20_T_CONV_11BIT,
+    DS18B20_T_CONV_12BIT,
 };
 
 static int _read_scratchpad(const ds18b20_t *dev, uint8_t *buf)

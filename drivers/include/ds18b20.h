@@ -41,6 +41,13 @@ enum {
     DS18B20_RES_12BIT = 3,          /**< conversion time ~750ms */
 };
 
+enum {
+    DS18B20_T_CONV_9BIT  = 93750U,  /**< conversion for 9 bit resolution */
+    DS18B20_T_CONV_10BIT = 187500U, /**< conversion for 10 bit resolution */
+    DS18B20_T_CONV_11BIT = 375000U, /**< conversion for 11 bit resolution */
+    DS18B20_T_CONV_12BIT = 750000U, /**< conversion for 12 bit resolution */
+};
+
 typedef struct {
     onewire_rom_t rom;
     uint8_t res;
