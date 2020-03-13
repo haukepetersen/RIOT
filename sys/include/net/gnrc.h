@@ -296,6 +296,10 @@
 #include "net/gnrc/pktbuf.h"
 #include "net/gnrc/pkt.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
