@@ -40,6 +40,10 @@
 #include "host/util/util.h"
 #include "mem/mem.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#endif
+
 #define ENABLE_DEBUG            0
 #include "debug.h"
 
@@ -145,12 +149,15 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
     /* if packet is bcast or mcast, we send it to every connected node */
     if (hdr->flags &
         (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
-        int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
+         int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
                                                 NIMBLE_NETIF_L2CAP_CONNECTED);
         while (handle != NIMBLE_NETIF_CONN_INVALID) {
             res = _send_pkt(nimble_netif_conn_get(handle), pkt->next);
             handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
         }
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_TX_MUL);
+#endif
     }
     /* send unicast */
     else {
@@ -158,6 +165,20 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             gnrc_netif_hdr_get_dst_addr(hdr));
         nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
         res = _send_pkt(conn, pkt->next);
+#ifdef MODULE_EXPSTATS
+        if (res > 0) {
+            expstats_log(expstats_on_tx(pkt->next));
+        }
+        else if (res == -ENOBUFS) {
+            expstats_log(EXPSTATS_NETIF_TX_NIMBUF_FULL);
+        }
+        else if (res == -ENOTCONN) {
+            expstats_log(EXPSTATS_NETIF_TX_NOTCONN);
+        }
+        else {
+            expstats_log(EXPSTATS_NETIF_TX_ERR);
+        }
+#endif
     }
 
     /* release the packet in GNRC's packet buffer */
@@ -277,6 +298,9 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
                                                    _netif.l2addr,
                                                    BLE_ADDR_LEN);
     if (if_snip == NULL) {
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_RX_PKTBUF_FULL);
+#endif
         goto end;
     }
 
@@ -287,15 +311,25 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     gnrc_pktsnip_t *payload = gnrc_pktbuf_add(if_snip, NULL, rx_len, _nettype);
     if (payload == NULL) {
         gnrc_pktbuf_release(if_snip);
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_RX_PKTBUF_FULL);
+#endif
         goto end;
     }
 
     /* copy payload from mbuf into pktbuffer */
     int res = os_mbuf_copydata(rxb, 0, rx_len, payload->data);
     if (res != 0) {
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_RX_ERR);
+#endif
         gnrc_pktbuf_release(payload);
         goto end;
     }
+
+#ifdef MODULE_EXPSTATS
+    expstats_log(expstats_on_rx(payload));
+#endif
 
     /* finally dispatch the receive packet to GNRC */
     if (!gnrc_netapi_dispatch_receive(payload->type, GNRC_NETREG_DEMUX_CTX_ALL,

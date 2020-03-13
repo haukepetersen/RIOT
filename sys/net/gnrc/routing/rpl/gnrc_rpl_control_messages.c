@@ -231,6 +231,11 @@ void gnrc_rpl_send(gnrc_pktsnip_t *pkt, kernel_pid_t iface, ipv6_addr_t *src, ip
         DEBUG("RPL: cannot send packet: no subscribers found.\n");
         gnrc_pktbuf_release(pkt);
     }
+#ifdef MODULE_EXPSTATS
+    else {
+        expstats_log(EXPSTATS_RPL_TX);
+    }
+#endif
 }
 
 gnrc_pktsnip_t *_dio_dodag_conf_build(gnrc_pktsnip_t *pkt, gnrc_rpl_dodag_t *dodag)
