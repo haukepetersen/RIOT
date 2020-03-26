@@ -42,6 +42,13 @@
 #include "net/gnrc/rpl/p2p.h"
 #endif
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)      (void)
+#endif
+
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
@@ -360,6 +367,7 @@ void gnrc_rpl_send_DIO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination)
     if (dodag->instance->mop == GNRC_RPL_P2P_MOP) {
         if (!p2p_ext->for_me) {
             if ((pkt = gnrc_rpl_p2p_rdo_build(pkt, p2p_ext)) == NULL) {
+                EXPSTAT(EXPSTATS_RPL_TX_DIO_ERR);
                 return;
             }
         }
@@ -370,12 +378,14 @@ void gnrc_rpl_send_DIO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination)
     if (!IS_ACTIVE(CONFIG_GNRC_RPL_WITHOUT_PIO) &&
         dodag->dio_opts & GNRC_RPL_REQ_DIO_OPT_PREFIX_INFO) {
         if ((pkt = _dio_prefix_info_build(pkt, dodag)) == NULL) {
+            EXPSTAT(EXPSTATS_RPL_TX_DIO_ERR);
             return;
         }
     }
 
     if (dodag->dio_opts & GNRC_RPL_REQ_DIO_OPT_DODAG_CONF) {
         if ((pkt = _dio_dodag_conf_build(pkt, dodag)) == NULL) {
+            EXPSTAT(EXPSTATS_RPL_TX_DIO_ERR);
             return;
         }
         dodag->dio_opts &= ~GNRC_RPL_REQ_DIO_OPT_DODAG_CONF;
@@ -384,6 +394,7 @@ void gnrc_rpl_send_DIO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination)
     if ((tmp = gnrc_pktbuf_add(pkt, NULL, sizeof(gnrc_rpl_dio_t), GNRC_NETTYPE_UNDEF)) == NULL) {
         DEBUG("RPL: Send DIO - no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
+        EXPSTAT(EXPSTATS_RPL_TX_DIO_NOBUF);
         return;
     }
     pkt = tmp;
@@ -404,6 +415,7 @@ void gnrc_rpl_send_DIO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination)
                                  sizeof(icmpv6_hdr_t))) == NULL) {
         DEBUG("RPL: Send DIO - no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
+        EXPSTAT(EXPSTATS_RPL_TX_DIO_NOBUF);
         return;
     }
     pkt = tmp;
@@ -413,6 +425,7 @@ void gnrc_rpl_send_DIO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination)
                              (destination && !ipv6_addr_is_multicast(destination)));
 #endif
 
+    EXPSTAT(EXPSTATS_RPL_TX_DIO);
     gnrc_rpl_send(pkt, dodag->iface, NULL, destination, &dodag->dodag_id);
 }
 
@@ -441,6 +454,7 @@ void gnrc_rpl_send_DIS(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination,
                                         GNRC_NETTYPE_UNDEF)) == NULL) {
             DEBUG("RPL: BUILD PadN OPT - no space left in packet buffer\n");
             gnrc_pktbuf_release(pkt);
+            EXPSTAT(EXPSTATS_RPL_TX_DIS_NOBUF);
             return;
         }
         memcpy(opt_snip->data, padding, snip_size);
@@ -452,6 +466,7 @@ void gnrc_rpl_send_DIS(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination,
             if (options[i]->type == GNRC_RPL_OPT_SOLICITED_INFO) {
                 if ((pkt = _dis_solicited_opt_build(pkt,
                     (gnrc_rpl_internal_opt_dis_solicited_t*)options[i])) == NULL) {
+                        EXPSTAT(EXPSTATS_RPL_TX_DIS_ERR);
                         return;
                     }
             }
@@ -460,6 +475,7 @@ void gnrc_rpl_send_DIS(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination,
     if ((tmp = gnrc_pktbuf_add(pkt, NULL, sizeof(gnrc_rpl_dis_t), GNRC_NETTYPE_UNDEF)) == NULL) {
         DEBUG("RPL: Send DIS - no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
+        EXPSTAT(EXPSTATS_RPL_TX_DIS_NOBUF);
         return;
     }
     pkt = tmp;
@@ -471,6 +487,7 @@ void gnrc_rpl_send_DIS(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination,
                                  sizeof(icmpv6_hdr_t))) == NULL) {
         DEBUG("RPL: Send DIS - no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
+        EXPSTAT(EXPSTATS_RPL_TX_DIS_NOBUF);
         return;
     }
     pkt = tmp;
@@ -479,6 +496,7 @@ void gnrc_rpl_send_DIS(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination,
                              (destination && !ipv6_addr_is_multicast(destination)));
 #endif
 
+    EXPSTAT(EXPSTATS_RPL_TX_DIS);
     gnrc_rpl_send(pkt, KERNEL_PID_UNDEF, NULL, destination, (inst? &(inst->dodag.dodag_id) : NULL));
 }
 
@@ -1013,6 +1031,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
 
         if ((pkt = _dao_transit_build(pkt, lifetime, false)) == NULL) {
             DEBUG("RPL: Send DAO - no space left in packet buffer\n");
+            EXPSTAT(EXPSTATS_RPL_TX_DAO_NOBUF);
             return;
         }
         if (ipv6_addr_is_global(&fte.dst) &&
@@ -1022,6 +1041,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
 
             if ((pkt = _dao_target_build(pkt, &fte.dst, fte.dst_len)) == NULL) {
                 DEBUG("RPL: Send DAO - no space left in packet buffer\n");
+                EXPSTAT(EXPSTATS_RPL_TX_DAO_NOBUF);
                 return;
             }
         }
@@ -1032,6 +1052,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
           ipv6_addr_to_str(addr_str, me, sizeof(addr_str)));
     if ((pkt = _dao_target_build(pkt, me, IPV6_ADDR_BIT_LEN)) == NULL) {
         DEBUG("RPL: Send DAO - no space left in packet buffer\n");
+        EXPSTAT(EXPSTATS_RPL_TX_DAO_NOBUF);
         return;
     }
 
@@ -1042,6 +1063,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
                                    GNRC_NETTYPE_UNDEF)) == NULL) {
             DEBUG("RPL: Send DAO - no space left in packet buffer\n");
             gnrc_pktbuf_release(pkt);
+            EXPSTAT(EXPSTATS_RPL_TX_DAO_NOBUF);
             return;
         }
         pkt = tmp;
@@ -1050,6 +1072,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
     if ((tmp = gnrc_pktbuf_add(pkt, NULL, sizeof(gnrc_rpl_dao_t), GNRC_NETTYPE_UNDEF)) == NULL) {
         DEBUG("RPL: Send DAO - no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
+        EXPSTAT(EXPSTATS_RPL_TX_DAO_NOBUF);
         return;
     }
     pkt = tmp;
@@ -1072,6 +1095,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
                                  sizeof(icmpv6_hdr_t))) == NULL) {
         DEBUG("RPL: Send DAO - no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
+        EXPSTAT(EXPSTATS_RPL_TX_DAO_NOBUF);
         return;
     }
     pkt = tmp;
@@ -1081,6 +1105,7 @@ void gnrc_rpl_send_DAO(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, uint
                              (destination && !ipv6_addr_is_multicast(destination)));
 #endif
 
+    EXPSTAT(EXPSTATS_RPL_TX_DAO);
     gnrc_rpl_send(pkt, dodag->iface, NULL, destination, &dodag->dodag_id);
 
     GNRC_RPL_COUNTER_INCREMENT(dodag->dao_seq);
@@ -1109,6 +1134,7 @@ void gnrc_rpl_send_DAO_ACK(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, 
 
     if ((pkt = gnrc_icmpv6_build(NULL, ICMPV6_RPL_CTRL, GNRC_RPL_ICMPV6_CODE_DAO_ACK, size)) == NULL) {
         DEBUG("RPL: Send DAOACK - no space left in packet buffer\n");
+        EXPSTAT(EXPSTATS_RPL_TX_DAO_ACK_NOBUF);
         return;
     }
 
@@ -1133,6 +1159,7 @@ void gnrc_rpl_send_DAO_ACK(gnrc_rpl_instance_t *inst, ipv6_addr_t *destination, 
                                  (destination && !ipv6_addr_is_multicast(destination)));
 #endif
 
+    EXPSTAT(EXPSTATS_RPL_TX_DAO_ACK);
     gnrc_rpl_send(pkt, dodag->iface, NULL, destination, &dodag->dodag_id);
 }
 
