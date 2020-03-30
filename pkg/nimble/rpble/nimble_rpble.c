@@ -35,7 +35,14 @@
 #include "host/ble_gap.h"
 #include "nimble/nimble_port.h"
 
-#define ENABLE_DEBUG        (1)
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)      (void)
+#endif
+
+#define ENABLE_DEBUG        (0)
 #include "debug.h"
 
 #define PARENT_NONE         (-1)
@@ -241,31 +248,37 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event,
         case NIMBLE_NETIF_CONNECTED_MASTER:
             assert(_current_parent == handle);
             _dbg_msg("PARENT selected", addr);
+            EXPSTAT(EXPSTATS_RPBLE_PARENT_CONN);
             _children_accept();
             break;
         case NIMBLE_NETIF_CONNECTED_SLAVE:
             _dbg_msg("CHILD added", addr);
+            EXPSTAT(EXPSTATS_RPBLE_CHILD_CONN);
             _children_accept();
             break;
         case NIMBLE_NETIF_CLOSED_MASTER:
             nimble_netif_accept_stop();
             _dbg_msg("PARENT lost", addr);
+            EXPSTAT(EXPSTATS_RPBLE_PARENT_LOST);
             _current_parent = PARENT_NONE;
             /* back to 0, now we need to find a new parent... */
             _parent_find();
             break;
         case NIMBLE_NETIF_CLOSED_SLAVE:
             _dbg_msg("CHILD lost", addr);
+            EXPSTAT(EXPSTATS_RPBLE_CHILD_LOST);
             _children_accept();
             break;
         case NIMBLE_NETIF_ABORT_MASTER:
             nimble_netif_accept_stop();
             _dbg_msg("PARENT abort", addr);
+            EXPSTAT(EXPSTATS_RPBLE_PARENT_ABORT);
             _current_parent = PARENT_NONE;
             _parent_find();
             break;
         case NIMBLE_NETIF_ABORT_SLAVE:
             _dbg_msg("CHILD abort", addr);
+            EXPSTAT(EXPSTATS_RPBLE_CHILD_ABORT);
             _children_accept();
             break;
         case NIMBLE_NETIF_CONN_UPDATED:
@@ -344,6 +357,7 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
     _local_rpl_ctx.free_slots = 0;
     if (memcmp(&_local_rpl_ctx, ctx, sizeof(nimble_rpble_ctx_t)) == 0) {
         DEBUG("[rpble] RPL update: ignored (no ctx data change)\n");
+        EXPSTAT(EXPSTATS_RPBLE_UPDATE_NO_CHANGE);
         return NIMBLE_RPBLE_NO_CHANGE;
     }
 
@@ -352,6 +366,7 @@ int nimble_rpble_update(const nimble_rpble_ctx_t *ctx)
 
     /* save rpl context for future reference */
     memcpy(&_local_rpl_ctx, ctx, sizeof(nimble_rpble_ctx_t));
+    EXPSTAT(EXPSTATS_RPBLE_UPDATE_NEW_CTX);
 
     if (ctx->role == GNRC_RPL_ROOT_NODE) {
         DEBUG("[rpble] RPL update: we are root, advertising now\n");
