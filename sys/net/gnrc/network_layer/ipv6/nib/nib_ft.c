@@ -21,6 +21,13 @@
 #include "net/gnrc/ipv6/nib.h"
 #include "net/gnrc/ipv6/nib/ft.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)      (void)
+#endif
+
 int gnrc_ipv6_nib_ft_get(const ipv6_addr_t *dst, gnrc_pktsnip_t *pkt,
                          gnrc_ipv6_nib_ft_t *fte)
 {
@@ -50,6 +57,7 @@ int gnrc_ipv6_nib_ft_add(const ipv6_addr_t *dst, unsigned dst_len,
 
         ptr = _nib_drl_add(next_hop, iface);
         if (ptr == NULL) {
+            EXPSTAT(EXPSTATS_NIB_FT_ADD_ERR);
             res = -ENOMEM;
         }
         else {
@@ -57,6 +65,7 @@ int gnrc_ipv6_nib_ft_add(const ipv6_addr_t *dst, unsigned dst_len,
             if (ltime > 0) {
                 _evtimer_add(ptr, GNRC_IPV6_NIB_RTR_TIMEOUT,
                              &ptr->rtr_timeout, ltime * MS_PER_SEC);
+                EXPSTAT(EXPSTATS_NIB_FT_ADD_DFLT);
             }
         }
     }
@@ -67,11 +76,13 @@ int gnrc_ipv6_nib_ft_add(const ipv6_addr_t *dst, unsigned dst_len,
         dst_len = (dst_len > 128) ? 128 : dst_len;
         ptr = _nib_ft_add(next_hop, iface, dst, dst_len);
         if (ptr == NULL) {
+            EXPSTAT(EXPSTATS_NIB_FT_ADD_ERR);
             res = -ENOMEM;
         }
         else if (ltime > 0) {
             _evtimer_add(ptr, GNRC_IPV6_NIB_ROUTE_TIMEOUT,
                          &ptr->route_timeout, ltime * MS_PER_SEC);
+            EXPSTAT(EXPSTATS_NIB_FT_ADD);
         }
     }
 #else /* CONFIG_GNRC_IPV6_NIB_ROUTER */
@@ -91,6 +102,7 @@ void gnrc_ipv6_nib_ft_del(const ipv6_addr_t *dst, unsigned dst_len)
 
         if (entry != NULL) {
             _nib_drl_remove(entry);
+            EXPSTAT(EXPSTATS_NIB_FT_DEL_DFLT);
         }
     }
 #if IS_ACTIVE(CONFIG_GNRC_IPV6_NIB_ROUTER)
@@ -101,6 +113,7 @@ void gnrc_ipv6_nib_ft_del(const ipv6_addr_t *dst, unsigned dst_len)
             if ((entry->pfx_len == dst_len) &&
                 (ipv6_addr_match_prefix(&entry->pfx, dst) >= dst_len)) {
                 _nib_ft_remove(entry);
+                EXPSTAT(EXPSTATS_NIB_FT_DEL);
                 break;
             }
         }
