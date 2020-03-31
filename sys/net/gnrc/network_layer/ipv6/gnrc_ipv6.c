@@ -44,6 +44,13 @@
 
 #include "net/gnrc/ipv6.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)      (void)
+#endif
+
 #define ENABLE_DEBUG        0
 #include "debug.h"
 
@@ -491,6 +498,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
         /* packet is released by NIB */
         DEBUG("ipv6: no link-layer address or interface for next hop to %s\n",
               ipv6_addr_to_str(addr_str, &ipv6_hdr->dst, sizeof(addr_str)));
+        EXPSTAT(EXPSTATS_IP_DROP_NONEXTHOP);
         return;
     }
     netif = gnrc_netif_get_by_pid(gnrc_ipv6_nib_nc_get_iface(&nce));
@@ -512,6 +520,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 #ifdef MODULE_NETSTATS_IPV6
         netif->ipv6.stats.tx_unicast_count++;
 #endif
+        // EXPSTAT(EXPSTATS_IP_SEND_UNI);
         _send_to_iface(netif, pkt);
     }
 }
