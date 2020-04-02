@@ -42,7 +42,7 @@
 #include "expstats.h"
 #define EXPSTAT(x)      expstats_log(x)
 #else
-#define EXPSTAT(x)      (void)
+#define EXPSTAT(x)
 #endif
 
 #define ENABLE_DEBUG 0

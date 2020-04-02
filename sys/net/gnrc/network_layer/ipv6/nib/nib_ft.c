@@ -26,7 +26,7 @@
 #include "expstats.h"
 #define EXPSTAT(x)      expstats_log(x)
 #else
-#define EXPSTAT(x)      (void)
+#define EXPSTAT(x)
 #endif
 
 int gnrc_ipv6_nib_ft_get(const ipv6_addr_t *dst, gnrc_pktsnip_t *pkt,
