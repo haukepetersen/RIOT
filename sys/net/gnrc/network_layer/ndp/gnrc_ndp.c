@@ -315,7 +315,7 @@ void gnrc_ndp_nbr_sol_send(const ipv6_addr_t *tgt, gnrc_netif_t *netif,
                 DEBUG("ndp: unable to send neighbor solicitation\n");
                 break;
             }
-            EXPSTAT(EXPSATAS_ND_NBR_SOL);
+            EXPSTAT(EXPSTATS_ND_TX_NBR_SOL);
         }
         gnrc_netif_release(netif);
         return;
@@ -405,7 +405,7 @@ void gnrc_ndp_nbr_adv_send(const ipv6_addr_t *tgt, gnrc_netif_t *netif,
                 DEBUG("ndp: unable to send neighbor advertisement\n");
                 break;
             }
-            EXPSTAT(EXPSTATS_ND_NBR_ADV);
+            EXPSTAT(EXPSTATS_ND_TX_NBR_ADV);
         }
         gnrc_netif_release(netif);
         return;
@@ -463,7 +463,7 @@ void gnrc_ndp_rtr_sol_send(gnrc_netif_t *netif, const ipv6_addr_t *dst)
                 DEBUG("ndp: unable to send router advertisement\n");
                 break;
             }
-            EXPSTAT(EXPSTATS_ND_RTR_SOL);
+            EXPSTAT(EXPSTATS_ND_TX_RTR_SOL);
         }
         gnrc_netif_release(netif);
         return;
@@ -577,7 +577,7 @@ void gnrc_ndp_rtr_adv_send(gnrc_netif_t *netif, const ipv6_addr_t *src,
                 DEBUG("ndp: unable to send router solicitation\n");
                 break;
             }
-            EXPSTAT(EXPSTATS_ND_RTR_ADV);
+            EXPSTAT(EXPSTATS_ND_TX_RTR_ADV);
         }
         gnrc_netif_release(netif);
         return;
