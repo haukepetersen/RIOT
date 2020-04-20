@@ -106,12 +106,18 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
     /* copy the data into a newly allocated mbuf */
     struct os_mbuf *sdu = os_msys_get_pkthdr(gnrc_pkt_len(pkt), 0);
     if (sdu == NULL) {
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_TX_PKT_NOBUF);
+#endif
         return -ENOBUFS;
     }
     while (pkt) {
         res = os_mbuf_append(sdu, pkt->data, pkt->size);
         if (res != 0) {
             os_mbuf_free_chain(sdu);
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_TX_PKT_NOBUF);
+#endif
             return -ENOBUFS;
         }
         num_bytes += (int)pkt->size;
@@ -127,13 +133,23 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
             if ((state & FLAG_TX_NOTCONN) && !nimble_netif_conn_is_open(conn)) {
                 return -ECONNRESET;
             }
+#ifdef MODULE_EXPSTATS
+            expstats_log(EXPSTATS_NETIF_TX_PKT_BUSY);
+#endif
         }
     } while (res == BLE_HS_EBUSY);
 
     if ((res != 0) && (res != BLE_HS_ESTALLED)) {
         os_mbuf_free_chain(sdu);
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_TX_PKT_NOBUF);
+#endif
         return -ENOBUFS;
     }
+
+#ifdef MODULE_EXPSTATS
+    expstats_log(EXPSTATS_NETIF_TX_PKT_OK);
+#endif
 
     return num_bytes;
 }
@@ -141,6 +157,9 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
 static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 {
     assert(pkt->type == GNRC_NETTYPE_NETIF);
+#ifdef MODULE_EXPSTATS
+    expstats_log(EXPSTATS_NETIF_TX_START);
+#endif
 
     (void)netif;
     int res;
