@@ -44,6 +44,10 @@
 #include "expstats.h"
 #endif
 
+#ifdef MODULE_UDPFLOOD
+#include "udpflood.h"
+#endif
+
 #define ENABLE_DEBUG            0
 #include "debug.h"
 
@@ -177,6 +181,9 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_EXPSTATS
         expstats_log(EXPSTATS_NETIF_TX_MUL);
 #endif
+#ifdef MODULE_UDPFLOOD
+        udpflood_netif_tx_inc((size_t)res);
+#endif
     }
     /* send unicast */
     else {
@@ -196,6 +203,11 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         }
         else {
             expstats_log(EXPSTATS_NETIF_TX_ERR);
+        }
+#endif
+#ifdef MODULE_UDPFLOOD
+        if (res > 0) {
+            udpflood_netif_tx_inc((size_t)res);
         }
 #endif
     }
@@ -311,6 +323,10 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
 {
     struct os_mbuf *rxb = event->receive.sdu_rx;
     size_t rx_len = (size_t)OS_MBUF_PKTLEN(rxb);
+
+#ifdef MODULE_UDPFLOOD
+    udpflood_netif_rx_inc(rx_len);
+#endif
 
     /* allocate netif header */
     gnrc_pktsnip_t *if_snip = gnrc_netif_hdr_build(conn->addr, BLE_ADDR_LEN,
