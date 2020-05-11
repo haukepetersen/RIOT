@@ -51,6 +51,10 @@
 #define EXPSTAT(x)
 #endif
 
+#ifdef MODULE_UDPFLOOD
+#include "udpflood.h"
+#endif
+
 #define ENABLE_DEBUG        0
 #include "debug.h"
 
@@ -280,6 +284,10 @@ static void _send_to_iface(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_NETSTATS_IPV6
     netif->ipv6.stats.tx_success++;
     netif->ipv6.stats.tx_bytes += gnrc_pkt_len(pkt->next);
+#endif
+
+#ifdef MODULE_UDPFLOOD
+    udpflood_ip_tx_inc(gnrc_pkt_len(pkt->next));
 #endif
 
 #ifdef MODULE_GNRC_SIXLOWPAN
@@ -751,6 +759,10 @@ static void _receive(gnrc_pktsnip_t *pkt)
         stats->rx_bytes += (gnrc_pkt_len(pkt) - netif_hdr->size);
 #endif
     }
+
+#ifdef MODULE_UDPFLOOD
+    udpflood_ip_rx_inc(gnrc_pkt_len(pkt) - netif_hdr->size);
+#endif
 
     if ((pkt->data == NULL) || (pkt->size < sizeof(ipv6_hdr_t)) ||
         !ipv6_hdr_is(pkt->data)) {
