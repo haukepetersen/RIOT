@@ -48,7 +48,7 @@ extern "C" {
  * @brief   Priority used for NimBLE's host thread
  */
 #ifndef NIMBLE_HOST_PRIO
-#define NIMBLE_HOST_PRIO            (THREAD_PRIORITY_MAIN - 2)
+#define NIMBLE_HOST_PRIO            (1)
 #endif
 
 /**
