@@ -47,6 +47,9 @@
 #ifdef MODULE_UDPFLOOD
 #include "udpflood.h"
 #endif
+#ifdef MODULE_SEQSTATS
+#include "seqstats.h"
+#endif
 
 #define ENABLE_DEBUG            0
 #include "debug.h"
@@ -140,6 +143,9 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_EXPSTATS
             expstats_log(EXPSTATS_NETIF_TX_PKT_BUSY);
 #endif
+#ifdef MODULE_SEQSTATS
+            seqstats_inc(SEQSTATS_NETIF_LOCK);
+#endif
         }
     } while (res == BLE_HS_EBUSY);
 
@@ -184,6 +190,9 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_UDPFLOOD
         udpflood_netif_tx_inc((size_t)res);
 #endif
+#ifdef MODULE_SEQSTATS
+        seqstats_inc(SEQSTATS_NETIF_TX);
+#endif
     }
     /* send unicast */
     else {
@@ -208,6 +217,11 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_UDPFLOOD
         if (res > 0) {
             udpflood_netif_tx_inc((size_t)res);
+        }
+#endif
+#ifdef MODULE_SEQSTATS
+        if (res > 0) {
+            seqstats_inc(SEQSTATS_NETIF_TX);
         }
 #endif
     }
@@ -327,6 +341,9 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
 #ifdef MODULE_UDPFLOOD
     udpflood_netif_rx_inc(rx_len);
 #endif
+#ifdef MODULE_SEQSTATS
+    seqstats_inc(SEQSTATS_NETIF_RX);
+#endif
 
     /* allocate netif header */
     gnrc_pktsnip_t *if_snip = gnrc_netif_hdr_build(conn->addr, BLE_ADDR_LEN,
@@ -412,6 +429,9 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
+#ifdef MODULE_SEQSTATS
+            seqstats_inc(SEQSTATS_NETIF_UNLOCK);
+#endif
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -463,6 +483,9 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
+#ifdef MODULE_SEQSTATS
+            seqstats_inc(SEQSTATS_NETIF_UNLOCK);
+#endif
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
