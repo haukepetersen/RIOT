@@ -44,8 +44,8 @@
 #include "expstats.h"
 #endif
 
-#ifdef MODULE_UDPFLOOD
-#include "udpflood.h"
+#ifdef MODULE_AVGSTATS
+#include "avgstats.h"
 #endif
 #ifdef MODULE_SEQSTATS
 #include "seqstats.h"
@@ -187,8 +187,9 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_EXPSTATS
         expstats_log(EXPSTATS_NETIF_TX_MUL);
 #endif
-#ifdef MODULE_UDPFLOOD
-        udpflood_netif_tx_inc((size_t)res);
+#ifdef MODULE_AVGSTATS
+        avgstats_inc(AVGSTATS_NETIF_TX_CNT);
+        avgstats_add(AVGSTATS_NETIF_TX_BYTES, (unsigned)res);
 #endif
 #ifdef MODULE_SEQSTATS
         seqstats_inc(SEQSTATS_NETIF_TX);
@@ -214,9 +215,10 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             expstats_log(EXPSTATS_NETIF_TX_ERR);
         }
 #endif
-#ifdef MODULE_UDPFLOOD
+#ifdef MODULE_AVGSTATS
         if (res > 0) {
-            udpflood_netif_tx_inc((size_t)res);
+            avgstats_inc(AVGSTATS_NETIF_TX_CNT);
+            avgstats_add(AVGSTATS_NETIF_TX_BYTES, (unsigned)res);
         }
 #endif
 #ifdef MODULE_SEQSTATS
@@ -338,8 +340,9 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     struct os_mbuf *rxb = event->receive.sdu_rx;
     size_t rx_len = (size_t)OS_MBUF_PKTLEN(rxb);
 
-#ifdef MODULE_UDPFLOOD
-    udpflood_netif_rx_inc(rx_len);
+#ifdef MODULE_AVGSTATS
+    avgstats_inc(AVGSTATS_NETIF_RX_CNT);
+    avgstats_add(AVGSTATS_NETIF_RX_BYTES, (unsigned)rx_len);
 #endif
 #ifdef MODULE_SEQSTATS
     seqstats_inc(SEQSTATS_NETIF_RX);
