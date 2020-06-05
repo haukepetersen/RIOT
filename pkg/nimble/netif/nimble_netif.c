@@ -432,9 +432,6 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
-#ifdef MODULE_SEQSTATS
-            seqstats_inc(SEQSTATS_NETIF_UNLOCK);
-#endif
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -486,9 +483,6 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
-#ifdef MODULE_SEQSTATS
-            seqstats_inc(SEQSTATS_NETIF_UNLOCK);
-#endif
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
