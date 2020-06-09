@@ -172,7 +172,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #endif
 
     (void)netif;
-    int res;
+    int res = -1;
 
     gnrc_netif_hdr_t *hdr = (gnrc_netif_hdr_t *)pkt->data;
     /* if packet is bcast or mcast, we send it to every connected node */
@@ -192,7 +192,10 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         avgstats_add(AVGSTATS_NETIF_TX_BYTES, (unsigned)res);
 #endif
 #ifdef MODULE_SEQSTATS
-        seqstats_inc(SEQSTATS_NETIF_TX);
+        if (res > 0) {
+            seqstats_inc(SEQSTATS_NETIF_TX);
+            seqstats_add(SEQSTATS_NETIF_TX_BYTES, (unsigned)res);
+        }
 #endif
     }
     /* send unicast */
@@ -224,6 +227,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 #ifdef MODULE_SEQSTATS
         if (res > 0) {
             seqstats_inc(SEQSTATS_NETIF_TX);
+            seqstats_add(SEQSTATS_NETIF_TX_BYTES, (unsigned)res);
         }
 #endif
     }
@@ -346,6 +350,7 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
 #endif
 #ifdef MODULE_SEQSTATS
     seqstats_inc(SEQSTATS_NETIF_RX);
+    seqstats_add(SEQSTATS_NETIF_RX_BYTES, (unsigned)rx_len);
 #endif
 
     /* allocate netif header */
