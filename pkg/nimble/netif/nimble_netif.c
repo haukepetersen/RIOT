@@ -40,6 +40,10 @@
 #include "host/util/util.h"
 #include "mem/mem.h"
 
+#ifdef MODULE_MYPRINT
+#include "myprint.h"
+#endif
+
 #ifdef MODULE_EXPSTATS
 #include "expstats.h"
 #endif
@@ -125,18 +129,12 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
     /* copy the data into a newly allocated mbuf */
     struct os_mbuf *sdu = os_mbuf_get_pkthdr(&_mbuf_pool, 0);
     if (sdu == NULL) {
-#ifdef MODULE_EXPSTATS
-        expstats_log(EXPSTATS_NETIF_TX_PKT_NOBUF);
-#endif
         return -ENOBUFS;
     }
     while (pkt) {
         res = os_mbuf_append(sdu, pkt->data, pkt->size);
         if (res != 0) {
             os_mbuf_free_chain(sdu);
-#ifdef MODULE_EXPSTATS
-        expstats_log(EXPSTATS_NETIF_TX_PKT_NOBUF);
-#endif
             return -ENOBUFS;
         }
         num_bytes += (int)pkt->size;
@@ -147,24 +145,17 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
     do {
         res = ble_l2cap_send(conn->coc, sdu);
         if (res == BLE_HS_EBUSY) {
-#ifdef MODULE_EXPSTATS
-            expstats_log(EXPSTATS_NETIF_TX_PKT_BUSY);
-#endif
             thread_flags_wait_all(FLAG_TX_UNSTALLED);
         }
     } while (res == BLE_HS_EBUSY);
 
     if ((res != 0) && (res != BLE_HS_ESTALLED)) {
         os_mbuf_free_chain(sdu);
-#ifdef MODULE_EXPSTATS
-        expstats_log(EXPSTATS_NETIF_TX_PKT_NOBUF);
+#ifdef MODULE_MYPRINT
+        myprintf("n_er:%i\n", res);
 #endif
-        return -ENOBUFS;
+        return -ECANCELED;
     }
-
-#ifdef MODULE_EXPSTATS
-    expstats_log(EXPSTATS_NETIF_TX_PKT_OK);
-#endif
 
     return num_bytes;
 }
@@ -213,6 +204,9 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         if (res > 0) {
             expstats_log(expstats_on_tx(pkt->next));
         }
+        else if (res == -ECANCELED) {
+            expstats_log(EXPSTATS_NETIF_TX_ERR);
+        }
         else if (res == -ENOBUFS) {
             expstats_log(EXPSTATS_NETIF_TX_NIMBUF_FULL);
         }
@@ -220,7 +214,8 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             expstats_log(EXPSTATS_NETIF_TX_NOTCONN);
         }
         else {
-            expstats_log(EXPSTATS_NETIF_TX_ERR);
+            puts("nimble_netif: error bad return code from _send_pkt()");
+            assert(0);
         }
 #endif
 #ifdef MODULE_AVGSTATS
