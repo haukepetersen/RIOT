@@ -47,6 +47,8 @@
 #include "periph/init.h"
 #include "periph/pm.h"
 
+#include "dbgpin.h"
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -413,6 +415,11 @@ static void _reset_handler(void)
 __attribute__((constructor)) static void startup(int argc, char **argv, char **envp)
 {
     _native_init_syscalls();
+
+#ifdef MODULE_DBGPIN
+    dbgpin_init();
+#endif
+
     /* initialize stdio as early as possible */
     stdio_init();
 
