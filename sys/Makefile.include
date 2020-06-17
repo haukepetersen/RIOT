@@ -117,3 +117,7 @@ endif
 ifneq (,$(filter ztimer_xtimer_compat,$(USEMODULE)))
   PSEUDOMODULES += xtimer
 endif
+
+ifneq (,$(filter dbgpin,$(USEMODULE)))
+  INCLUDES += -include $(RIOTBASE)/sys/include/dbgpin.h
+endif

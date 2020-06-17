@@ -46,4 +46,8 @@ ifneq (,$(filter shell_commands,$(USEMODULE)))
   endif
 endif
 
+ifneq (,$(filter dbgpin,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+endif
+
 include $(RIOTBASE)/sys/test_utils/Makefile.dep
