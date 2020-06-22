@@ -67,7 +67,10 @@ static void *idle_thread(void *arg)
     (void)arg;
 
     while (1) {
-        pm_set_lowest();
+        // pm_set_lowest();
+      unsigned s = irq_disable();
+      dbgpin_sig(7);
+      irq_restore(s);
     }
 
     return NULL;
