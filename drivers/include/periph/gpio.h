@@ -70,7 +70,7 @@
 #ifndef PERIPH_GPIO_H
 #define PERIPH_GPIO_H
 
-#include <limits.h>
+// #include <limits.h>
 
 #include "periph_cpu.h"
 #include "periph_conf.h"

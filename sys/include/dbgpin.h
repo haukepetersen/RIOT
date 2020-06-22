@@ -20,6 +20,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
+#define _DEFAULT_SOURCE 1
+
 #include "kernel_defines.h"
 #include "periph/gpio.h"
 #include "dbgpin_params.h"
@@ -43,6 +45,13 @@ static inline void dbgpin_sig(unsigned pin)
 {
     dbgpin_tgl(pin);
     dbgpin_tgl(pin);
+}
+
+static inline void dbgpin_burst(unsigned pin, unsigned repeat)
+{
+    for (unsigned i = 0; i < repeat; i++) {
+        dbgpin_sig(pin);
+    }
 }
 
 static inline unsigned dbgpin_cnt(void)

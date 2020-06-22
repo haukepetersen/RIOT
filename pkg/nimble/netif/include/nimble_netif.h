@@ -99,7 +99,7 @@ extern "C" {
          pulls in some other RIOT headers that clash with NimBLE header (e.g.
  *       byteorder.h vs. endian.h) */
 #ifndef NIMBLE_NETIF_MTU
-#define NIMBLE_NETIF_MTU            (1280U)
+#define NIMBLE_NETIF_MTU            (1400U)
 #endif
 
 /**
