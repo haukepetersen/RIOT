@@ -55,6 +55,10 @@
 #include "seqstats.h"
 #endif
 
+#ifdef MODULE_UDPFLOOD
+#include "udpflood.h"
+#endif
+
 #define ENABLE_DEBUG            0
 #include "debug.h"
 
@@ -224,6 +228,11 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             seqstats_add(SEQSTATS_NETIF_TX_BYTES, (unsigned)res);
         }
 #endif
+#ifdef MODULE_UDPFLOOD
+        if (res > 0) {
+            udpflood_netif_tx((unsigned)res);
+        }
+#endif
     }
 
     /* release the packet in GNRC's packet buffer */
@@ -345,6 +354,9 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
 #ifdef MODULE_SEQSTATS
     seqstats_inc(SEQSTATS_NETIF_RX);
     seqstats_add(SEQSTATS_NETIF_RX_BYTES, (unsigned)rx_len);
+#endif
+#ifdef MODULE_UDPFLOOD
+    udpflood_netif_rx((unsigned)rx_len);
 #endif
 
     /* allocate netif header */
