@@ -179,12 +179,28 @@ static void _on_scan_evt(uint8_t type,
         return;
     }
 
-    // TODO: filter peer for Instance ID, maybe DODAG-ID, and more?
+    /**
+     * @todo    Here we need to improve the filtering: so far, we consider every
+     *          node we see that is capable of rplbe to be a parent. We should
+     *          however also filter for instance ID and possibly the DODAG ID as
+     *          well. On top, we should probably only consider nodes with >=
+     *          version as parent
+     */
 
     /* score and compare advertising peer */
     uint16_t rank = byteorder_bebuftohs(&msd_field.data[2 + POS_RANK]);
     uint8_t free = msd_field.data[2 + POS_FREE_SLOTS];
     uint16_t score = _psel_score(rank, free);
+
+    /* our currently preferred parent might have updated its score in the mean
+     * time, so we need to check that */
+    if (memcmp(&_psel.addr, addr, sizeof(ble_addr_t)) == 0) {
+        _psel.score = score;
+        return;
+    }
+
+    /* we consider only parents with a lower rank and remember the one with the
+     * best score */
     if (((_local_rpl_ctx.rank == 0) || (_local_rpl_ctx.rank > rank)) &&
         (score > _psel.score)) {
         _psel.score = score;
