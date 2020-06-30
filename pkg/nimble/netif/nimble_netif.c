@@ -200,7 +200,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         res = _send_pkt(conn, pkt->next);
 #ifdef MODULE_EXPSTATS
         if (res > 0) {
-            expstats_log(expstats_on_tx(pkt->next));
+            expstats_log_netif_tx(pkt->next);
         }
         else if (res == -ECANCELED) {
             expstats_log(EXPSTATS_NETIF_TX_ERR);
@@ -394,7 +394,7 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     }
 
 #ifdef MODULE_EXPSTATS
-    expstats_log(expstats_on_rx(payload));
+    expstats_log_netif_rx(payload);
 #endif
 
     /* finally dispatch the receive packet to GNRC */
