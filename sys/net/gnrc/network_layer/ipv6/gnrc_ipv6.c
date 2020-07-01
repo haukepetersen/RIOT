@@ -201,11 +201,21 @@ static void *_event_loop(void *args)
                 _receive(msg.content.ptr);
                 break;
 
-            case GNRC_NETAPI_MSG_TYPE_SND:
+            case GNRC_NETAPI_MSG_TYPE_SND: {
                 DEBUG("ipv6: GNRC_NETAPI_MSG_TYPE_SND received\n");
+
+                printf("ipv6 send PKT:");
+                gnrc_pktbuf_stats();
+                gnrc_pktsnip_t *tmp = msg.content.ptr;
+                while (tmp) {
+                    printf("ip_tx:%p, next:%p, type:%u data:%p size:%u\n",
+                            tmp, tmp->next, (unsigned)tmp->type, tmp->data, (unsigned)tmp->size);
+                    tmp = tmp->next;
+                }
+
                 _send(msg.content.ptr, true);
                 break;
-
+            }
             case GNRC_NETAPI_MSG_TYPE_GET:
             case GNRC_NETAPI_MSG_TYPE_SET:
                 DEBUG("ipv6: reply to unsupported get/set\n");
@@ -488,9 +498,26 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 {
     gnrc_ipv6_nib_nc_t nce;
 
+    gnrc_pktsnip_t *tnp = pkt;
+    while (tnp) {
+        printf("ip_uni:%p, next:%p, type:%u data:%p size:%u\n",
+               tnp, tnp->next, (unsigned)tnp->type, tnp->data, (unsigned)tnp->size);
+        tnp = tnp->next;
+    }
+
+
     DEBUG("ipv6: send unicast\n");
     if (gnrc_ipv6_nib_get_next_hop_l2addr(&ipv6_hdr->dst, netif, pkt,
                                           &nce) < 0) {
+
+        gnrc_pktbuf_stats();
+        gnrc_pktsnip_t *tmp = pkt;
+        while (tmp) {
+            printf("ip_drop:%p, next:%p, type:%u data:%p size:%u\n",
+                tmp, tmp->next, (unsigned)tmp->type, tmp->data, (unsigned)tmp->size);
+            tmp = tmp->next;
+        }
+
         /* packet is released by NIB */
         DEBUG("ipv6: no link-layer address or interface for next hop to %s\n",
               ipv6_addr_to_str(addr_str, &ipv6_hdr->dst, sizeof(addr_str)));

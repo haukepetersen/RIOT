@@ -308,6 +308,14 @@ void gnrc_ndp_nbr_sol_send(const ipv6_addr_t *tgt, gnrc_netif_t *netif,
         }
         else {
             pkt = hdr;
+
+            gnrc_pktsnip_t *ndp_ns = pkt;
+            while (ndp_ns) {
+                printf("ndp_ns:%p, next:%p, type:%u data:%p size:%u\n",
+                    ndp_ns, ndp_ns->next, (unsigned)ndp_ns->type, ndp_ns->data, (unsigned)ndp_ns->size);
+                ndp_ns = ndp_ns->next;
+            }
+
             if (gnrc_netapi_dispatch_send(GNRC_NETTYPE_NDP,
                                           GNRC_NETREG_DEMUX_CTX_ALL,
                                           pkt) == 0) {
