@@ -47,6 +47,7 @@
 #ifdef MODULE_EXPSTATS
 #include "expstats.h"
 #define EXPSTAT(x)                  expstats_log(x)
+#define EXPSTAT_SEQ(stat,seq)       expstats_log_seq(stat, seq)
 #define EXPSTAT_SNIP_TX(stat,snip)  expstats_log_snip_tx(stat, snip)
 #else
 #define EXPSTAT(x)
@@ -503,13 +504,20 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 {
     gnrc_ipv6_nib_nc_t nce;
 
+    uint32_t seq = expstats_snip_tx_get_seq(pkt);
+
     DEBUG("ipv6: send unicast\n");
     if (gnrc_ipv6_nib_get_next_hop_l2addr(&ipv6_hdr->dst, netif, pkt,
                                           &nce) < 0) {
         /* packet is released by NIB */
         DEBUG("ipv6: no link-layer address or interface for next hop to %s\n",
               ipv6_addr_to_str(addr_str, &ipv6_hdr->dst, sizeof(addr_str)));
-        EXPSTAT_SNIP_TX(EXPSTATS_IP_DROP, pkt->next);
+        if (seq != 0) {
+            EXPSTAT_SEQ(EXPSTATS_IP_DROP, seq);
+        }
+        else {
+            EXPSTAT(EXPSTATS_IP_DROP);
+        }
         return;
     }
     netif = gnrc_netif_get_by_pid(gnrc_ipv6_nib_nc_get_iface(&nce));
