@@ -175,9 +175,6 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
 static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 {
     assert(pkt->type == GNRC_NETTYPE_NETIF);
-#ifdef MODULE_EXPSTATS
-    expstats_log(EXPSTATS_NETIF_TX_START);
-#endif
 
     (void)netif;
     int res = -1;
@@ -214,16 +211,16 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         res = _send_pkt(conn, pkt->next);
 #ifdef MODULE_EXPSTATS
         if (res > 0) {
-            expstats_log_snip_tx(pkt->next, EXPSTATS_NETIF_TX_DATA, EXPSTATS_NETIF_TX_OTHER);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX, pkt->next);
         }
         else if (res == -ECANCELED) {
-            expstats_log_snip_tx(pkt->next, EXPSTATS_NETIF_TX_ERR, EXPSTATS_NETIF_TX_ERR);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ERR, pkt->next);
         }
         else if (res == -ENOBUFS) {
-            expstats_log_snip_tx(pkt->next, EXPSTATS_NETIF_TX_NIMBUF_FULL, EXPSTATS_NETIF_TX_NIMBUF_FULL);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NIMBUF_FULL, pkt->next);
         }
         else if (res == -ENOTCONN) {
-            expstats_log_snip_tx(pkt->next, EXPSTATS_NETIF_TX_NOTCONN, EXPSTATS_NETIF_TX_NOTCONN);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NOTCONN, pkt->next);
         }
         else {
             puts("nimble_netif: error bad return code from _send_pkt()");
@@ -408,7 +405,7 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     }
 
 #ifdef MODULE_EXPSTATS
-    expstats_log_snip_rx(payload, EXPSTATS_NETIF_TX_DATA, EXPSTATS_NETIF_TX_OTHER);
+    expstats_log_snip_rx(EXPSTATS_NETIF_RX, payload);
 #endif
 
     /* finally dispatch the receive packet to GNRC */
