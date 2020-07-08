@@ -256,6 +256,10 @@ static void _on_resp_timeout(void *arg) {
 #endif
         event_timeout_set(&memo->resp_evt_tmout, timeout);
 
+#ifdef MODULE_EXPSTATS
+        uint32_t seq = expstats_buf_get_seq(memo->msg.data.pdu_buf, memo->msg.data.pdu_len);
+        expstats_log_seq(EXPSTATS_APP_TX, seq);
+#endif
         ssize_t bytes = sock_udp_send(&_sock, memo->msg.data.pdu_buf,
                                       memo->msg.data.pdu_len, &memo->remote_ep);
         if (bytes <= 0) {
