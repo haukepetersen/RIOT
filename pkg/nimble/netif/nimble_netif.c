@@ -152,6 +152,7 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
         res = ble_l2cap_send(conn->coc, sdu);
         if (res == BLE_HS_EBUSY) {
             // dbgpin_set(2);
+            myputs("s");
             thread_flags_wait_all(FLAG_TX_UNSTALLED);
         }
     } while (res == BLE_HS_EBUSY);
@@ -450,6 +451,7 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
             // dbgpin_clr(2);
+            myputs("u");
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -501,6 +503,7 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
             // dbgpin_clr(2);
+            myputs("u");
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
