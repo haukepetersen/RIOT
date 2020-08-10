@@ -441,6 +441,7 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
             // dbgpin_clr(2);
+            myputs("u");
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -493,6 +494,7 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
             // dbgpin_clr(2);
+            myputs("u");
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
