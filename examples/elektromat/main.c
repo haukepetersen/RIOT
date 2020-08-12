@@ -179,6 +179,9 @@ int main(void)
             state = 0;
         }
 
+        LOG_INFO("v:%6u hi:%6u lo:%6u state:%i\n",
+                 (unsigned)val, (unsigned)hi, (unsigned)lo, (unsigned)state);
+
         if (++update_cnt == SAMPLE_RATE) {
             update_cnt = 0;
             bat = (uint16_t)_cma(bat, _bat_read(), CMA_BAT);
