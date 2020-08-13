@@ -138,7 +138,8 @@ int main(void)
     uint16_t pwr = 0;
     uint32_t t_pulse = xtimer_now_usec();
     uint64_t hi = 0;
-    uint64_t lo = 0;
+
+    uint64_t lo = 500000;
     int state = 0;
 
     unsigned update_cnt = 0;
@@ -150,6 +151,8 @@ int main(void)
         if (val < lo) {
             lo = val;
         }
+        LOG_INFO("v:%6u hi:%6u lo:%6u state:%i\n",
+                 (unsigned)val, (unsigned)hi, (unsigned)lo, (unsigned)state);
         xtimer_periodic_wakeup(&last_wakeup, SAMPLING_DELAY);
     }
 
