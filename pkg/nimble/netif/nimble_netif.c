@@ -109,10 +109,14 @@ static void _netif_init(gnrc_netif_t *netif)
 #endif  /* IS_USED(MODULE_GNRC_NETIF_6LO) */
 }
 
-static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
+static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt, int dbg)
 {
     int res;
     int num_bytes = 0;
+
+    if (dbg == 1) {
+        myputs("n_try");
+    }
 
     // dbgpin_sig(1);
 
@@ -172,7 +176,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
          int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
                                                 NIMBLE_NETIF_L2CAP_CONNECTED);
         while (handle != NIMBLE_NETIF_CONN_INVALID) {
-            res = _send_pkt(nimble_netif_conn_get(handle), pkt->next);
+            res = _send_pkt(nimble_netif_conn_get(handle), pkt->next, 0);
             handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
         }
 #ifdef MODULE_EXPSTATS
@@ -194,7 +198,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         int handle = nimble_netif_conn_get_by_addr(
             gnrc_netif_hdr_get_dst_addr(hdr));
         nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
-        res = _send_pkt(conn, pkt->next);
+        res = _send_pkt(conn, pkt->next, 1);
 #ifdef MODULE_EXPSTATS
         if (res > 0) {
             expstats_log_snip_tx(EXPSTATS_NETIF_TX, pkt->next);
@@ -412,7 +416,14 @@ end:
 static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
 {
     int handle = (int)arg;
+    if (event->type == BLE_L2CAP_EVENT_COC_TX_UNSTALLED) {
+        myprintf("u:t%u\n", (unsigned)thread_getpid());
+    }
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+    if (event->type == BLE_L2CAP_EVENT_COC_TX_UNSTALLED) {
+        myprintf("u:c%p\n", (void *)conn);
+    }
+
     assert(conn && (conn->state & NIMBLE_NETIF_GAP_MASTER));
 
     switch (event->type) {
@@ -456,6 +467,11 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
     (void)arg;
     int handle;
     nimble_netif_conn_t *conn;
+    if (event->type == BLE_L2CAP_EVENT_COC_TX_UNSTALLED) {
+        myprintf("u:t%u\n", (unsigned)thread_getpid());
+        conn = nimble_netif_conn_from_gaphandle(event->disconnect.conn_handle);
+        myprintf("u:c%p\n", (void *)conn);
+    }
 
     switch (event->type) {
         case BLE_L2CAP_EVENT_COC_CONNECTED:
