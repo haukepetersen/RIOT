@@ -49,12 +49,10 @@
 #define A0                  ADC_LINE(1)
 #define D_ON                GPIO_PIN(0, 31)
 
-
 #define SAMPLE_RATE         (25u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
 
-#define STARTUP_SAMPLES     (5000U)
-#define CMA_EL              (20000U)
+#define STARTUP_SAMPLES     (7500U)
 #define CMA_BAT             (10U)
 
 #define AD_STATIC           { 0x02, 0x01, 0x06, 0x0d, 0xff, 0xfe, 0xaf, 0x05 }
@@ -73,7 +71,7 @@ static skald_ctx_t _adv;
 static eldata_t *_data = NULL;
 
 /* cumulative moving average */
-static uint64_t _cma(uint64_t csm, uint32_t val, unsigned n)
+static uint32_t _cma(uint32_t csm, uint32_t val, unsigned n)
 {
     return ((csm * n) + val) / (n + 1);
 }
@@ -125,9 +123,9 @@ int main(void)
     /* run sampling loop */
     uint16_t bat = 0;
     uint16_t cnt = 0;
-    uint64_t hi = 0;
+    uint32_t hi = 0;
+    uint32_t lo = UINT32_MAX;
 
-    uint64_t lo = 500000;
     int state = 0;
 
     unsigned update_cnt = 0;
@@ -135,7 +133,9 @@ int main(void)
 
     for (unsigned i = 0; i < STARTUP_SAMPLES; i++) {
         uint32_t val = _el_sample();
-        hi += val;
+        if (val > hi) {
+            hi = val;
+        }
         if (val < lo) {
             lo = val;
         }
@@ -145,18 +145,13 @@ int main(void)
     }
 
     /* calculate initial values from startup samples */
-    hi = hi / STARTUP_SAMPLES;
-    lo = lo + ((hi - lo) / 2);
+    uint32_t diff = ((hi - lo) / 3);
+    hi = hi - diff;
+    lo = lo + diff;
     LOG_INFO("STARTUP DONE: hi:%u lo:%u\n", (unsigned)hi, (unsigned)lo);
 
     while (1) {
         uint32_t val = _el_sample();
-
-        /* update hysteresis */
-        hi = _cma(hi, val, CMA_EL);
-        if (val < hi) {
-            lo = _cma(lo, val, CMA_EL);
-        }
 
         /* check for state change */
         if ((val < lo) && (state == 0)) {
