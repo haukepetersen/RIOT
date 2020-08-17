@@ -73,7 +73,10 @@
 /* thread flag used for signaling transmit readiness */
 #define FLAG_TX_UNSTALLED       (1u << 13)
 #define FLAG_TX_NOTCONN         (1u << 12)
+<<<<<<< 0f4d4b6e3ab1fc9dd0102212566d6c75c8e841d8
 #define FLAG_ALL                (FLAG_TX_UNSTALLED | FLAG_TX_NOTCONN)
+=======
+>>>>>>> fix: nimble_netif: unstall on GAP conn loss
 
 /* allocate a stack for the netif device */
 static char _stack[THREAD_STACKSIZE_DEFAULT];
