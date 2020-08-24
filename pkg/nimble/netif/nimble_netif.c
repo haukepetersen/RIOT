@@ -112,16 +112,10 @@ static void _netif_init(gnrc_netif_t *netif)
 #endif  /* IS_USED(MODULE_GNRC_NETIF_6LO) */
 }
 
-static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt, int dbg)
+static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
 {
     int res;
     int num_bytes = 0;
-
-    if (dbg == 1) {
-        myputs("n_try");
-    }
-
-    // dbgpin_sig(1);
 
     if (conn == NULL || conn->coc == NULL) {
         return -ENOTCONN;
@@ -179,11 +173,19 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
          int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
                                                 NIMBLE_NETIF_L2CAP_CONNECTED);
         while (handle != NIMBLE_NETIF_CONN_INVALID) {
-            res = _send_pkt(nimble_netif_conn_get(handle), pkt->next, 0);
+            res = _send_pkt(nimble_netif_conn_get(handle), pkt->next);
+            if (res <= 0) {
+                break;
+            }
             handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
         }
 #ifdef MODULE_EXPSTATS
-        expstats_log(EXPSTATS_NETIF_TX_MUL);
+        if (res > 0) {
+            expstats_log(EXPSTATS_NETIF_TX_MUL);
+        }
+        else {
+            expstats_log(EXPSTATS_NETIF_TX_MUL_ER);
+        }
 #endif
 #ifdef MODULE_AVGSTATS
         avgstats_inc(AVGSTATS_NETIF_TX_CNT);
@@ -201,7 +203,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         int handle = nimble_netif_conn_get_by_addr(
             gnrc_netif_hdr_get_dst_addr(hdr));
         nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
-        res = _send_pkt(conn, pkt->next, 1);
+        res = _send_pkt(conn, pkt->next);
 #ifdef MODULE_EXPSTATS
         if (res > 0) {
             expstats_log_snip_tx(EXPSTATS_NETIF_TX, pkt->next);
@@ -457,8 +459,6 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
-            // dbgpin_clr(2);
-            myputs("u");
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -473,11 +473,6 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
     (void)arg;
     int handle;
     nimble_netif_conn_t *conn;
-    if (event->type == BLE_L2CAP_EVENT_COC_TX_UNSTALLED) {
-        myprintf("u:t%u\n", (unsigned)thread_getpid());
-        conn = nimble_netif_conn_from_gaphandle(event->disconnect.conn_handle);
-        myprintf("u:c%p\n", (void *)conn);
-    }
 
     switch (event->type) {
         case BLE_L2CAP_EVENT_COC_CONNECTED:
@@ -515,8 +510,6 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
-            // dbgpin_clr(2);
-            myputs("u");
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -685,9 +678,6 @@ int nimble_netif_connect(const ble_addr_t *addr,
 
     int res = ble_gap_connect(nimble_riot_own_addr_type, addr, timeout,
                               conn_params, _on_gap_master_evt, (void *)handle);
-    if (res != 0) {
-        printf("gap_connect fail (%i)\n", res);
-    }
     assert(res == 0);
     (void)res;
 
