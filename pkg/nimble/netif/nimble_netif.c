@@ -416,7 +416,7 @@ end:
     ble_l2cap_recv_ready(event->receive.chan, rxb);
 
     /* XXX: wake up the nimble_netif thread to prevent it getting stuck */
-    thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
+    // thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
 }
 
 static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
