@@ -184,13 +184,15 @@ static bool _on_link(const ipv6_addr_t *dst, unsigned *iface)
     return ipv6_addr_is_link_local(dst);
 }
 
+#include "myprint.h"
+
 int gnrc_ipv6_nib_get_next_hop_l2addr(const ipv6_addr_t *dst,
                                       gnrc_netif_t *netif, gnrc_pktsnip_t *pkt,
                                       gnrc_ipv6_nib_nc_t *nce)
 {
     int res = 0;
 
-    DEBUG("nib: get next hop link-layer address of %s%%%u\n",
+    myprintf("nib: get next hop link-layer address of %s%%%u\n",
           ipv6_addr_to_str(addr_str, dst, sizeof(addr_str)),
           (netif != NULL) ? (unsigned)netif->pid : 0U);
     gnrc_netif_acquire(netif);
@@ -202,7 +204,7 @@ int gnrc_ipv6_nib_get_next_hop_l2addr(const ipv6_addr_t *dst,
         unsigned iface = (node == NULL) ? 0 : _nib_onl_get_if(node);
 
         if ((node != NULL) || _on_link(dst, &iface)) {
-            DEBUG("nib: %s is on-link or in NC, start address resolution\n",
+            myprintf("nib: %s is on-link or in NC, start address resolution\n",
                   ipv6_addr_to_str(addr_str, dst, sizeof(addr_str)));
             /* on-link prefixes return their interface */
             if (!ipv6_addr_is_link_local(dst) && (iface != 0)) {
@@ -213,7 +215,7 @@ int gnrc_ipv6_nib_get_next_hop_l2addr(const ipv6_addr_t *dst,
             }
             if ((netif == NULL) ||
                 !_resolve_addr(dst, netif, pkt, nce, node)) {
-                DEBUG("nib: host unreachable\n");
+                myprintf("nib: host unreachable\n");
                 /* _resolve_addr releases pkt only if not queued (in which case
                  * we also shouldn't release), but if netif is not defined we
                  * should release in any case. */
@@ -229,16 +231,16 @@ int gnrc_ipv6_nib_get_next_hop_l2addr(const ipv6_addr_t *dst,
         else {
             gnrc_ipv6_nib_ft_t route;
 
-            DEBUG("nib: %s is off-link, resolve route\n",
+            myprintf("nib: %s is off-link, resolve route\n",
                   ipv6_addr_to_str(addr_str, dst, sizeof(addr_str)));
             res = _nib_get_route(dst, pkt, &route);
             if ((res < 0) || ipv6_addr_is_unspecified(&route.next_hop)) {
-                DEBUG("nib: no route to %s found or is prefix list entry, "
+                myprintf("nib: no route to %s found or is prefix list entry, "
                       "search neighbor cache\n",
                       ipv6_addr_to_str(addr_str, dst, sizeof(addr_str)));
 
                 if (res == 0) {
-                    DEBUG("nib: prefix list entry => taking dst as next hop\n");
+                    myprintf("nib: prefix list entry => taking dst as next hop\n");
                     memcpy(&route.next_hop, dst, sizeof(route.next_hop));
                 }
                 else {

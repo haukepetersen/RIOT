@@ -157,22 +157,24 @@ bool gnrc_ipv6_nib_ft_iter(const ipv6_addr_t *next_hop, unsigned iface,
     return (*state != NULL);
 }
 
+
+#include "myprint.h"
 void gnrc_ipv6_nib_ft_print(const gnrc_ipv6_nib_ft_t *fte)
 {
     char addr_str[IPV6_ADDR_MAX_STR_LEN];
 
     if ((fte->dst_len == 0) || ipv6_addr_is_unspecified(&fte->dst)) {
-        printf("default%s ", (fte->primary ? "*" : ""));
+        myprintf("default%s ", (fte->primary ? "*" : ""));
     }
     else {
-        printf("%s/%u ", ipv6_addr_to_str(addr_str, &fte->dst, sizeof(addr_str)),
+        myprintf("%s/%u ", ipv6_addr_to_str(addr_str, &fte->dst, sizeof(addr_str)),
                fte->dst_len);
     }
     if (!ipv6_addr_is_unspecified(&fte->next_hop)) {
-        printf("via %s ", ipv6_addr_to_str(addr_str, &fte->next_hop,
+        myprintf("via %s ", ipv6_addr_to_str(addr_str, &fte->next_hop,
                                            sizeof(addr_str)));
     }
-    printf("dev #%u\n", fte->iface);
+    myprintf("dev #%u\n", fte->iface);
 }
 
 /**i @} */

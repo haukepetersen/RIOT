@@ -126,6 +126,10 @@ static inline bool _gnrc_ipv6_is_interested(unsigned nh) {
 
 static void _demux(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt, unsigned nh)
 {
+#ifdef MODULE_EXPSTATS
+    expstats_log_num(EXPSTATS_IP_DMUX, nh);
+#endif
+
     pkt->type = gnrc_nettype_from_protnum(nh);
     _dispatch_next_header(pkt, nh, _gnrc_ipv6_is_interested(nh));
     switch (nh) {
