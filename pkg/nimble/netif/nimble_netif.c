@@ -424,13 +424,7 @@ end:
 static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
 {
     int handle = (int)arg;
-    if (event->type == BLE_L2CAP_EVENT_COC_TX_UNSTALLED) {
-        myprintf("u:t%u\n", (unsigned)thread_getpid());
-    }
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
-    if (event->type == BLE_L2CAP_EVENT_COC_TX_UNSTALLED) {
-        myprintf("u:c%p\n", (void *)conn);
-    }
 
     assert(conn && (conn->state & NIMBLE_NETIF_GAP_MASTER));
 

@@ -69,7 +69,9 @@ static void *idle_thread(void *arg)
     while (1) {
         // pm_set_lowest();
       unsigned s = irq_disable();
+#ifdef MODULE_DBGPIN
       dbgpin_sig(7);
+#endif
       irq_restore(s);
     }
 
