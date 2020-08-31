@@ -123,6 +123,10 @@ ifneq (,$(filter pn532_spi,$(USEMODULE)))
   USEMODULE += pn532
 endif
 
+ifneq (,$(fitler onewire_%,$(USEMODULE)))
+  USEMODULE += onewire
+endif
+
 ifneq (,$(filter qmc5883l_%,$(USEMODULE)))
   USEMODULE += qmc5883l
 endif
