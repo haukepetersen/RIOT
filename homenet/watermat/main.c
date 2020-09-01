@@ -25,37 +25,30 @@
  * @}
  */
 
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <limits.h>
 
 #include "log.h"
 #include "xtimer.h"
 #include "random.h"
-#include "byteorder.h"
-#include "net/skald.h"
 #include "periph/gpio.h"
 #include "periph/adc.h"
 
+#include "air.h"
+#include "hilo.h"
+#include "xenbat.h"
+
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
-
-#define BAT_LINE            ADC_LINE(3)
-#define BAT_OVERSAMPLE      (1U)        /* TODO: needed when doing CMA? */
-#define BAT_MUL             (95898)     /* (V_max * (R15 + R16) * 1000) / 100 */
-#define BAT_DIV             (21504)     /* (R16 * ADC_max) / 100  */
 
 #define A0                  ADC_LINE(1)
 #define D_ON                GPIO_PIN(0, 31)
 
 #define SAMPLE_RATE         (25u)
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
-
 #define STARTUP_SAMPLES     (7500U)
-#define CMA_BAT             (10U)
 
-#define AD_STATIC           { 0x02, 0x01, 0x06, 0x0d, 0xff, 0xfe, 0xaf, 0x05 }
+#define TYPE_WAT            (0x05)
 
 typedef struct __attribute__((packed)) {
     uint16_t sid;   /* hex 6-9 */
@@ -64,116 +57,70 @@ typedef struct __attribute__((packed)) {
     uint8_t hi;     /* hex 18-19 */
     uint8_t lo;     /* hex 20-21 */
     uint8_t val;    /* hex 22-23 */
-} eldata_t;
+    uint8_t state;  /* hex 28-29 */
+} airdata_t;
 
-static const uint8_t _ad_static[] = AD_STATIC;
-static skald_ctx_t _adv;
-static eldata_t *_data = NULL;
+static uint16_t _cnt = 0;
 
-/* cumulative moving average */
-static uint32_t _cma(uint32_t csm, uint32_t val, unsigned n)
-{
-    return ((csm * n) + val) / (n + 1);
-}
-
-static uint16_t _bat_read(void)
-{
-    int bat_raw = 0;
-
-    for (unsigned i = 0; i < BAT_OVERSAMPLE; i++) {
-        bat_raw +=  adc_sample(BAT_LINE, ADC_RES_10BIT);
-    }
-    uint32_t v = ((bat_raw * BAT_MUL) / BAT_DIV) / BAT_OVERSAMPLE;
-    return (uint16_t)v;
-}
-
-static uint32_t _el_sample(void)
+static uint8_t _ir_sample(void)
 {
     int ir_bg = adc_sample(A0, ADC_RES_8BIT);
     gpio_set(D_ON);
     xtimer_usleep(150);
     int ir_fg = adc_sample(A0, ADC_RES_8BIT);
     gpio_clear(D_ON);
+    return (uint8_t)(ir_fg - ir_bg);
+}
 
-    return (uint32_t)(ir_fg - ir_bg) * 1000;
+static void _on_pulse(void)
+{
+    _cnt++;
 }
 
 int main(void)
 {
     /* initialize pins */
+    xenbat_init();
     adc_init(A0);
-    adc_init(BAT_LINE);
     gpio_init(D_ON, GPIO_OUT);
     gpio_clear(D_ON);
 
     /* setup BLE */
-    uint8_t *pdu = _adv.pkt.pdu;
-    _adv.pkt.len = (6 + sizeof(_ad_static) + sizeof(eldata_t));
-    skald_generate_random_addr(pdu);
-    memcpy(pdu + 6, _ad_static, sizeof(_ad_static));
-    _data = (eldata_t *)(pdu + 6 + sizeof(_ad_static));
-    memset(_data, 0, sizeof(eldata_t));
-    /* create session id */
-    random_bytes((uint8_t *)&_data->sid, 2);
-
-    /* initialize power meter sampling input */
-    skald_adv_start(&_adv);
-
+    airdata_t *data = air_init(TYPE_WAT, sizeof(airdata_t));
+    random_bytes((uint8_t *)&data->sid, 2);
+    air_start();
 
     /* run sampling loop */
-    uint16_t bat = 0;
-    uint16_t cnt = 0;
-    uint32_t hi = 0;
-    uint32_t lo = UINT32_MAX;
-
-    int state = 0;
+    hilo_t hilo;
+    hilo_init(&hilo, _on_pulse);
 
     unsigned update_cnt = 0;
     xtimer_ticks32_t last_wakeup = xtimer_now();
 
+    /* learning phase: detect maxhi and minlo values */
     for (unsigned i = 0; i < STARTUP_SAMPLES; i++) {
-        uint32_t val = _el_sample();
-        if (val > hi) {
-            hi = val;
-        }
-        if (val < lo) {
-            lo = val;
-        }
-        LOG_INFO("v:%6u hi:%6u lo:%6u state:%i\n",
-                 (unsigned)val, (unsigned)hi, (unsigned)lo, (unsigned)state);
+        uint8_t val = _ir_sample();
+        hilo_update(&hilo, val);
         xtimer_periodic_wakeup(&last_wakeup, SAMPLING_DELAY);
     }
 
-    /* calculate initial values from startup samples */
-    uint32_t diff = ((hi - lo) / 3);
-    hi = hi - diff;
-    lo = lo + diff;
-    LOG_INFO("STARTUP DONE: hi:%u lo:%u\n", (unsigned)hi, (unsigned)lo);
+    LOG_INFO("STARTUP DONE\n");
 
     while (1) {
-        uint32_t val = _el_sample();
+        uint8_t val = _ir_sample();
+        hilo_sample(&hilo, val);
 
-        /* check for state change */
-        if ((val < lo) && (state == 0)) {
-            cnt++;
-            state = 1;
-        }
-        else if ((val > hi) && (state == 1)) {
-            state = 0;
-        }
-
-        LOG_INFO("v:%6u hi:%6u lo:%6u state:%i\n",
-                 (unsigned)val, (unsigned)hi, (unsigned)lo, (unsigned)state);
-
+        /* update advertising data */
         if (++update_cnt == SAMPLE_RATE) {
             update_cnt = 0;
-            bat = (uint16_t)_cma(bat, _bat_read(), CMA_BAT);
+            uint16_t bat = xenbat_sample();
 
-            memcpy(&_data->bat, &bat, sizeof(uint16_t));
-            memcpy(&_data->cnt, &cnt, sizeof(uint16_t));
-            _data->hi = (uint8_t)(hi / 1000);
-            _data->lo = (uint8_t)(lo / 1000);
-            _data->val = (uint8_t)(val / 1000);
+            memcpy(&data->bat, &bat, sizeof(uint16_t));
+            memcpy(&data->cnt, &cnt, sizeof(uint16_t));
+            data->val = (uint8_t)val;
+            data->hi = (uint8_t)hilo.hi;
+            data->lo = (uint8_t)hilo.lo;
+            data->state = hilo.state;
         }
 
         xtimer_periodic_wakeup(&last_wakeup, SAMPLING_DELAY);

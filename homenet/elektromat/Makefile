@@ -2,6 +2,13 @@ APPLICATION = elektromat
 BOARD = particle-xenon
 RIOTBASE ?= $(CURDIR)/../..
 
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_air
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_hilo
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_xenbat
+USEMODULE += lib_air
+USEMODULE += lib_hilo
+USEMODULE += lib_xenbat
+
 PROGRAMMER ?= jlink
 
 DEBUG ?= 0
@@ -16,8 +23,13 @@ endif
 
 USEMODULE += xtimer
 USEMODULE += periph_adc
-USEMODULE += skald
-USEMODULE += bluetil_ad
+ifeq (henning,$(HAUS))
+  # henning (96U/kWh)
+  CFLAGS += -DPOWER_CONST=TODO
+else
+  # hauke (75U/kWh)
+  CFLAGS += -DPOWER_CONST=37500000
+endif
 
 DEVELHELP ?= 0
 
