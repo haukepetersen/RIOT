@@ -66,7 +66,7 @@
 #define CMA_EL              (20000U)
 #define CMA_BAT             (10U)
 
-#define AD_STATIC           { 0x02, 0x01, 0x06, 0x0f, 0xff, 0xfe, 0xaf, 0x04 }
+#define AD_STATIC           { 0x02, 0x01, 0x06, 0x10, 0xff, 0xfe, 0xaf, 0x04 }
 
 typedef struct __attribute__((packed)) {
     uint16_t sid;   /* hex 6-9 */
@@ -76,38 +76,47 @@ typedef struct __attribute__((packed)) {
     uint8_t hi;     /* hex 22-23 */
     uint8_t lo;     /* hex 24-25 */
     uint8_t val;    /* hex 26-27 */
+    uint8_t state;  /* hex 28-29 */
 } eldata_t;
+
+static struct {
+    uint8_t hi;
+    uint8_t lo;
+    uint8_t maxhi;
+    uint8_t minlo;
+    uint8_t state;
+} _th = { 0, 0, 0, UINT8_MAX, 0 };
 
 static const uint8_t _ad_static[] = AD_STATIC;
 static skald_ctx_t _adv;
 static eldata_t *_data = NULL;
 
-/* cumulative moving average */
-static uint64_t _cma(uint64_t csm, uint32_t val, unsigned n)
+static uint16_t _bat_sample(void)
 {
-    return ((csm * n) + val) / (n + 1);
+    unsigned raw = (unsigned)adc_sample(BAT_LINE, ADC_RES_10BIT);
+    return (uint16_t)((raw * BAT_MUL) / BAT_DIV);
 }
 
-static uint16_t _bat_read(void)
-{
-    int bat_raw = 0;
-
-    for (unsigned i = 0; i < BAT_OVERSAMPLE; i++) {
-        bat_raw +=  adc_sample(BAT_LINE, ADC_RES_10BIT);
-    }
-    uint32_t v = ((bat_raw * BAT_MUL) / BAT_DIV) / BAT_OVERSAMPLE;
-    return (uint16_t)v;
-}
-
-static uint32_t _el_sample(void)
+static uint8_t _el_sample(void)
 {
     int ir_bg = adc_sample(A0, ADC_RES_8BIT);
     gpio_set(D_ON);
     xtimer_usleep(150);
     int ir_fg = adc_sample(A0, ADC_RES_8BIT);
     gpio_clear(D_ON);
+    return (uint8_t)(ir_fg - ir_bg);
+}
 
-    return (uint32_t)(ir_fg - ir_bg) * 1000;
+static void _th_update(int val)
+{
+    /* update maximal values */
+    _th.minlo = (val < _th.minlo) ? val : _th.minlo;
+    _th.maxhi = (val > _th.maxhi) ? val : _th.maxhi;
+
+    /* calculate thresholds */
+    uint8_t off = ((_th.maxhi - _th.minlo) / 3);
+    _th.lo = _th.minlo + off;
+    _th.hi = _th.maxhi - off;
 }
 
 int main(void)
@@ -127,74 +136,60 @@ int main(void)
     memset(_data, 0, sizeof(eldata_t));
     /* create session id */
     random_bytes((uint8_t *)&_data->sid, 2);
-
-    /* initialize power meter sampling input */
     skald_adv_start(&_adv);
 
-
     /* run sampling loop */
-    uint16_t bat = 0;
     uint16_t cnt = 0;
     uint16_t pwr = 0;
     uint32_t t_pulse = xtimer_now_usec();
-    uint64_t hi = 0;
-
-    uint64_t lo = 500000;
-    int state = 0;
 
     unsigned update_cnt = 0;
     xtimer_ticks32_t last_wakeup = xtimer_now();
 
     for (unsigned i = 0; i < STARTUP_SAMPLES; i++) {
-        uint32_t val = _el_sample();
-        hi += val;
-        if (val < lo) {
-            lo = val;
-        }
-        LOG_INFO("v:%6u hi:%6u lo:%6u state:%i\n",
-                 (unsigned)val, (unsigned)hi, (unsigned)lo, (unsigned)state);
+        int val = _el_sample();
+        _th_update(val);
+        LOG_INFO("v:%3i hi:%3i lo:%6i state:%i\n", val, _th.hi, _th.lo, _th.state);
         xtimer_periodic_wakeup(&last_wakeup, SAMPLING_DELAY);
     }
 
     /* calculate initial values from startup samples */
-    hi = hi / STARTUP_SAMPLES;
-    lo = lo + ((hi - lo) / 2);
-    LOG_INFO("STARTUP DONE: hi:%u lo:%u\n", (unsigned)hi, (unsigned)lo);
+    LOG_INFO("STARTUP DONE: hi:%i lo:%i\n", _th.hi, _th.lo);
 
     while (1) {
         uint32_t now = xtimer_now_usec();
-        uint32_t val = _el_sample();
-
-        /* update hysteresis */
-        hi = _cma(hi, val, CMA_EL);
-        if (val < hi) {
-            lo = _cma(lo, val, CMA_EL);
-        }
+        int val = _el_sample();
 
         /* check for state change */
-        if ((val < lo) && (state == 0)) {
+        if ((val < _th.lo) && (_th.state == 0)) {
+            _th.state = 1;
+            _th.minlo = val;
+
             cnt++;
             pwr = POWER_CONST / ((now - t_pulse) / 1000);
             t_pulse = now;
-            state = 1;
         }
-        else if ((val > hi) && (state == 1)) {
-            state = 0;
+        else if ((val > _th.hi) && (_th.state == 1)) {
+            _th.state = 0;
+            _th.maxhi = val;
         }
 
-        LOG_INFO("v:%6u hi:%6u lo:%6u state:%i\n",
-                 (unsigned)val, (unsigned)hi, (unsigned)lo, (unsigned)state);
+        /* update minlo and maxhi values */
+        _th_update(val);
+        LOG_INFO("v:%3i hi:%3i lo:%6i state:%i\n", val, _th.hi, _th.lo, _th.state);
 
+        /* update advertising data */
         if (++update_cnt == SAMPLE_RATE) {
             update_cnt = 0;
-            bat = (uint16_t)_cma(bat, _bat_read(), CMA_BAT);
+            uint16_t bat = _bat_sample();
 
             memcpy(&_data->bat, &bat, sizeof(uint16_t));
             memcpy(&_data->cnt, &cnt, sizeof(uint16_t));
             memcpy(&_data->pwr, &pwr, sizeof(uint16_t));
-            _data->hi = (uint8_t)(hi / 1000);
-            _data->lo = (uint8_t)(lo / 1000);
-            _data->val = (uint8_t)(val / 1000);
+            _data->val = val;
+            _data->hi = _th.hi;
+            _data->lo = _th.lo;
+            _data->state = _th.state;
         }
 
         xtimer_periodic_wakeup(&last_wakeup, SAMPLING_DELAY);
