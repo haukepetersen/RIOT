@@ -2,6 +2,10 @@ APPLICATION = gasman
 BOARD ?= particle-xenon
 RIOTBASE ?= $(CURDIR)/../..
 
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_air
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_hilo
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_xenbat
+
 PROGRAMMER ?= jlink
 
 DEBUG ?= 0
@@ -15,10 +19,11 @@ else
 endif
 
 USEMODULE += core_thread_flags
-USEMODULE += periph_adc
 USEMODULE += qmc5883l_int
-USEMODULE += skald
-USEMODULE += bluetil_ad
+
+USEMODULE += lib_air
+USEMODULE += lib_hilo
+USEMODULE += lib_xenbat
 
 DEVELHELP ?= 0
 

@@ -23,6 +23,7 @@ endif
 
 USEMODULE += xtimer
 USEMODULE += periph_adc
+
 ifeq (henning,$(HAUS))
   # henning (96U/kWh)
   CFLAGS += -DPWR_U_KWH=96

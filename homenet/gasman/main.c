@@ -27,20 +27,22 @@
 #include <stdio.h>
 
 #include "log.h"
-#include "board.h"
 #include "random.h"
-#include "xtimer.h"
 #include "thread_flags.h"
-#include "periph/adc.h"
-#include "periph/i2c.h"
-#include "net/skald.h"
 #include "qmc5883l.h"
+
+#include "air.h"
+#include "hilo.h"
+#include "xenbat.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
 #define SAMPLE_RATE         (10U)
+#define STARTUP_SAMPLES     (3000U)
+
 #define FLAG_DRDY           (0x0001)
+
 
 #define TYPE_GAS            (0x03)
 
@@ -62,8 +64,6 @@ static const qmc5883l_params_t _mag_params = {
     .osr = QMC5883L_OSR_64,
 };
 
-static const uint8_t _ad_static[] = AD_STATIC;
-
 static qmc5883l_t _mag;
 static uint16_t _cnt = 0;
 
@@ -81,6 +81,9 @@ static void _on_pulse(void)
 int main(void)
 {
     thread_t *t_main = (thread_t *)thread_get(thread_getpid());
+
+    /* initialize battery readings */
+    xenbat_init();
 
     /* setup BLE */
     airdata_t *data = air_init(TYPE_GAS, sizeof(airdata_t));
@@ -105,7 +108,7 @@ int main(void)
 
     unsigned update_cnt = 0;
 
-    while (unsigned i = 0; i < STARTUP_SAMPLES; i++) {
+    for (unsigned i = 0; i < STARTUP_SAMPLES; i++) {
         int16_t sample[3];
         thread_flags_wait_all(FLAG_DRDY);
         qmc5883l_read(&_mag, sample);
@@ -118,7 +121,7 @@ int main(void)
         int16_t sample[3];
         thread_flags_wait_all(FLAG_DRDY);
         qmc5883l_read(&_mag, sample);
-        int val = sample[0];    /* we use the x-axis only */
+        int val = (int)sample[0];    /* we use the x-axis only */
         hilo_sample(&hilo, val);
 
         if (++update_cnt == SAMPLE_RATE) {
@@ -126,7 +129,7 @@ int main(void)
             uint16_t bat = xenbat_sample();
 
             memcpy(&data->bat, &bat, sizeof(uint16_t));
-            memcpy(&data->cnt, &cnt, sizeof(uint16_t));
+            memcpy(&data->cnt, &_cnt, sizeof(uint16_t));
             data->val = (int8_t)(val >> 8);
             data->hi = (int8_t)(hilo.hi >> 8);
             data->lo = (int8_t)(hilo.lo >> 8);
