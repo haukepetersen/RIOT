@@ -25,10 +25,14 @@ USEMODULE += xtimer
 USEMODULE += periph_adc
 ifeq (henning,$(HAUS))
   # henning (96U/kWh)
-  CFLAGS += -DPOWER_CONST=TODO
-else
+  CFLAGS += -DPWR_U_KWH=96
+endif
+ifeq (hauke,$(HAUS))
   # hauke (75U/kWh)
-  CFLAGS += -DPOWER_CONST=37500000
+  CFLAGS += -DPWR_U_KWH=75
+endif
+ifeq (,$(HAUS))
+  $(error Define HAUS)
 endif
 
 DEVELHELP ?= 0

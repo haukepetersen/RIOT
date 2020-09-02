@@ -55,9 +55,16 @@
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
 #define STARTUP_SAMPLES     (5000U)
 
-// #ifndef POWER_CONST
-// #define POWER_CONST         (37500000u)     /* MS_PER_HOUR / U per kWh */
-// #endif
+/**
+ * the POWER_CONST is used to calculate current power usage:
+ * POWER_CONSTANT [ms * W] / duration last rotation [ms] := power usage [W]
+ *
+ * It is computed as:
+ * milliseconds per hour * watt in kilowatt / turns per kwh
+ */
+#define MS_PER_H            (60UL * 60UL * MS_PER_SEC)
+#define W_PER_KW            (1000LU)
+#define POWER_CONST         ((MS_PER_H * W_PER_KW) / PWR_U_KWH)
 
 #define TYPE_EL             (0x04)
 
