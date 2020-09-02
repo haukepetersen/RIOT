@@ -174,19 +174,29 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
                                                 NIMBLE_NETIF_L2CAP_CONNECTED);
         while (handle != NIMBLE_NETIF_CONN_INVALID) {
             res = _send_pkt(nimble_netif_conn_get(handle), pkt->next);
+#ifdef MODULE_EXPSTATS
+            if (res > 0) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL, pkt->next);
+            }
+            else if (res == -ECANCELED) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_ER, pkt->next);
+            }
+            else if (res == -ENOBUFS) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_NOBUF, pkt->next);
+            }
+            else if (res == -ENOTCONN) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_NC, pkt->next);
+            }
+            else {
+                puts("nimble_netif: error bad return code from _send_pkt()");
+                assert(0);
+            }
+#endif
             if (res <= 0) {
                 break;
             }
             handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
         }
-#ifdef MODULE_EXPSTATS
-        if (res > 0) {
-            expstats_log(EXPSTATS_NETIF_TX_MUL);
-        }
-        else {
-            expstats_log(EXPSTATS_NETIF_TX_MUL_ER);
-        }
-#endif
 #ifdef MODULE_AVGSTATS
         avgstats_inc(AVGSTATS_NETIF_TX_CNT);
         avgstats_add(AVGSTATS_NETIF_TX_BYTES, (unsigned)res);
