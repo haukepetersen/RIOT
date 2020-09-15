@@ -34,6 +34,10 @@ __attribute__((constructor)) static void startup(void)
 {
     board_init();
 
+#ifdef MODULE_DBGPIN
+    dbgpin_init();
+#endif
+
 #ifdef MODULE_NEWLIB
     void _init(void);
     _init();
