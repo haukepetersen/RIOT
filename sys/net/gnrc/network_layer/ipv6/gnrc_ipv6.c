@@ -39,15 +39,15 @@
 
 #include "net/gnrc/ipv6.h"
 
-#ifdef MODULE_EXPSTATS
-#include "expstats.h"
-#define EXPSTAT(x)                  expstats_log(x)
-#define EXPSTAT_SEQ(stat,seq)       expstats_log_seq(stat, seq)
-#define EXPSTAT_SNIP_TX(stat,snip)  expstats_log_snip_tx(stat, snip)
-#else
-#define EXPSTAT(x)
-#define EXPSTAT_SNIP_TX(stat,snip)
-#endif
+// #ifdef MODULE_EXPSTATS
+// #include "expstats.h"
+// #define EXPSTAT(x)                  expstats_log(x)
+// #define EXPSTAT_SEQ(stat,seq)       expstats_log_seq(stat, seq)
+// #define EXPSTAT_SNIP_TX(stat,snip)  expstats_log_snip_tx(stat, snip)
+// #else
+// #define EXPSTAT(x)
+// #define EXPSTAT_SNIP_TX(stat,snip)
+// #endif
 
 #ifdef MODULE_AVGSTATS
 #include "avgstats.h"
@@ -507,9 +507,9 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 {
     gnrc_ipv6_nib_nc_t nce;
 
-#ifdef MODULE_EXPSTATS
-    uint32_t seq = expstats_snip_tx_get_seq(pkt);
-#endif
+// #ifdef MODULE_EXPSTATS
+//     uint32_t seq = expstats_snip_tx_get_seq(pkt);
+// #endif
 
     DEBUG("ipv6: send unicast\n");
     if (gnrc_ipv6_nib_get_next_hop_l2addr(&ipv6_hdr->dst, netif, pkt,
@@ -517,14 +517,14 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
         /* packet is released by NIB */
         DEBUG("ipv6: no link-layer address or interface for next hop to %s\n",
               ipv6_addr_to_str(addr_str, &ipv6_hdr->dst, sizeof(addr_str)));
-#ifdef MODULE_EXPSTATS
-        if (seq != 0) {
-            EXPSTAT_SEQ(EXPSTATS_IP_DROP, seq);
-        }
-        else {
-            EXPSTAT(EXPSTATS_IP_DROP);
-        }
-#endif
+// #ifdef MODULE_EXPSTATS
+//         if (seq != 0) {
+//             EXPSTAT_SEQ(EXPSTATS_IP_DROP, seq);
+//         }
+//         else {
+//             EXPSTAT(EXPSTATS_IP_DROP);
+//         }
+// #endif
         return;
     }
     netif = gnrc_netif_get_by_pid(gnrc_ipv6_nib_nc_get_iface(&nce));
