@@ -47,6 +47,9 @@
 #ifdef MODULE_EXPSTATS
 #include "expstats.h"
 #endif
+#ifdef MODULE_PROCDELAY
+#include "procdelay.h"
+#endif
 
 #ifdef MODULE_AVGSTATS
 #include "avgstats.h"
@@ -163,6 +166,10 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 
     (void)netif;
     int res = -1;
+
+#ifdef MODULE_PROCDELAY
+    procdelay_print(expstats_snip_tx_get_seq(pkt->next), PROCDELAY_NONE);
+#endif
 
     gnrc_netif_hdr_t *hdr = (gnrc_netif_hdr_t *)pkt->data;
     /* if packet is bcast or mcast, we send it to every connected node */
@@ -412,6 +419,9 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
 
 #ifdef MODULE_EXPSTATS
     expstats_log_snip_rx(EXPSTATS_NETIF_RX, payload);
+#endif
+#ifdef MODULE_PROCDELAY
+    procdelay_time(expstats_snip_rx_get_seq(payload), PROCDELAY_FORWARD);
 #endif
 
     /* finally dispatch the receive packet to GNRC */
