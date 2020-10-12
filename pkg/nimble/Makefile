@@ -20,7 +20,7 @@ ifeq (llvm,$(TOOLCHAIN))
 # upstream and the NimBLE version in RIOT is updated.
   CFLAGS += -Wno-sometimes-uninitialized
 else
-  CFLAGS += -Wno-unused-but-set-variable
+#   CFLAGS += -Wno-unused-but-set-variable
 endif
 
 IGNORE := nimble_autoconn_%
