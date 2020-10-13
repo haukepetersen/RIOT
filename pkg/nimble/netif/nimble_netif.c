@@ -196,8 +196,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
                 expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_ABORT, pkt->next);
             }
             else {
-                puts("nimble_netif: error bad return code from _send_pkt()");
-                assert(0);
+                myprintf("nimble_netif: error bad return code from _send_pkt() (%i)\n", res);
             }
 #endif
             if (res <= 0) {
@@ -227,17 +226,19 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             expstats_log_snip_tx(EXPSTATS_NETIF_TX, pkt->next);
         }
         else if (res == -ECANCELED) {
-            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ERR, pkt->next);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ER, pkt->next);
         }
         else if (res == -ENOBUFS) {
-            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NIMBUF_FULL, pkt->next);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NOBUF, pkt->next);
         }
         else if (res == -ENOTCONN) {
-            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NOTCONN, pkt->next);
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NC, pkt->next);
+        }
+        else if (res == -ECONNRESET) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ABORT, pkt->next);
         }
         else {
-            puts("nimble_netif: error bad return code from _send_pkt()");
-            assert(0);
+            myprintf("nimble_netif: error bad return code from _send_pkt() (%i)\n", res);
         }
 #endif
 #ifdef MODULE_AVGSTATS
