@@ -45,27 +45,31 @@ enum {
 typedef void(ds3231_cb_t)(void *);
 
 typedef enum {
-    DS3231_EVERY_SEC            = 0x00f,
-    DS3231_MATCH_SEC            = 0x00e,
-    DS3231_MATCH_MIN_SEC        = 0x00c,
-    DS3231_MATCH_H_MIN_SEC      = 0x008,
-    DS3231_MATCH_DATE_H_MIN_SEC = 0x000,
-    DS3231_MATCH_DAY_H_MIN_SEC  = 0x010,
-    DS3231_EVERY_MIN            = 0x107,
-    DS3231_MATCH_MIN            = 0x106,
-    DS3231_MATCH_H_MIN          = 0x104,
-    DS3231_MATCH_DATE_H_MIN     = 0x100,
-    DS3231_MATCH_DAY_H_MIN      = 0x110,
-} ds3231_alarm_cfg_t;
+    DS3231_EVERY_SEC            = 0x0f,
+    DS3231_MATCH_SEC            = 0x0e,
+    DS3231_MATCH_MIN_SEC        = 0x0c,
+    DS3231_MATCH_H_MIN_SEC      = 0x08,
+    DS3231_MATCH_DATE_H_MIN_SEC = 0x00,
+    DS3231_MATCH_DAY_H_MIN_SEC  = 0x10,
+    DS3231_EVERY_MIN            = 0x87,
+    DS3231_MATCH_MIN            = 0x86,
+    DS3231_MATCH_H_MIN          = 0x84,
+    DS3231_MATCH_DATE_H_MIN     = 0x80,
+    DS3231_MATCH_DAY_H_MIN      = 0x90,
+} ds3231_alarm_type_t;
+
+typedef enum {
+    DS3231_SQW_1KHZ             = 0x00,
+    DS3231_SQW_1024KHZ          = 0x08,
+    DS3231_SQW_4096KHZ          = 0x10,
+    DS3231_SQW_8192KHZ          = 0x18,
+} ds3231_sqw_t;
 
 /**
  * @brief   Device descriptor for DS3231 devices
  */
 typedef struct {
     i2c_t bus;          /**< I2C bus the device is connected to */
-    gpio_t int_sqw;     /**< interrupt / square wave pin */
-    ds3231_cb_t cb;     /**< alarm callback function */
-    void *arg;          /**< callback argument */
 } ds3231_t;
 
 /**
@@ -74,7 +78,6 @@ typedef struct {
 typedef struct {
     i2c_t bus;          /**< I2C bus the device is connected to */
     uint8_t opt;        /**< additional options */
-    gpio_t int_sqw;
 } ds3231_params_t;
 
 

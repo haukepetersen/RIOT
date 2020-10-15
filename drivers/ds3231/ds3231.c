@@ -20,6 +20,7 @@
 
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "bcd.h"
 
@@ -54,7 +55,7 @@
 #define REG_TEMP_MSB        0x11
 #define REG_TEMP_LSB        0x12
 
-/* register bitmasks */
+/* general register bitmasks */
 #define MASK_SEC10          0x70
 #define MASK_SEC            0x0f
 #define MASK_MIN10          0x70
@@ -72,79 +73,123 @@
 #define MASK_CENTURY        0x80
 #define MASK_DY_DT          0x60
 
+/* control register bitmaps */
 #define CTRL_EOSC           0x80
 #define CTRL_BBSQW          0x40
 #define CTRL_CONV           0x20
 #define CTRL_RS2            0x10
 #define CTRL_RS1            0x80
+#define CTRL_RS             (CTRL_RS2 | CTRL_RS1)
 #define CTRL_INTCN          0x40
 #define CTRL_A2IE           0x20
 #define CTRL_A1IE           0x10
+#define CTRL_AIE            (CTRL_A2IE | CTRL_A1IE)
 
+/* status register bitmaps */
 #define STAT_OSF            0x80
 #define STAT_EN32KHZ        0x08
 #define STAT_BSY            0x04
 #define STAT_A2F            0x02
 #define STAT_A1F            0x01
+#define STAT_AF             (STAT_A2F | STAT_A1F)
+
+/* alarm configuration values */
+#define ALARM_SEL           0x80
+#define ALARM_MDAY          0x10
+#define A1M1(type)          ((type & 0x01) << 7)
+#define A1M2(type)          ((type & 0x02) << 6)
+#define A1M3(type)          ((type & 0x04) << 5)
+#define A1M4(type)          ((type & 0x08) << 4)
+#define A2M2(type)          ((type & 0x02) << 6)
+#define A2M3(type)          ((type & 0x04) << 5)
+#define A2M4(type)          ((type & 0x08) << 4)
 
 
+static int _read(const ds3231_t *dev, uint8_t reg, uint8_t *buf, size_t len,
+                 int acquire, int release)
+{
+    int res;
+
+    if (acquire && i2c_acquire(dev->bus)) {
+        return -1;
+    }
+    res = i2c_read_regs(dev->bus, DS3231_I2C_ADDR, reg, buf, len, 0);
+    if (res < 0) {
+        i2c_release(dev->bus);
+        return -1;
+    }
+    if (release) {
+        i2c_release(dev->bus);
+    }
+    return 0;
+}
+
+static int _write(const ds3231_t *dev, uint8_t reg, uint8_t *buf, size_t len,
+                  int acquire, int release)
+{
+    if (acquire && i2c_acquire(dev->bus)) {
+        return -1;
+    }
+    if (i2c_write_regs(dev->bus, DS3231_I2C_ADDR, reg, buf, len, 0) < 0) {
+        i2c_release(dev->bus);
+        return -1;
+    }
+    if (release) {
+        i2c_release(dev->bus);
+    }
+    return 0;
+}
+
+static int _setclr(const ds3231_t *dev, uint8_t reg,
+                   uint8_t clr_mask, uint8_t set_mask, int aquire, int release)
+{
+    uint8_t old;
+    uint8_t new;
+
+    if (_read(dev, reg, &old, 1, aquire, 0) < 0) {
+        return -1;
+    }
+    new = ((old &= ~clr_mask) | set_mask);
+    if (_write(dev, reg, &new, 1, 0, release) < 0) {
+        return -1;
+    }
+    return (int)old;
+}
 
 int ds3231_init(ds3231_t *dev, const ds3231_params_t *params)
 {
-    int res;
     uint8_t ctrl;
 
     /* write device descriptor */
     memset(dev, 0, sizeof(ds3231_t));
     dev->bus = params->bus;
-    dev->pin_int = params->pin_int;
 
-    /* start the oscillator, if not already running */
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res = i2c_read_reg(dev->bus, DS3231_I2C_ADDR, REG_CTRL, &ctrl, 0);
-    if (res != 0) {
-        i2c_release(dev->bus);
+    /* try to read the control register, this also checks if we can talk to the
+     * device */
+    if (_read(dev, REG_CTRL, &ctrl, 1, 1, 0) < 0) {
         return -ENODEV;
     }
-
-    /* enable clock and disable interrupts, as at this point
-    /* start the oscillator if configured */
-    if (params->opt & DS3231_POWERON_ON_INIT && (ctrl & CTRL_EOSC)) {
+    /* disable interrupts, leave square wave generation and output pin
+     * configuration untouched */
+    ctrl &= ~(CTRL_A1IE | CTRL_A2IE);
+    /* if configured, start the oscillator. Also disable interrupts */
+    if (params->opt & DS3231_POWERON_ON_INIT) {
         ctrl &= ~CTRL_EOSC;
-        res = i2c_write_reg(dev->bus, DS3231_I2C_ADDR, REG_CTRL, ctrl, 0);
-        if (res != 0) {
-            res = -EIO;
-        }
     }
 
-    i2c_release(res);
+    if (_write(dev, REG_CTRL, &ctrl, 1, 0, 1) < 0) {
+        return -EIO;
+    }
 
-    return res;
-}
-
-int ds3231_init_int(ds3231_t *dev, ds3231_cb_t cb, void *arg)
-{
-
+    return 0;
 }
 
 int ds3231_get_time(const ds3231_t *dev, struct tm *time)
 {
-    int res;
     uint8_t raw[DATE_REG_NUMOF];
 
     /* read date registers */
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res = i2c_read_regs(dev->bus, DS3231_I2C_ADDR, REG_SEC,
-                        raw, DATE_REG_NUMOF, 0);
-    /* we do need to release the bus also in case of a transfer error above... */
-    i2c_release(dev->bus);
-    if (res != 0) {
+    if (_read(dev, REG_SEC, raw, DATE_REG_NUMOF, 1, 1) < 0) {
         return -EIO;
     }
 
@@ -173,7 +218,6 @@ int ds3231_get_time(const ds3231_t *dev, struct tm *time)
 
 int ds3231_set_time(const ds3231_t *dev, const struct tm *time)
 {
-    int res;
     uint8_t raw[DATE_REG_NUMOF];
 
     /* some validity checks */
@@ -186,24 +230,16 @@ int ds3231_set_time(const ds3231_t *dev, const struct tm *time)
     raw[REG_MIN] = bcd_from_byte(time->tm_min);
     /* note: we always set the hours in 24-hour format */
     raw[REG_HOUR] = bcd_from_byte(time->tm_hour);
-    raw[REG_DAY] = bcd_from_byte(time->tm_wday) + 1;
+    raw[REG_DAY] = bcd_from_byte(time->tm_wday + 1);
     raw[REG_DATE] = bcd_from_byte(time->tm_mday);
-    raw[REG_MONTH] = bcd_from_byte(time->tm_mon) + 1;
+    raw[REG_MONTH] = bcd_from_byte(time->tm_mon + 1);
     raw[REG_YEAR] = bcd_from_byte(time->tm_year % 100);
     if (time->tm_year > 100) {
         raw[REG_MONTH] |= MASK_CENTURY;
     }
 
     /* write time to device */
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res = i2c_write_regs(dev->bus, DS3231_I2C_ADDR, REG_SEC,
-                         raw, DATE_REG_NUMOF, 0);
-    /* release the bus in any case ... */
-    i2c_release(dev->bus);
-    if (res != 0) {
+    if (_write(dev, REG_SEC, raw, DATE_REG_NUMOF, 1, 1) < 0) {
         return -EIO;
     }
 
@@ -211,135 +247,106 @@ int ds3231_set_time(const ds3231_t *dev, const struct tm *time)
 }
 
 int ds3231_set_alarm(const ds3231_t *dev, ds3231_alarm_type_t type,
-                     const struct tm *time);
+                     const struct tm *time)
+{
+    size_t len;
+    uint8_t areg;
+    uint8_t en_bit;
+    uint8_t raw[A1_REG_NUMOF];
 
-int ds3231_check_alarm(const ds3231_t *dev)
+    /* clear any alarm that might be currently enabled */
+    if (_setclr(dev, REG_CTRL, CTRL_AIE, 0, 1, 0) < 0) {
+        return -EIO;
+    }
+    if (_setclr(dev, REG_STATUS, STAT_AF, 0, 0, 0) < 0) {
+        return -EIO;
+    }
+
+    if (type < ALARM_SEL) {
+        /* setting alarm 1 */
+        raw[0] = bcd_from_byte(time->tm_sec) | A1M1(type);
+        raw[1] = bcd_from_byte(time->tm_min) | A1M2(type);
+        raw[2] = bcd_from_byte(time->tm_hour) | A1M3(type);
+        if (type & ALARM_MDAY) {
+            raw[3] = bcd_from_byte(time->tm_mday + 1) | A1M4(type);
+        }
+        else {
+            raw[3] = bcd_from_byte(time->tm_wday + 1) | MASK_DY_DT | A1M4(type);
+        }
+        len = A1_REG_NUMOF;
+        areg = REG_A1_SEC;
+        en_bit = CTRL_A1IE;
+    }
+    else {
+        /* setting alarm 2 */
+        raw[0] = bcd_from_byte(time->tm_min) | A2M2(type);
+        raw[1] = bcd_from_byte(time->tm_hour) | A2M3(type);
+        if (type & ALARM_MDAY) {
+            raw[2] = bcd_from_byte(time->tm_mday + 1) | A2M4(type);
+        }
+        else {
+            raw[2] = bcd_from_byte(time->tm_wday + 1) | MASK_DY_DT | A2M4(type);
+        }
+        len = A2_REG_NUMOF;
+        areg = REG_A2_MIN;
+        en_bit = CTRL_A2IE;
+    }
+
+    if (_write(dev, areg, raw, len, 0, 0) < 0) {
+        return -EIO;
+    }
+    if (_setclr(dev, REG_CTRL, 0, en_bit, 0, 1) < 0) {
+        return -EIO;
+    }
+
+    return 0;
+}
+
+int ds3231_check_and_clear_alarm(const ds3231_t *dev)
 {
     int res;
-    int ret = 0;
-    uint8_t tmp[2];
+    uint8_t ctrl;
 
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
+    if (_read(dev, REG_CTRL, &ctrl, 1, 1, 0) < 0) {
         return -EIO;
     }
-    res = i2c_read_regs(dev->bus, DS3231_I2C_ADDR, REG_CTRL, tmp, 2, 0);
-    i2c_release(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-
-    if (!(tmp[0] & (CTRL_A1IE | CTRL_A2IE))) {
-        /* no alarm set */
+    if (!(ctrl & (CTRL_A1IE | CTRL_A2IE))) {
+        /* no alarm configured */
         return -ENOENT;
     }
-    if (((tmp[0] & CTRL_A1IE) && (tmp[1] & STAT_A1F)) ||
-        ((tmp[0] & CTRL_A2IE) && (tmp[1] & STAT_A2F))) {
-        /* alarm has been triggered */
 
-        ret = 1;
-
+    res = _setclr(dev, REG_STATUS, (STAT_A1F | STAT_A2F), 0, 1, 1);
+    if (res < 0) {
+        return -EIO;
     }
 
-
-    return ret;
+    return (res & (STAT_A1F | STAT_A2F)) ? 1 : 0;
 }
 
-
-int ds3231_check_alarm(const ds3231_t *dev, unsigned chan)
+int ds3231_remove_alarm(const ds3231_t *dev)
 {
-    int res;
-    uint8_t tmp;
-
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res i2c_read_reg(dev->bus, DS3231_I2C_ADDR, REG_STATUS, &tmp, 0);
-    i2c_release(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-
-    uint8_t flag =
+    return (_setclr(dev, REG_CTRL, CTRL_AIE, 0, 1, 1) >= 0) ? 0 : -EIO;
 }
 
-int ds3231_clear_alarm(const ds3231_t *dev)
+int ds3231_squarewave_enable(const ds3231_t *dev, ds3231_sqw_t type)
 {
-    int res;
-    uint8_t tmp[2];
-
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res = i2c_read_regs(dev->bus, DS3231_I2C_ADDR, REG_CTRL, tmp, 2, 0);
-    if (res != 0) {
-        i2c_release(dev->bus);
-        return -EIO;
-    }
-    tmp[0] &= ~(CTRL_A1IE | CTRL_A2IE);
-    tmp[1] &= ~(STAT_A1F | STAT_A2F);
-    res = i2c_write_regs(dev->bus, DS3231_I2C_ADDR, REG_CTRL, tmp, 2, 0);
-    if (res != 0) {
-        res = -EIO;
-    }
-    i2c_release(dev->bus);
-
-    return res;
+    uint8_t clr = (CTRL_RS | CTRL_INTCN);
+    uint8_t set = ((type & CTRL_RS) | CTRL_BBSQW);
+    return (_setclr(dev, REG_CTRL, clr, set, 1, 1) >= 0) ? 0 : -EIO;
 }
 
-int ds3231_alarm_disable(const ds3231_t *dev)
+int ds3231_squarewave_disable(const ds3231_t *dev)
 {
-
+    return (_setclr(dev, REG_CTRL, CTRL_BBSQW, CTRL_INTCN, 1, 1) >= 0) ? 0
+                                                                       : -EIO;
 }
 
 int ds3231_poweroff(const ds3231_t *dev)
 {
-    int res;
-    uint8_t tmp;
-
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res = i2c_read_reg(dev->bus, DS3231_I2C_ADDR, REG_CTRL, &tmp, 0);
-    if (res != 0) {
-        i2c_release(dev->bus);
-        return -EIO;
-    }
-    if (tmp & CTRL_OSF) {
-        tmp &= ~CTRL_OSF;
-        res = i2c_write_reg(dev->bus, DS3231_I2C_ADDR, REG_CTRL, tmp, 0);
-        if (res != 0) {
-            res = -EIO;
-        }
-    }
-    i2c_release(dev->bus);
-    return res;
+    return (_setclr(dev, REG_CTRL, 0, CTRL_EOSC, 1, 1) >= 0) ? 0 : -EIO;
 }
 
 int ds3231_poweron(const ds3231_t *dev)
 {
-    int res;
-    uint8_t tmp;
-
-    res = i2c_acquire(dev->bus);
-    if (res != 0) {
-        return -EIO;
-    }
-    res = i2c_read_reg(dev->bus, DS3231_I2C_ADDR, REG_CTRL, &tmp, 0);
-    if (res != 0) {
-        i2c_release(dev->bus);
-        return -EIO;
-    }
-    if (!(tmp & CTRL_OSF)) {
-        tmp |= CTRL_OSF;
-        res = i2c_write_reg(dev->bus, DS3231_I2C_ADDR, REG_CTRL, tmp, 0);
-        if (res != 0) {
-            res = -EIO;
-        }
-    }
-    i2c_release(dev->bus);
-    return res;
+    return (_setclr(dev, REG_CTRL, CTRL_EOSC, 0, 1, 1) >= 0) ? 0 : -EIO;
 }
