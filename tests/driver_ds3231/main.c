@@ -62,12 +62,12 @@ static int _tm_from_str(const char *str, struct tm *time)
     memcpy(tmp, str, 4);
     tmp[4] = '\0';
     str += 5;
-    time->tm_year = atoi(tmp);
+    time->tm_year = atoi(tmp) - 1900;
 
     memcpy(tmp, str, 2);
-    tmp[3] = '\0';
+    tmp[2] = '\0';
     str += 3;
-    time->tm_mon = atoi(tmp);
+    time->tm_mon = atoi(tmp) - 1;
 
     memcpy(tmp, str, 2);
     str += 3;
