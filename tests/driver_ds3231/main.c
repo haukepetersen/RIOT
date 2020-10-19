@@ -181,7 +181,7 @@ static int _cmd_sqw(int argc, char **argv)
     return 0;
 }
 
-static int _cmd_power(int argc, char **argv)
+static int _cmd_bat(int argc, char **argv)
 {
     int res;
 
@@ -191,21 +191,21 @@ static int _cmd_power(int argc, char **argv)
     }
 
     if (argv[1][0] == '0') {
-        res = ds3231_poweroff(&_dev);
+        res = ds3231_enable_bat(&_dev);
         if (res == 0) {
-            puts("success: device powered down");
+            puts("success: backup battery enabled");
         }
         else {
-            puts("error: unable to power down device");
+            puts("error: unable to enable backup battery");
         }
     }
     else if (argv[1][0] == '1') {
-        res = ds3231_poweron(&_dev);
+        res = ds3231_disable_bat(&_dev);
         if (res == 0) {
-            puts("success: device powered up");
+            puts("success: backup battery disabled");
         }
         else {
-            puts("error: unable to power up device");
+            puts("error: unable to disable backup battery");
         }
     }
     else {
@@ -225,13 +225,6 @@ static int _cmd_test(int argc, char **argv)
 
     puts("testing device now");
 
-    /* disable RTC */
-    res = ds3231_poweroff(&_dev);
-    if (res != 0) {
-        puts("error: unable to power off device");
-        return 1;
-    }
-
     /* set time to RIOT birthdate */
     res = ds3231_set_time(&_dev, &_riot_bday);
     if (res != 0) {
@@ -246,17 +239,12 @@ static int _cmd_test(int argc, char **argv)
         return 1;
     }
 
-    if (mktime(&_riot_bday) != mktime(&time)) {
+    if ((mktime(&time) - mktime(&_riot_bday)) > 1) {
         puts("error: device time has unexpected value");
         return 1;
     }
 
-    /* power up RTC and wait a short while. Then check if time progressed */
-    res = ds3231_poweron(&_dev);
-    if (res != 0) {
-        puts("error: unable to power up device");
-        return 1;
-    }
+    /* wait a short while and check if time has progressed */
     xtimer_sleep(2);
     res = ds3231_get_time(&_dev, &time);
     if (res != 0) {
@@ -265,7 +253,7 @@ static int _cmd_test(int argc, char **argv)
     }
 
     if (!(mktime(&time) > mktime(&_riot_bday))) {
-        puts("error: time did not progress since power on");
+        puts("error: time did not progress");
         return 1;
     }
 
@@ -278,7 +266,7 @@ static const shell_command_t shell_commands[] = {
     { "time_set", "init as input w/o pull resistor", _cmd_set },
     { "alarm", "configure an alarm", _cmd_alarm },
     { "squarewave", "configure square wave output", _cmd_sqw },
-    { "power", "power device on or off", _cmd_power },
+    { "bat", "en/disable backup battery", _cmd_bat },
     { "test", "test if the device is working properly", _cmd_test},
     { NULL, NULL, NULL }
 };

@@ -172,8 +172,8 @@ int ds3231_init(ds3231_t *dev, const ds3231_params_t *params)
     /* disable interrupts, leave square wave generation and output pin
      * configuration untouched */
     ctrl &= ~(CTRL_A1IE | CTRL_A2IE);
-    /* if configured, start the oscillator. Also disable interrupts */
-    if (params->opt & DS3231_POWERON_ON_INIT) {
+    /* if configured, start the oscillator */
+    if (params->opt & DS3231_OPT_BAT_ENABLE) {
         ctrl &= ~CTRL_EOSC;
     }
 
@@ -344,12 +344,12 @@ int ds3231_squarewave_config(const ds3231_t *dev, ds3231_sqw_t sqw)
     return (res == 0) ? 0 : -EIO;
 }
 
-int ds3231_poweroff(const ds3231_t *dev)
+int ds3231_enable_bat(const ds3231_t *dev)
 {
     return (_setclr(dev, REG_CTRL, 0, CTRL_EOSC, 1, 1) >= 0) ? 0 : -EIO;
 }
 
-int ds3231_poweron(const ds3231_t *dev)
+int ds3231_disable_bat(const ds3231_t *dev)
 {
     return (_setclr(dev, REG_CTRL, CTRL_EOSC, 0, 1, 1) >= 0) ? 0 : -EIO;
 }

@@ -39,7 +39,7 @@ extern "C" {
  * @brief   Configuration options
  */
 enum {
-    DS3231_POWERON_ON_INIT = 0x01,     /* power on device on init */
+    DS3231_OPT_BAT_ENABLE = 0x01,           /* power on device on init */
 };
 
 typedef enum {
@@ -107,10 +107,9 @@ int ds3231_clear_alarm(const ds3231_t *dev);
 int ds3231_squarewave_config(const ds3231_t *dev, ds3231_sqw_t sqw);
 
 
-int ds3231_poweroff(const ds3231_t *dev);
+int ds3231_enable_bat(const ds3231_t *dev);
 
-
-int ds3231_poweron(const ds3231_t *dev);
+int ds3231_disable_bat(const ds3231_t *dev);
 
 #ifdef __cplusplus
 }
