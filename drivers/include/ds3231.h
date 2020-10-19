@@ -41,9 +41,6 @@ enum {
     DS3231_POWERON_ON_INIT = 0x01,     /* power on device on init */
 };
 
-// note: called in interrupt context
-typedef void(ds3231_cb_t)(void *);
-
 typedef enum {
     DS3231_EVERY_SEC            = 0x0f,
     DS3231_MATCH_SEC            = 0x0e,
@@ -59,10 +56,11 @@ typedef enum {
 } ds3231_alarm_type_t;
 
 typedef enum {
-    DS3231_SQW_1KHZ             = 0x00,
-    DS3231_SQW_1024KHZ          = 0x08,
-    DS3231_SQW_4096KHZ          = 0x10,
-    DS3231_SQW_8192KHZ          = 0x18,
+    DS3231_SQW_DISABLE          = 0xff,
+    DS3231_SQW_1000HZ           = 0x00,
+    DS3231_SQW_1024HZ           = 0x08,
+    DS3231_SQW_4096HZ           = 0x10,
+    DS3231_SQW_8192HZ           = 0x18,
 } ds3231_sqw_t;
 
 /**
@@ -104,6 +102,8 @@ int ds3231_set_alarm(const ds3231_t *dev, ds3231_alarm_type_t type,
 int ds3231_check_alarm(const ds3231_t *dev);
 
 int ds3231_clear_alarm(const ds3231_t *dev);
+
+int ds3231_squarewave_config(const ds3231_t *dev, ds3231_sqw_t sqw);
 
 
 int ds3231_poweroff(const ds3231_t *dev);

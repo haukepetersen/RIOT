@@ -128,6 +128,59 @@ static int _cmd_set(int argc, char **argv)
     return 0;
 }
 
+static int _cmd_alarm(int argc, char **argv)
+{
+    if (argc != 3) {
+        printf("usage: %s <type> <time>\n", argv[0]);
+        return 1;
+    }
+
+    // TODO: figure out how to encode the alarm type in the command efficiently
+
+    return 0;
+}
+
+static int _cmd_sqw(int argc, char **argv)
+{
+    if (argc != 2) {
+        printf("usage: %s <0|1000|1024|4096|8192>\n", argv[0]);
+        return 1;
+    }
+
+    ds3231_sqw_t sqw;
+    int freq = atoi(argv[1]);
+    switch (freq) {
+        case 0:
+            sqw = DS3231_SQW_DISABLE;
+            break;
+        case 1000:
+            sqw = DS3231_SQW_1000HZ;
+            break;
+        case 1024:
+            sqw = DS3231_SQW_1024HZ;
+            break;
+        case 4096:
+            sqw = DS3231_SQW_4096HZ;
+            break;
+        case 8192:
+            sqw = DS3231_SQW_8192HZ;
+            break;
+        default:
+            puts("error: invalid frequency value given");
+            return 1;
+    }
+
+    int res = ds3231_squarewave_config(&_dev, sqw);
+    if (res == 0) {
+        printf("success: set square wave output to %iHz\n", freq);
+    }
+    else {
+        puts("error: unable to configure square wave output");
+    }
+
+    return 0;
+}
+
 static int _cmd_power(int argc, char **argv)
 {
     int res;
@@ -223,6 +276,8 @@ static int _cmd_test(int argc, char **argv)
 static const shell_command_t shell_commands[] = {
     { "time_get", "init as output (push-pull mode)", _cmd_get },
     { "time_set", "init as input w/o pull resistor", _cmd_set },
+    { "alarm", "configure an alarm", _cmd_alarm },
+    { "squarewave", "configure square wave output", _cmd_sqw },
     { "power", "power device on or off", _cmd_power },
     { "test", "test if the device is working properly", _cmd_test},
     { NULL, NULL, NULL }

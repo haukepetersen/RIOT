@@ -328,17 +328,20 @@ int ds3231_remove_alarm(const ds3231_t *dev)
     return (_setclr(dev, REG_CTRL, CTRL_AIE, 0, 1, 1) >= 0) ? 0 : -EIO;
 }
 
-int ds3231_squarewave_enable(const ds3231_t *dev, ds3231_sqw_t type)
+int ds3231_squarewave_config(const ds3231_t *dev, ds3231_sqw_t sqw)
 {
-    uint8_t clr = (CTRL_RS | CTRL_INTCN);
-    uint8_t set = ((type & CTRL_RS) | CTRL_BBSQW);
-    return (_setclr(dev, REG_CTRL, clr, set, 1, 1) >= 0) ? 0 : -EIO;
-}
+    int res;
 
-int ds3231_squarewave_disable(const ds3231_t *dev)
-{
-    return (_setclr(dev, REG_CTRL, CTRL_BBSQW, CTRL_INTCN, 1, 1) >= 0) ? 0
-                                                                       : -EIO;
+    if (sqw == DS3231_SQW_DISABLE) {
+        res = _setclr(dev, REG_CTRL, CTRL_BBSQW, CTRL_INTCN, 1, 1);
+    }
+    else {
+        uint8_t clr = (CTRL_RS | CTRL_INTCN);
+        uint8_t set = ((sqw & CTRL_RS) | CTRL_BBSQW);
+        res = _setclr(dev, REG_CTRL, clr, set, 1, 1);
+    }
+
+    return (res == 0) ? 0 : -EIO;
 }
 
 int ds3231_poweroff(const ds3231_t *dev)
