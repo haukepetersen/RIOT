@@ -21,6 +21,7 @@
 #ifndef DS3231_H
 #define DS3231_H
 
+#include <time.h>
 #include <errno.h>
 
 #include "periph/i2c.h"
