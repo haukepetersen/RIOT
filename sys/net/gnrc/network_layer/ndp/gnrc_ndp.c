@@ -36,9 +36,6 @@
 #define EXPSTAT(x)
 #endif
 
-#define ENABLE_DEBUG    (0)
-#include "debug.h"
-
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
