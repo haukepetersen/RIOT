@@ -474,6 +474,22 @@ int _nimble_netif_handler(int argc, char **argv)
         int timeout = atoi(argv[4]);
         _cmd_update(handle, itvl, timeout);
     }
+    else if ((memcmp(argv[1], "chanmap", 7) == 0)) {
+        int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID, NIMBLE_NETIF_L2CAP_CONNECTED);
+        while (handle != NIMBLE_NETIF_CONN_INVALID) {
+            uint8_t map[5];
+            nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+            ble_hs_hci_read_chan_map(conn->gaphandle, map);
+            printf("[%02i] %02x %02x %02x %02x %02x\n", handle,
+                    (int)map[4], (int)map[3], (int)map[2], (int)map[1], (int)map[0]);
+            handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
+
+            // uint8_t nmap[5] = {0x1f, 0xff, 0xdf, 0xff, 0xff};
+        }
+
+        return 0;
+    }
+
     else {
         printf("unable to parse the command. Use '%s help' for more help\n",
                argv[0]);
