@@ -119,7 +119,7 @@ void nimble_riot_init(void)
     assert(res == 0);
 
 #ifdef MODULE_EXPSTATS
-    const uint8_t map[5] = { 0xff, 0xff, 0xdf, 0xff, 0x1f };
+    const uint8_t map[5] = { 0xff, 0xff, 0xbf, 0xff, 0x1f };
     res = ble_hs_hci_set_chan_class(map);
     printf("hello res: %i\n", res);
     assert(res == 0);
