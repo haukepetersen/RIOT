@@ -27,6 +27,10 @@
 
 #include "host/ble_hs.h"
 
+#if NIMBLE_STATCONN_CONNITVLRAND
+#include "random.h"
+#endif
+
 #define ENABLE_DEBUG    0
 #include "debug.h"
 
@@ -185,7 +189,13 @@ void nimble_statconn_init(void)
     /* set connection parameters */
     _conn_params.scan_itvl = BLE_GAP_SCAN_ITVL_MS(NIMBLE_STATCONN_CONN_WIN_MS);
     _conn_params.scan_window = _conn_params.scan_itvl;
+#if NIMBLE_STATCONN_CONNITVLRAND
+    uint32_t conn_itvl = random_uint32_range(
+            NIMBLE_STATCONN_CONN_ITVL_MIN_MS, NIMBLE_STATCONN_CONN_ITVL_MAX_MS);
+    _conn_params.itvl_min = BLE_GAP_CONN_ITVL_MS(conn_itvl);
+#else
     _conn_params.itvl_min = BLE_GAP_CONN_ITVL_MS(NIMBLE_STATCONN_CONN_ITVL_MS);
+#endif
     _conn_params.itvl_max = _conn_params.itvl_min;
     _conn_params.latency = NIMBLE_STATCONN_CONN_LATENCY;
     _conn_params.supervision_timeout = BLE_GAP_SUPERVISION_TIMEOUT_MS(

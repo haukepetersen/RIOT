@@ -100,6 +100,18 @@ extern "C" {
 #define NIMBLE_STATCONN_CONN_SUPERTO_MS     (2500U)
 #endif
 
+#if NIMBLE_STATCONN_CONNITVLRAND
+
+#ifndef NIMBLE_STATCONN_CONN_ITVL_MIN_MS
+#define NIMBLE_STATCONN_CONN_ITVL_MIN_MS    (50U)
+#endif
+
+#ifndef NIMBLE_STATCONN_CONN_ITVL_MAX_MS
+#define NIMBLE_STATCONN_CONN_ITVL_MAX_MS    (100U)
+#endif
+
+#endif
+
 /**
  * @brief   Return codes used by the statconn module
  */
