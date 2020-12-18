@@ -169,6 +169,23 @@ static int _qos_parse(int argc, char **argv, int pos, unsigned *flags)
     return qos;
 }
 
+static void _on_discover(uint8_t gwid, uint16_t duration, sock_udp_ep_t *remote)
+{
+    char tmp[IPV6_ADDR_MAX_STR_LEN];
+
+    printf("Received ");
+    if (duration == 0) {
+        printf("GWINFO: ");
+    }
+    else {
+        printf("ADVERTISE: ");
+    }
+    printf("id:%u duration:%u addr:[%s%%%u]:%u\n",
+           (unsigned)gwid, (unsigned)duration,
+           ipv6_addr_to_str(tmp, (ipv6_addr_t *)remote->addr.ipv6, sizeof(tmp)),
+           (unsigned)remote->netif, (unsigned)remote->port);
+}
+
 static void _on_con_evt(asymcute_req_t *req, unsigned evt_type)
 {
     printf("Request %p: ", (void *)req);
@@ -236,6 +253,52 @@ static int _ok(asymcute_req_t *req)
     return 0;
 }
 
+static int _cmd_discover(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("usage: %s <port>\n", argv[0]);
+        return 1;
+    }
+
+    uint16_t port = (uint16_t)atoi(argv[1]);
+    asymcute_discover(port, _on_discover);
+
+    printf("success: discovery is now running on port %" PRIu16 "\n", port);
+    return 0;
+}
+
+static int _cmd_search(int argc, char **argv)
+{
+    uint8_t radius = 0;
+
+    if (argc < 2) {
+        printf("usage %s <search ep> [radius]\n", argv[0]);
+        return 1;
+    }
+
+    sock_udp_ep_t ep;
+    if (sock_udp_str2ep(&ep, argv[1]) != 0) {
+        puts("error: unable to parse search endpoint");
+        return 1;
+    }
+    if (ep.port == 0) {
+        ep.port = MQTTSN_PORT;
+    }
+
+    if (argc > 2) {
+        radius = (uint8_t)atoi(argv[2]);
+    }
+
+    int res = asymcute_searchgw(&ep, radius);
+    if (res != ASYMCUTE_OK) {
+        puts("error: unable to sent SEARCHGW message");
+        return 1;
+    }
+
+    puts("success: SEARCHGW message was sent");
+    return 0;
+}
+
 static int _cmd_connect(int argc, char **argv)
 {
     if (argc < 3) {
@@ -253,6 +316,10 @@ static int _cmd_connect(int argc, char **argv)
     if (ep.port == 0) {
         ep.port = CONFIG_ASYMCUTE_DEFAULT_PORT;
     }
+
+    char tmp[IPV6_ADDR_MAX_STR_LEN];
+    printf("sending request to %s\n",
+           ipv6_addr_to_str(tmp, (ipv6_addr_t *)ep.addr.ipv6, sizeof(tmp)));
 
     /* get request context */
     asymcute_req_t *req = _get_req_ctx();
@@ -537,6 +604,8 @@ static int _cmd_info(int argc, char **argv)
 }
 
 static const shell_command_t shell_commands[] = {
+    { "discover", "set the discovery port", _cmd_discover },
+    { "search", "trigger a SEARCHGW message", _cmd_search },
     { "connect", "connect to MQTT-SN gateway", _cmd_connect },
     { "disconnect", "disconnect from MQTT-SN gateway", _cmd_disconnect },
     { "reg", "register a given topic", _cmd_reg },
@@ -553,6 +622,9 @@ int main(void)
     puts("Asymcute MQTT-SN example application\n");
     puts("Type 'help' to get started and have a look at the README.md for more"
          "information.");
+
+    /* initially setup the MQTT-SN gateway discovery */
+    asymcute_discover(MQTTSN_PORT, _on_discover);
 
     /* we need a message queue for the thread running the shell in order to
      * receive potentially fast incoming networking packets */
