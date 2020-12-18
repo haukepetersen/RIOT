@@ -38,6 +38,11 @@ extern "C" {
 /** @} */
 
 /**
+ * @name    Default UDP port assigned to MQTT-SN by the IANA
+ */
+#define MQTTSN_PORT             (1883U)
+
+/**
  * @brief   MQTT-SN flags
  *
  * All MQTT-SN functions only support a sub-set of the available flags. It is up
