@@ -54,6 +54,10 @@
 #define LEN_PINGRESP            (2U)
 
 #define MIN_PKT_LEN             (2)
+#define ADVERTISE_PKT_LEN       (5)
+#define GWINFO_PKT_LEN          (3)
+
+#define DISC_BUF_LEN            (5)
 
 /* Internally used connection states */
 enum {
@@ -66,6 +70,10 @@ enum {
 /* the main handler thread needs a stack and a message queue */
 static event_queue_t _queue;
 static char _stack[ASYMCUTE_HANDLER_STACKSIZE];
+
+/* environment for gateway discovery */
+static sock_udp_t _disc_sock;
+static asymcute_disc_cb_t _disc_user_cb;
 
 /* necessary forward function declarations */
 static void _on_req_timeout(void *arg);
@@ -557,7 +565,7 @@ static void _on_unsuback(asymcute_con_t *con, const uint8_t *data, size_t len)
     con->user_cb(req, ASYMCUTE_UNSUBSCRIBED);
 }
 
-void *_eventloop(void *arg)
+static void *_eventloop(void *arg)
 {
     (void)arg;
     event_queue_init(&_queue);
@@ -618,6 +626,69 @@ void _on_pkt(sock_udp_t *sock, sock_async_flags_t type, void *arg)
             }
         }
     }
+}
+
+static void _on_disc_pkt(sock_udp_t *sock, sock_async_flags_t type, void *arg)
+{
+    (void)arg;
+
+    if (type & SOCK_ASYNC_MSG_RECV) {
+        /* for now, we only react to GWINFO messages sent by a gateway, so we
+         * need only 3 byte to store those */
+        uint8_t buf[ADVERTISE_PKT_LEN];
+        sock_udp_ep_t remote;
+        ssize_t len = sock_udp_recv(sock, buf, sizeof(buf), 0, &remote);
+        if ((len == (ssize_t)buf[0]) &&
+            ((len == ADVERTISE_PKT_LEN) || (len == GWINFO_PKT_LEN))) {
+
+            uint16_t duration = 0;
+            if (buf[1] == MQTTSN_ADVERTISE) {
+                duration = byteorder_bebuftohs(&buf[3]);
+            }
+
+            _disc_user_cb(buf[2], duration, &remote);
+        }
+    }
+}
+
+void asymcute_run(void)
+{
+    thread_create(_stack, sizeof(_stack), ASYMCUTE_HANDLER_PRIO,
+                  0, _eventloop, NULL, "asymcute_main");
+}
+
+int asymcute_discover(uint16_t port, asymcute_disc_cb_t callback)
+{
+    /* we make sure that any socket is closed */
+    sock_udp_close(&_disc_sock);
+    /* if callback NULL or port 0, we are done */
+    if ((port == 0) || (callback == NULL)) {
+        return ASYMCUTE_OK;
+    }
+    /* configure socket used for gateway discovery etc */
+    _disc_user_cb = callback;
+    sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
+    local.port = port;
+    local.netif = 6;
+    int res = sock_udp_create(&_disc_sock, &local, NULL, 0);
+    if (res != 0) {
+        return ASYMCUTE_GWERR;
+    }
+    sock_udp_event_init(&_disc_sock, &_queue, _on_disc_pkt, NULL);
+
+    return ASYMCUTE_OK;
+}
+
+int asymcute_searchgw(const sock_udp_ep_t *remote, uint8_t radius)
+{
+    if (_disc_user_cb == NULL) {
+        return ASYMCUTE_NOTACTIVE;
+    }
+    /* the standard tells us that we have to insert a random delay before
+     * sending this packet. We leave this to the API user for now... */
+    uint8_t msg[] = { 3, MQTTSN_SEARCHGW, radius };
+    ssize_t n = sock_udp_send(&_disc_sock, msg, sizeof(msg), remote);
+    return (n < 0) ? ASYMCUTE_SENDERR : ASYMCUTE_OK;
 }
 
 void asymcute_handler_run(void)

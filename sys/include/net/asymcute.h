@@ -181,6 +181,7 @@ enum {
     ASYMCUTE_REGERR     = -5,       /**< error: registration invalid */
     ASYMCUTE_SUBERR     = -6,       /**< error: subscription invalid */
     ASYMCUTE_SENDERR    = -7,       /**< error: unable to sent packet */
+    ASYMCUTE_NOTACTIVE  = -8,       /**< error: given context is not active */
 };
 
 /**
@@ -197,6 +198,7 @@ enum {
     ASYMCUTE_SUBSCRIBED,            /**< client was subscribed to topic */
     ASYMCUTE_UNSUBSCRIBED,          /**< client was unsubscribed from topic */
 };
+
 
 /**
  * @brief   Forward type declaration for connections contexts
@@ -222,6 +224,9 @@ typedef struct asymcute_topic asymcute_topic_t;
  * @brief   Forward type declaration for last will definitions
  */
 typedef struct asymcute_will asymcute_will_t;
+
+typedef void(*asymcute_disc_cb_t)(uint8_t gwid, uint16_t duration,
+                                  sock_udp_ep_t *remote);
 
 /**
  * @brief   Event callback used for communicating connection and request related
@@ -437,6 +442,9 @@ static inline bool asymcute_topic_equal(const asymcute_topic_t *a,
 
     return ((a->flags == b->flags) && (a->id == b->id));
 }
+
+int asymcute_discover(uint16_t port, asymcute_disc_cb_t callback);
+int asymcute_searchgw(const sock_udp_ep_t *remote, uint8_t radius);
 
 /**
  * @brief   Initialize the given topic
