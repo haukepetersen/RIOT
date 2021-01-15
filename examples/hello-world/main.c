@@ -20,13 +20,17 @@
  */
 
 #include <stdio.h>
+#include "cpu.h"
 
 int main(void)
 {
-    puts("Hello World!");
+    // puts("Hello World!");
 
-    printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
-    printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+    // printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
+    // printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+
+    // NRF_CLOCK->TASKS_HFCLKSTOP = 1;
+
 
     return 0;
 }

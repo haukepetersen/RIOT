@@ -360,7 +360,7 @@ endif
 
 ifneq (,$(filter gnrc_sixlowpan_ctx,$(USEMODULE)))
   USEMODULE += ipv6_addr
-  USEMODULE += xtimer
+#   USEMODULE += xtimer
 endif
 
 ifneq (,$(filter gnrc_ipv6_default,$(USEMODULE)))

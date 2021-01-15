@@ -54,7 +54,9 @@ static int print_teststart(int argc, char **argv)
 {
     (void) argc;
     (void) argv;
-    printf("[TEST_START]\n");
+
+
+    NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 
     return 0;
 }
@@ -82,14 +84,18 @@ static int print_shell_bufsize(int argc, char **argv)
 {
     (void) argc;
     (void) argv;
-    printf("%d\n", SHELL_DEFAULT_BUFSIZE);
+
+    NRF_UART0->TASKS_STOPRX = 1;
+    NRF_UART0->TASKS_STOPTX = 1;
+
+    NRF_UART0->TASKS_SUSPEND = 1;
 
     return 0;
 }
 
 static const shell_command_t shell_commands[] = {
-    { "bufsize", "Get the shell's buffer size", print_shell_bufsize },
-    { "start_test", "starts a test", print_teststart },
+    { "muh", "Get the shell's buffer size", print_shell_bufsize },
+    { "hf", "starts a test", print_teststart },
     { "end_test", "ends a test", print_testend },
     { "echo", "prints the input command", print_echo },
     { NULL, NULL, NULL }
