@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 #ifndef NIMBLE_AUTOCONN_ADV_ITVL_MS
-#define NIMBLE_AUTOCONN_ADV_ITVL_MS         (100U)          /* 100ms */
+#define NIMBLE_AUTOCONN_ADV_ITVL_MS         (1000U)          /* 100ms */
 #endif
 
 #ifndef NIMBLE_AUTOCONN_SCAN_ITVL_MS

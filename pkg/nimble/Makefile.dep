@@ -1,7 +1,8 @@
 # RIOT specific dependencies
-USEMODULE += posix_semaphore
+#USEMODULE += posix_semaphore
+USEMODULE += sema_ztimer sema_no_xtimer
 USEMODULE += event_callback
-USEMODULE += xtimer
+USEMODULE += ztimer_msec ztimer_periph_rtt #ztimer_xtimer_compat
 
 # Requires nimble feature
 FEATURES_REQUIRED += ble_nimble
