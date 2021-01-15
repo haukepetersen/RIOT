@@ -29,6 +29,10 @@
 
 #include "mutex.h"
 
+#if IS_USED(MODULE_SEMA_ZTIMER)
+#include "ztimer.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -109,6 +113,7 @@ static inline unsigned sema_get_value(const sema_t *sema)
     return sema->value;
 }
 
+#if !IS_USED(MODULE_SEMA_NO_XTIMER)
 /**
  * @brief Wait for a semaphore, blocking or non-blocking.
  *
@@ -178,6 +183,65 @@ static inline int sema_try_wait(sema_t *sema)
 {
     return _sema_wait(sema, 0, 0);
 }
+#endif
+
+#if IS_USED(MODULE_SEMA_ZTIMER)
+int _sema_wait_ztimer(sema_t *sema, int block,
+                      ztimer_clock_t *clock, uint32_t timeout);
+/**
+ * @brief   Wait for a semaphore being posted.
+ *
+ * @pre `(sema != NULL)`
+ *
+ * @param[in]  sema     A semaphore.
+ * @param[in]  clock    ztimer clock to use
+ * @param[in]  timeout  Time in microseconds until the semaphore times out.
+ *                      0 does not wait.
+ *
+ * @return  0 on success
+ * @return  -ETIMEDOUT, if the semaphore times out.
+ * @return  -ECANCELED, if the semaphore was destroyed.
+ * @return  -EAGAIN,    if the semaphore is not posted (only if timeout = 0)
+ */
+static inline int sema_wait_timed_ztimer(sema_t *sema,
+                                         ztimer_clock_t *clock,
+                                         uint32_t timeout)
+{
+    return _sema_wait_ztimer(sema, (timeout != 0), clock, timeout);
+}
+
+/**
+ * @brief   Wait for a semaphore being posted (without timeout).
+ *
+ * @pre `(sema != NULL)`
+ *
+ * @param[in]  sema A semaphore.
+ *
+ * @return  0 on success
+ * @return  -ECANCELED, if the semaphore was destroyed.
+ */
+static inline int sema_wait_ztimer(sema_t *sema)
+{
+    return _sema_wait_ztimer(sema, 1, NULL, 0);
+}
+
+/**
+ * @brief   Test if the semaphore is posted
+ *
+ * @pre `(sema != NULL)`
+ *
+ * This is a non-blocking alternative to @ref sema_wait.
+ *
+ * @return 0 on success
+ * @return  -EAGAIN, if the semaphore is not posted.
+ * @return  -ECANCELED, if the semaphore was destroyed.
+ */
+static inline int sema_try_wait_ztimer(sema_t *sema)
+{
+    return _sema_wait_ztimer(sema, 0, NULL, 0);
+}
+
+#endif
 
 /**
  * @brief   Signal semaphore.
