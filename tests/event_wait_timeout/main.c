@@ -88,6 +88,11 @@ int main(void)
         puts("[FAILED]");
         return 1;
     }
+    tmp_evt = event_wait_timeout_ztimer(&tmp_eq, ZTIMER_USEC, 0);
+    if (tmp_evt != NULL) {
+        puts("[FAILED");
+        return 1;
+    }
 
     /* test return in a predefined amount of time */
     puts("waiting for event with 10ms timeout...");
@@ -104,6 +109,16 @@ int main(void)
     uint64_t static_timeout = STATIC_TIMEOUT;
     before = xtimer_now_usec();
     tmp_evt = event_wait_timeout64(&tmp_eq, static_timeout);
+    if (tmp_evt != NULL) {
+        puts("[FAILED]");
+        return 1;
+    }
+    diff = xtimer_now_usec() - before;
+    printf("event_wait time out after %"PRIu32"us\n", diff);
+
+    puts("waiting for event with 10ms timeout (ztimer)...");
+    before = xtimer_now_usec();
+    tmp_evt = event_wait_timeout_ztimer(&tmp_eq, ZTIMER_USEC, STATIC_TIMEOUT);
     if (tmp_evt != NULL) {
         puts("[FAILED]");
         return 1;
