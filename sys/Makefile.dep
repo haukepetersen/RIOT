@@ -624,18 +624,6 @@ ifneq (,$(filter posix_inet,$(USEMODULE)))
   USEMODULE += posix_headers
 endif
 
-ifneq (,$(filter sema sema_%,$(USEMODULE)))
-  USEMODULE += sema
-  ifneq (,$(filter sema_ztimer,$(USEMODULE)))
-    $(info WITH ZTIMER)
-    USEMODULE += ztimer
-  endif
-  ifeq (,$(filter sema_no_xtimer,$(USEMODULE)))
-    USEMODULE += xtimer
-    $(info WITH XTIMER)
-  endif
-endif
-
 ifneq (,$(filter sema_inv,$(USEMODULE)))
   USEMODULE += atomic_utils
 endif

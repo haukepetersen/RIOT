@@ -21,7 +21,10 @@
 #include "irq.h"
 #include "assert.h"
 #include "sema.h"
+
+#if IS_USED(MODULE_XTIMER)
 #include "xtimer.h"
+#endif
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
@@ -62,6 +65,7 @@ int _sema_wait(sema_t *sema, int block, uint64_t us)
         if (us == 0) {
             mutex_lock(&sema->mutex);
         }
+#if IS_USED(MODULE_XTIMER)
         else {
             uint64_t start = xtimer_now_usec64();
             block = !xtimer_mutex_lock_timeout(&sema->mutex, us);
@@ -74,6 +78,7 @@ int _sema_wait(sema_t *sema, int block, uint64_t us)
                 block = 0;
             }
         }
+#endif
 
         if (sema->state != SEMA_OK) {
             mutex_unlock(&sema->mutex);
@@ -100,7 +105,7 @@ int _sema_wait(sema_t *sema, int block, uint64_t us)
 }
 #endif
 
-#if IS_USED(MODULE_SEMA_ZTIMER)
+#if IS_USED(MODULE_ZTIMER)
 int _sema_wait_ztimer(sema_t *sema, int block,
                       ztimer_clock_t *clock, uint32_t timeout)
 {
