@@ -70,7 +70,7 @@ extern "C" {
       defined(CPU_FAM_STM32F7) || defined(CPU_FAM_STM32L4) || \
       defined(CPU_FAM_STM32WB) || defined(CPU_FAM_STM32G4) || \
       defined(CPU_FAM_STM32G0) || defined(CPU_FAM_STM32L5) || \
-      defined(CPU_FAM_STM32MP1)
+      defined(CPU_FAM_STM32MP1) || defined(CPU_FAM_STM32WL)
 #define CLOCK_LSI           (32000U)
 #else
 #error "error: LSI clock speed not defined for your target CPU"
@@ -189,7 +189,7 @@ typedef enum {
 #elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
       defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32F7) || \
       defined(CPU_FAM_STM32WB) || defined(CPU_FAM_STM32G4) || \
-      defined(CPU_FAM_STM32L5)
+      defined(CPU_FAM_STM32L5) || defined(CPU_FAM_STM32WL)
     AHB1,           /**< AHB1 bus */
     AHB2,           /**< AHB2 bus */
     AHB3,           /**< AHB3 bus */

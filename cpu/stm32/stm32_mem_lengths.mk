@@ -1,6 +1,8 @@
 # The next block takes care of setting the rigth lengths of RAM and ROM
 # for the stm32 family. Most of the CPUs should have been taken into
 # account here, so no need to assign the lengths per model.
+$(info $(STM32_TYPE))
+
 ifeq ($(STM32_TYPE), F)
   ifeq ($(STM32_FAMILY), 0)
     ifeq ($(STM32_MODEL2), 3)
@@ -273,6 +275,8 @@ else ifeq ($(STM32_TYPE), W)
         RAM_LEN = 256K
       endif
     endif
+  else ifeq ($(STM32_FAMILY), L)
+    RAM_LEN = 64K
   endif
 else ifeq ($(STM32_TYPE), MP)
   ifeq ($(STM32_FAMILY), 1)

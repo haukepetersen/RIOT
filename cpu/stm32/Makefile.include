@@ -55,6 +55,8 @@ $(call target-export-variables,$(VECTORS_O),CPU_LINE)
 # which are only used for STM32 system includes and not of interest for RIOT.
 CFLAGS += -D__SYSTEM_STM32$(call uppercase,$(CPU_FAM))XX_H
 
+$(info $(CPU_FAM) asdlfkjas)
+
 ifeq (,$(filter STM32MP157Cxx,$(CPU_LINE)))
   STM32CMSIS_INCLUDE_DIR = $(RIOTCPU)/stm32/include/vendor/cmsis/$(CPU_FAM)/Include
   STM32FAM_INCLUDE_FILE = $(STM32CMSIS_INCLUDE_DIR)/stm32$(CPU_FAM)xx.h

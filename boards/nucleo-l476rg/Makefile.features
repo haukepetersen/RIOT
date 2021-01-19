@@ -1,5 +1,6 @@
 CPU = stm32
-CPU_MODEL = stm32l476rg
+# CPU_MODEL = stm32l476rg
+CPU_MODEL = stm32wl55jc
 
 # Put defined MCU peripherals here (in alphabetical order)
 FEATURES_PROVIDED += periph_adc
