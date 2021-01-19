@@ -106,8 +106,8 @@ int _sema_wait(sema_t *sema, int block, uint64_t us)
 #endif
 
 #if IS_USED(MODULE_ZTIMER)
-int _sema_wait_ztimer(sema_t *sema, int block,
-                      ztimer_clock_t *clock, uint32_t timeout)
+int sema_wait_timed_ztimer(sema_t *sema,
+                           ztimer_clock_t *clock, uint32_t timeout)
 {
     assert(sema != NULL);
 
@@ -115,6 +115,7 @@ int _sema_wait_ztimer(sema_t *sema, int block,
         return -ECANCELED;
     }
 
+    int block = 1;
     int did_block = block;
     unsigned old = irq_disable();
     while ((sema->value == 0) && block) {
@@ -123,9 +124,9 @@ int _sema_wait_ztimer(sema_t *sema, int block,
             mutex_lock(&sema->mutex);
         }
         else {
-            ztimer_now_t start = ztimer_now(ZTIMER_MSEC);
-            block = !ztimer_mutex_lock_timeout(ZTIMER_MSEC, &sema->mutex, timeout);
-            uint32_t elapsed = (uint32_t)(ztimer_now(ZTIMER_MSEC) - start);
+            ztimer_now_t start = ztimer_now(clock);
+            block = !ztimer_mutex_lock_timeout(clock, &sema->mutex, timeout);
+            uint32_t elapsed = (uint32_t)(ztimer_now(clock) - start);
 
             if (elapsed < timeout) {
                 timeout -= elapsed;
