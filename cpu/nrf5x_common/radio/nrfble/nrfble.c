@@ -120,6 +120,13 @@ static const uint8_t _ble_chan_map[40] = {
     [39] = 80,
 };
 
+static void _enable(void)
+{
+    clock_hfxo_request();
+    NRF_RADIO->EVENTS_DISABLED = 0;
+    NRF_RADIO->INTENSET = INT_EN;
+}
+
 /**
  * @brief   Set radio into idle (DISABLED) state
  */
@@ -131,6 +138,7 @@ static void _go_idle(void)
         NRF_RADIO->EVENTS_DISABLED = 0;
         NRF_RADIO->TASKS_DISABLE = 1;
         while (NRF_RADIO->EVENTS_DISABLED == 0) {}
+        clock_hfxo_release();
         _state = STATE_IDLE;
     }
 }
@@ -239,12 +247,8 @@ static int _nrfble_init(netdev_t *dev)
     (void)dev;
     assert(_nrfble_dev.driver && _nrfble_dev.event_callback);
 
-    /* the radio need the external HF clock source to be enabled */
-    /* @todo    add proper handling to release the clock whenever the radio is
-     *          idle */
-    clock_hfxo_request();
-
-    /* power on the NRFs radio */
+    /* power cycle the radio to reset it */
+    NRF_RADIO->POWER = 0;
     NRF_RADIO->POWER = 1;
     /* configure variable parameters to default values */
     NRF_RADIO->TXPOWER = NRFBLE_TXPOWER_DEFAULT;
@@ -286,8 +290,7 @@ static int _nrfble_send(netdev_t *dev, const iolist_t *data)
     /* in case no trx sequence is active, we start a new one now */
     if (_state == STATE_IDLE) {
         _state = STATE_TX;
-        NRF_RADIO->EVENTS_DISABLED = 0;
-        NRF_RADIO->INTENSET = INT_EN;
+        _enable();
         NRF_RADIO->TASKS_TXEN = 1;
     }
 
@@ -307,8 +310,7 @@ static int _nrfble_recv(netdev_t *dev, void *buf, size_t len, void *info)
     /* in case no trx sequence is active, we start a new one now */
     if (_state == STATE_IDLE) {
         _state = STATE_RX;
-        NRF_RADIO->EVENTS_DISABLED = 0;
-        NRF_RADIO->INTENSET = INT_EN;
+        _enable();
         NRF_RADIO->TASKS_RXEN = 1;
     }
 
