@@ -30,6 +30,18 @@ extern "C" {
 void clock_init_hf(void);
 
 /**
+ * @brief   Request the external high frequency crystal (HFXO) as HF clock
+ *          source. If this is the first request, the HFXO will be enabled.
+ */
+void clock_hfxo_request(void);
+
+/**
+ * @brief   Release the use of the HFXO. If this was the last active request,
+ *          the HFXO will be disabled
+ */
+void clock_hfxo_release(void);
+
+/**
  * @brief   Start the low frequency clock (LFCLK) as configured in the board's
  *          periph_conf.
  *
