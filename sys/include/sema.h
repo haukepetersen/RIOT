@@ -202,9 +202,8 @@ static inline int sema_wait_timed(sema_t *sema, uint64_t timeout)
  * @return  -ECANCELED, if the semaphore was destroyed.
  * @return  -EAGAIN,    if the semaphore is not posted (only if timeout = 0)
  */
-static inline int sema_wait_timed_ztimer(sema_t *sema,
-                                         ztimer_clock_t *clock,
-                                         uint32_t timeout);
+int sema_wait_timed_ztimer(sema_t *sema,
+                           ztimer_clock_t *clock, uint32_t timeout);
 #endif
 
 /**
