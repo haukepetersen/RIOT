@@ -1,6 +1,6 @@
 # RIOT specific dependencies
 #USEMODULE += posix_semaphore
-USEMODULE += sema_ztimer sema_no_xtimer
+USEMODULE += sema
 USEMODULE += event_callback
 USEMODULE += ztimer_msec ztimer_periph_rtt #ztimer_xtimer_compat
 
