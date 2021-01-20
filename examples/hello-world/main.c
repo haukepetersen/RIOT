@@ -21,15 +21,30 @@
 
 #include <stdio.h>
 #include "cpu.h"
+#include "board.h"
 
-typedef enum {
-    A,
-    B,
-} foo_t;
+#include "periph/gpio.h"
 
-void a(foo_t f)
+static void _off(void *arg)
 {
-    printf("%i\n", f);
+    (void)arg;
+    LED0_ON;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_OFF;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_ON;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_OFF;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_ON;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_OFF;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_ON;
+    for (int i = 0; i < 3000000; i++) {__asm("nop");}
+    LED0_OFF;
+
+    NRF_POWER->SYSTEMOFF = 1;
 }
 
 int main(void)
@@ -41,12 +56,17 @@ int main(void)
 
     // NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 
-    a(A);
-    a(B);
-    a(23);
+    printf("DCDC: 0x%08x\n", (int)NRF_POWER->DCDCEN);
+    printf("HFXO: 0x%08x\n", (int)NRF_CLOCK->HFCLKSTAT);
 
-    foo_t foo = 23;
-    a(foo);
+    gpio_init_int(BTN0_PIN, BTN0_MODE, GPIO_FALLING, _off, NULL);
+
+    // if (NRF_CLOCK->HFCLKSTAT) {
+    //     LED0_OFF;
+    // }
+    // else {
+    //     LED0_ON;
+    // }
 
     return 0;
 }
