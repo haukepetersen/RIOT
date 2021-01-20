@@ -42,6 +42,11 @@ static inline void nrfx_dcdc_init(void)
 {
 #ifdef NRF5X_ENABLE_DCDC
     NRF_POWER->DCDCEN = 1;
+#ifdef CPU_MODEL_NRF52840XXAA
+    if (NRF_POWER->MAINREGSTATUS == POWER_MAINREGSTATUS_MAINREGSTATUS_High) {
+        NRF_POWER->DCDCEN0 = 1;
+    }
+#endif
 #endif
 }
 
