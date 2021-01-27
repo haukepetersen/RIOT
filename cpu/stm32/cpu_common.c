@@ -69,7 +69,7 @@ void periph_clk_en(bus_t bus, uint32_t mask)
         case APB1:
 #if defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32WB) || \
     defined(CPU_FAM_STM32G4) || defined(CPU_FAM_STM32L5) || \
-    defined(CPU_FAM_STM55WL)
+    defined(CPU_FAM_STM32WL)
             RCC->APB1ENR1 |= mask;
 #elif defined(CPU_FAM_STM32G0)
             RCC->APBENR1 |= mask;
@@ -146,7 +146,8 @@ void periph_clk_dis(bus_t bus, uint32_t mask)
     switch (bus) {
         case APB1:
 #if defined(CPU_FAM_STM32L4) || defined(CPU_FAM_STM32WB) || \
-    defined(CPU_FAM_STM32G4) || defined(CPU_FAM_STM32L5)
+    defined(CPU_FAM_STM32G4) || defined(CPU_FAM_STM32L5) || \
+    defined(CPU_FAM_STM32WL)
             RCC->APB1ENR1 &= ~(mask);
 #elif defined(CPU_FAM_STM32G0)
             RCC->APBENR1 &= ~(mask);
