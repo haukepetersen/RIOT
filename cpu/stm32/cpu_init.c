@@ -63,6 +63,10 @@
 #define GPIO_CLK              (AHB)
 #define GPIO_CLK_ENR          (RCC->AHBENR)
 #define GPIO_CLK_ENR_MASK     (0xFFFF0000)
+#elif defined(CPU_FAM_STM32WL)
+#define GPIO_CLK              (AHB2)
+#define GPIO_CLK_ENR          (RCC->AHB2ENR)
+#define GPIO_CLK_ENR_MASK     (0x00000087)
 #elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
       defined(CPU_FAM_STM32F7)
 #define GPIO_CLK              (AHB1)
