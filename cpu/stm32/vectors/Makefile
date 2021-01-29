@@ -2,6 +2,8 @@ MODULE = stm32_vectors
 
 NO_AUTO_SRC = 1
 
+$(info $(CPU_FAM) asdlfkjas)
+
 SRC_FILE = $(CPU_LINE).c
 SRCS = $(SRC_FILE)
 

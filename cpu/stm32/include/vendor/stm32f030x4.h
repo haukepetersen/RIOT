@@ -91,7 +91,7 @@ typedef enum
   SysTick_IRQn                = -1,     /*!< 15 Cortex-M0 System Tick Interrupt                              */
 
 /******  STM32F0 specific Interrupt Numbers ******************************************************************/
-  WWDG_IRQn                   = 0,      /*!< Window WatchDog Interrupt                               */
+  // WWDG_IRQn                   = 0,      /*!< Window WatchDog Interrupt                               */
   RTC_IRQn                    = 2,      /*!< RTC Interrupt through EXTI Lines 17, 19 and 20                  */
   FLASH_IRQn                  = 3,      /*!< FLASH global Interrupt                                          */
   RCC_IRQn                    = 4,      /*!< RCC global Interrupt                                            */

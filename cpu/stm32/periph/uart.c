@@ -35,7 +35,7 @@
 #include "pm_layered.h"
 
 #if defined(CPU_LINE_STM32L4R5xx) || defined(CPU_FAM_STM32G0) || \
-    defined(CPU_FAM_STM32L5)
+    defined(CPU_FAM_STM32L5) || defined(CPU_FAM_STM32WL)
 #define ISR_REG     ISR
 #define ISR_TXE     USART_ISR_TXE_TXFNF
 #define ISR_RXNE    USART_ISR_RXNE_RXFNE
@@ -62,7 +62,7 @@
 #endif
 
 #if defined(CPU_LINE_STM32L4R5xx) || defined(CPU_FAM_STM32G0) || \
-    defined(CPU_FAM_STM32L5)
+    defined(CPU_FAM_STM32L5) || defined(CPU_FAM_STM32WL)
 #define RXENABLE            (USART_CR1_RE | USART_CR1_RXNEIE_RXFNEIE)
 #else
 #define RXENABLE            (USART_CR1_RE | USART_CR1_RXNEIE)
