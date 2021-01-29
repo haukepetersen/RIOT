@@ -1,51 +1,51 @@
 /**
-@defgroup    boards_nucleo-l476rg STM32 Nucleo-L476RG
+@defgroup    boards_nucleo-wl55jc STM32 Nucleo-wl55jc
 @ingroup     boards_common_nucleo64
-@brief       Support for the STM32 Nucleo-L476RG
+@brief       Support for the STM32 Nucleo-wl55jc
 
 ### MCU
 
 
-| MCU        |   STM32L476RG    |
-|:------------- |:--------------------- |
-| Family | ARM Cortex-M4     |
-| Vendor | ST Microelectronics   |
-| RAM        | 128Kb |
-| Flash      | 1MB             |
-| Frequency  | up to 80MHz |
-| FPU        | yes               |
-| Timers | 16 (2x watchdog, 1 SysTick, 6x 16-bit, 2x 32-bit [TIM2])  |
-| ADCs       | 1x 12-bit         |
-| UARTs      | 3 (two UARTs and one Low-Power UART)                 |
-| SPIs       | 3                 |
-| I2Cs       | 3                 |
-| RTC        | 1                 |
-| CAN        | 1                 |
-| Vcc        | 1.71 V - 3.6V           |
-| Datasheet  | |
-| Reference Manual | [Reference Manual](http://www.st.com/content/ccc/resource/technical/document/reference_manual/02/35/09/0c/4f/f7/40/03/DM00083560.pdf/files/DM00083560.pdf/jcr:content/translations/en.DM00083560.pdf) |
-| Programming Manual | [Programming Manual](http://www.st.com/content/ccc/resource/technical/document/programming_manual/6c/3a/cb/e7/e4/ea/44/9b/DM00046982.pdf/files/DM00046982.pdf/jcr:content/translations/en.DM00046982.pdf) |
-| Board Manual   | [Board Manual](https://www.st.com/content/ccc/resource/technical/document/user_manual/98/2e/fa/4b/e0/82/43/b7/DM00105823.pdf/files/DM00105823.pdf/jcr:content/translations/en.DM00105823.pdf) |
+| MCU        |   STM32WL55JC                                             |
+|:---------- |:--------------------------------------------------------- |
+| Family     | ARM Cortex-M4 / ARM Cortex-M0+ Dual core                  |
+| Vendor     | ST Microelectronics                                       |
+| RAM        | 64KiB                                                     |
+| Flash      | 256KiB                                                    |
+| Frequency  | up to 48MHz                                               |
+| FPU        | no                                                        |
+| Timers     | 10 (2x watchdog, 1 SysTick, 6x 16-bit, 1x 32-bit [TIM2])  |
+| ADCs       | 1x 12-bit (12 channel )                                   |
+| UARTs      | 3 (two UARTs and one Low-Power UART)                      |
+| SPIs       | 2                                                         |
+| I2Cs       | 3                                                         |
+| RTC        | 1                                                         |
+| Vcc        | 1.8 V - 3.6V                                              |
+| Datasheet  | [Datasheet](https://www.st.com/resource/en/datasheet/stm32wl55jc.pdf) |
+| Reference Manual | [Reference Manual](https://www.st.com/resource/en/reference_manual/dm00451556-stm32wl5x-advanced-armbased-32bit-mcus-with-subghz-radio-solution-stmicroelectronics.pdf) |
+| Programming Manual 1 | [Reference Manual - M4 ](https://www.st.com/resource/en/programming_manual/dm00046982-stm32-cortexm4-mcus-and-mpus-programming-manual-stmicroelectronics.pdf) |
+| Programming Manual 2 | [Reference Manual - M0](https://www.st.com/resource/en/programming_manual/dm00104451-cortexm0-programming-manual-for-stm32l0-stm32g0-stm32wl-and-stm32wb-series-stmicroelectronics.pdf) |
+| Board Manual   | [Board Manual](https://www.st.com/resource/en/data_brief/nucleo-wl55jc.pdf) |
 
 ## Flashing the device
 
-The ST Nucleo-L476RG board includes an on-board ST-LINK V2 programmer. The
+The ST Nucleo-wl55jc board includes an on-board ST-LINK V2 programmer. The
 easiest way to program the board is to use OpenOCD. Once you have installed
 OpenOCD (look [here](https://github.com/RIOT-OS/RIOT/wiki/OpenOCD) for
 installation instructions), you can flash the board simply by typing
 
 ```
-make BOARD=nucleo-l476rg flash
+make BOARD=nucleo-wl55jc flash
 ```
 and debug via GDB by simply typing
 ```
-make BOARD=nucleo-l476rg debug
+make BOARD=nucleo-wl55jc debug
 ```
 
 
 ## Supported Toolchains
 
-For using the ST Nucleo-L476RG board we strongly recommend the usage of the
+For using the ST Nucleo-wl55jc board we strongly recommend the usage of the
 [GNU Tools for ARM Embedded Processors](https://launchpad.net/gcc-arm-embedded)
 toolchain.
  */
