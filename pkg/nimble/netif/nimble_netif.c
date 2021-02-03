@@ -40,6 +40,28 @@
 #include "host/util/util.h"
 #include "mem/mem.h"
 
+#ifdef MODULE_MYPRINT
+#include "myprint.h"
+#endif
+
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#endif
+#ifdef MODULE_PROCDELAY
+#include "procdelay.h"
+#endif
+
+#ifdef MODULE_AVGSTATS
+#include "avgstats.h"
+#endif
+#ifdef MODULE_SEQSTATS
+#include "seqstats.h"
+#endif
+
+#ifdef MODULE_UDPFLOOD
+#include "udpflood.h"
+#endif
+
 #define ENABLE_DEBUG            0
 #include "debug.h"
 
@@ -128,6 +150,10 @@ static int _send_pkt(nimble_netif_conn_t *conn, gnrc_pktsnip_t *pkt)
 
     if ((res != 0) && (res != BLE_HS_ESTALLED)) {
         os_mbuf_free_chain(sdu);
+
+#ifdef MODULE_MYPRINT
+        myprintf("n_er:%i\n", res);
+#endif
         return -ECANCELED;
     }
 
@@ -141,16 +167,53 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
     (void)netif;
     int res;
 
+#ifdef MODULE_PROCDELAY
+    procdelay_print(expstats_snip_tx_get_seq(pkt->next), PROCDELAY_NONE);
+#endif
+
     gnrc_netif_hdr_t *hdr = (gnrc_netif_hdr_t *)pkt->data;
     /* if packet is bcast or mcast, we send it to every connected node */
     if (hdr->flags &
         (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
-        int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
+         int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
                                                 NIMBLE_NETIF_L2CAP_CONNECTED);
         while (handle != NIMBLE_NETIF_CONN_INVALID) {
             res = _send_pkt(nimble_netif_conn_get(handle), pkt->next);
+#ifdef MODULE_EXPSTATS
+            if (res > 0) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL, pkt->next);
+            }
+            else if (res == -ECANCELED) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_ER, pkt->next);
+            }
+            else if (res == -ENOBUFS) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_NOBUF, pkt->next);
+            }
+            else if (res == -ENOTCONN) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_NC, pkt->next);
+            }
+            else if (res == -ECONNRESET) {
+                expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_ABORT, pkt->next);
+            }
+            else {
+                myprintf("nimble_netif: error bad return code from _send_pkt() (%i)\n", res);
+            }
+#endif
+            if (res <= 0) {
+                break;
+            }
             handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
         }
+#ifdef MODULE_AVGSTATS
+        avgstats_inc(AVGSTATS_NETIF_TX_CNT);
+        avgstats_add(AVGSTATS_NETIF_TX_BYTES, (unsigned)res);
+#endif
+#ifdef MODULE_SEQSTATS
+        if (res > 0) {
+            seqstats_inc(SEQSTATS_NETIF_TX);
+            seqstats_add(SEQSTATS_NETIF_TX_BYTES, (unsigned)res);
+        }
+#endif
     }
     /* send unicast */
     else {
@@ -158,6 +221,43 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             gnrc_netif_hdr_get_dst_addr(hdr));
         nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
         res = _send_pkt(conn, pkt->next);
+#ifdef MODULE_EXPSTATS
+        if (res > 0) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX, pkt->next);
+        }
+        else if (res == -ECANCELED) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ER, pkt->next);
+        }
+        else if (res == -ENOBUFS) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NOBUF, pkt->next);
+        }
+        else if (res == -ENOTCONN) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_NC, pkt->next);
+        }
+        else if (res == -ECONNRESET) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ABORT, pkt->next);
+        }
+        else {
+            myprintf("nimble_netif: error bad return code from _send_pkt() (%i)\n", res);
+        }
+#endif
+#ifdef MODULE_AVGSTATS
+        if (res > 0) {
+            avgstats_inc(AVGSTATS_NETIF_TX_CNT);
+            avgstats_add(AVGSTATS_NETIF_TX_BYTES, (unsigned)res);
+        }
+#endif
+#ifdef MODULE_SEQSTATS
+        if (res > 0) {
+            seqstats_inc(SEQSTATS_NETIF_TX);
+            seqstats_add(SEQSTATS_NETIF_TX_BYTES, (unsigned)res);
+        }
+#endif
+#ifdef MODULE_UDPFLOOD
+        if (res > 0) {
+            udpflood_netif_tx((unsigned)res);
+        }
+#endif
     }
 
     /* release the packet in GNRC's packet buffer */
@@ -272,11 +372,26 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     struct os_mbuf *rxb = event->receive.sdu_rx;
     size_t rx_len = (size_t)OS_MBUF_PKTLEN(rxb);
 
+#ifdef MODULE_AVGSTATS
+    avgstats_inc(AVGSTATS_NETIF_RX_CNT);
+    avgstats_add(AVGSTATS_NETIF_RX_BYTES, (unsigned)rx_len);
+#endif
+#ifdef MODULE_SEQSTATS
+    seqstats_inc(SEQSTATS_NETIF_RX);
+    seqstats_add(SEQSTATS_NETIF_RX_BYTES, (unsigned)rx_len);
+#endif
+#ifdef MODULE_UDPFLOOD
+    udpflood_netif_rx((unsigned)rx_len);
+#endif
+
     /* allocate netif header */
     gnrc_pktsnip_t *if_snip = gnrc_netif_hdr_build(conn->addr, BLE_ADDR_LEN,
                                                    _netif.l2addr,
                                                    BLE_ADDR_LEN);
     if (if_snip == NULL) {
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_RX_PKTBUF_FULL);
+#endif
         goto end;
     }
 
@@ -287,15 +402,28 @@ static void _on_data(nimble_netif_conn_t *conn, struct ble_l2cap_event *event)
     gnrc_pktsnip_t *payload = gnrc_pktbuf_add(if_snip, NULL, rx_len, _nettype);
     if (payload == NULL) {
         gnrc_pktbuf_release(if_snip);
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_RX_PKTBUF_FULL);
+#endif
         goto end;
     }
 
     /* copy payload from mbuf into pktbuffer */
     int res = os_mbuf_copydata(rxb, 0, rx_len, payload->data);
     if (res != 0) {
+#ifdef MODULE_EXPSTATS
+        expstats_log(EXPSTATS_NETIF_RX_ERR);
+#endif
         gnrc_pktbuf_release(payload);
         goto end;
     }
+
+#ifdef MODULE_EXPSTATS
+    expstats_log_snip_rx(EXPSTATS_NETIF_RX, payload);
+#endif
+#ifdef MODULE_PROCDELAY
+    procdelay_time(expstats_snip_rx_get_seq(payload), PROCDELAY_FORWARD);
+#endif
 
     /* finally dispatch the receive packet to GNRC */
     if (!gnrc_netapi_dispatch_receive(payload->type, GNRC_NETREG_DEMUX_CTX_ALL,
@@ -310,12 +438,16 @@ end:
     /* due to buffer provisioning, there should always be enough space */
     assert(rxb != NULL);
     ble_l2cap_recv_ready(event->receive.chan, rxb);
+
+    /* XXX: wake up the nimble_netif thread to prevent it getting stuck */
+    // thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
 }
 
 static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
 {
     int handle = (int)arg;
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+
     assert(conn && (conn->state & NIMBLE_NETIF_GAP_MASTER));
 
     switch (event->type) {
@@ -343,6 +475,9 @@ static int _on_l2cap_client_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
+// #ifdef MODULE_EXPSTATS
+            // expstats_log_num(EXPSTATS_NETIF_TX_UNSTALLED, (unsigned)event->tx_unstalled.status);
+// #endif
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:
@@ -394,6 +529,9 @@ static int _on_l2cap_server_evt(struct ble_l2cap_event *event, void *arg)
             _on_data(conn, event);
             break;
         case BLE_L2CAP_EVENT_COC_TX_UNSTALLED:
+// #ifdef MODULE_EXPSTATS
+            // expstats_log_num(EXPSTATS_NETIF_TX_UNSTALLED, (unsigned)event->tx_unstalled.status);
+// #endif
             thread_flags_set(_netif_thread, FLAG_TX_UNSTALLED);
             break;
         default:

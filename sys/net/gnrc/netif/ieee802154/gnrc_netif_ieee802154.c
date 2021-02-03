@@ -21,6 +21,10 @@
 #include "net/ipv6/hdr.h"
 #endif
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#endif
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -102,6 +106,9 @@ static gnrc_pktsnip_t *_recv(gnrc_netif_t *netif)
 
         pkt = gnrc_pktbuf_add(NULL, NULL, bytes_expected, GNRC_NETTYPE_UNDEF);
         if (pkt == NULL) {
+#ifdef MODULE_EXPSTATS
+            expstats_log(EXPSTATS_NETIF_RX_PKTBUF_FULL);
+#endif
             DEBUG("_recv_ieee802154: cannot allocate pktsnip.\n");
             /* Discard packet on netdev device */
             dev->driver->recv(dev, NULL, bytes_expected, NULL);
@@ -241,6 +248,10 @@ static gnrc_pktsnip_t *_recv(gnrc_netif_t *netif)
         DEBUG("_recv_ieee802154: received frame is too short\n");
         dev->driver->recv(dev, NULL, bytes_expected, NULL);
     }
+
+#ifdef MODULE_EXPSTATS
+    expstats_log_snip_rx(EXPSTATS_NETIF_RX, pkt);
+#endif
 
     return pkt;
 }
@@ -393,6 +404,26 @@ static int _send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
     }
 #else
     res = dev->driver->send(dev, &iolist_header);
+#endif
+
+#ifdef MODULE_EXPSTATS
+    if (netif_hdr->flags &
+            (GNRC_NETIF_HDR_FLAGS_BROADCAST | GNRC_NETIF_HDR_FLAGS_MULTICAST)) {
+        if (res > 0) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL, pkt->next);
+        }
+        else {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_MUL_ER, pkt->next);
+        }
+    }
+    else {
+        if (res > 0) {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX, pkt->next);
+        }
+        else {
+            expstats_log_snip_tx(EXPSTATS_NETIF_TX_ERR, pkt->next);
+        }
+    }
 #endif
 
     /* release old data */

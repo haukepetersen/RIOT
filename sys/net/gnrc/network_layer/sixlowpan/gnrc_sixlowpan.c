@@ -30,6 +30,10 @@
 #include "net/gnrc/netif.h"
 #include "net/sixlowpan.h"
 
+#ifdef MODULE_AVGSTATS
+#include "avgstats.h"
+#endif
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -94,6 +98,12 @@ void gnrc_sixlowpan_dispatch_send(gnrc_pktsnip_t *pkt, void *context,
     (void)context;
     (void)page;
     assert(pkt->type == GNRC_NETTYPE_NETIF);
+
+#ifdef MODULE_AVGSTATS
+    avgstats_inc(AVGSTATS_6LO_TX_CNT);
+    avgstats_add(AVGSTATS_6LO_TX_BYTES, (unsigned)gnrc_pkt_len(pkt->next));
+#endif
+
     gnrc_netif_hdr_t *hdr = pkt->data;
     if (gnrc_netif_send(gnrc_netif_get_by_pid(hdr->if_pid), pkt) < 1) {
         DEBUG("6lo: unable to send %p over interface %u\n", (void *)pkt,
@@ -187,6 +197,11 @@ static void _receive(gnrc_pktsnip_t *pkt)
     pkt = payload;  /* reset pkt from temporary variable */
 
     payload = gnrc_pktsnip_search_type(pkt, GNRC_NETTYPE_SIXLOWPAN);
+
+#ifdef MODULE_AVGSTATS
+    avgstats_inc(AVGSTATS_6LO_RX_CNT);
+    avgstats_add(AVGSTATS_6LO_RX_BYTES, (unsigned)gnrc_pkt_len(payload));
+#endif
 
     if ((payload == NULL) || (payload->size < 1)) {
         DEBUG("6lo: Received packet has no 6LoWPAN payload\n");

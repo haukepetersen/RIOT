@@ -31,6 +31,13 @@
 #include "net/gnrc/icmpv6.h"
 #include "net/gnrc/icmpv6/echo.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)
+#endif
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -83,6 +90,15 @@ void gnrc_icmpv6_demux(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         gnrc_pktbuf_release(pkt);
         return;
     }
+
+#ifdef MODULE_EXPSTATS
+    switch (hdr->type) {
+        case ICMPV6_RTR_SOL: EXPSTAT(EXPSTATS_ND_RX_RTR_SOL); break;
+        case ICMPV6_RTR_ADV: EXPSTAT(EXPSTATS_ND_RX_RTR_ADV); break;
+        case ICMPV6_NBR_SOL: EXPSTAT(EXPSATAS_ND_RX_NBR_SOL); break;
+        case ICMPV6_NBR_ADV: EXPSTAT(EXPSTATS_ND_RX_NBR_ADV); break;
+    }
+#endif
 
     switch (hdr->type) {
         /* TODO: handle ICMPv6 errors */
