@@ -474,6 +474,26 @@ int _nimble_netif_handler(int argc, char **argv)
         int timeout = atoi(argv[4]);
         _cmd_update(handle, itvl, timeout);
     }
+    else if ((memcmp(argv[1], "chanmap", 7) == 0)) {
+        int handle = nimble_netif_conn_get_next(NIMBLE_NETIF_CONN_INVALID,
+                                                NIMBLE_NETIF_L2CAP_CONNECTED);
+        if (handle == NIMBLE_NETIF_CONN_INVALID) {
+            printf("no active connections found\n");
+            return 0;
+        }
+        puts("Used channels per Slot\n"
+             "Bitmap denotes channels in ascending order: CH36, ..., CH0\n"
+             "e.g. '1f ff ff ff ff' shows that all 37 data channels in use");
+        while (handle != NIMBLE_NETIF_CONN_INVALID) {
+            uint8_t map[5];
+            nimble_netif_used_chanmap(handle, map);
+            printf("[%02i] %02x %02x %02x %02x %02x\n", handle,
+                    (int)map[4], (int)map[3], (int)map[2], (int)map[1], (int)map[0]);
+            handle = nimble_netif_conn_get_next(handle, NIMBLE_NETIF_L2CAP_CONNECTED);
+        }
+        return 0;
+    }
+
     else {
         printf("unable to parse the command. Use '%s help' for more help\n",
                argv[0]);
