@@ -29,6 +29,13 @@
 
 #include "timex.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)
+#endif
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -305,6 +312,7 @@ void gnrc_ndp_nbr_sol_send(const ipv6_addr_t *tgt, gnrc_netif_t *netif,
                 DEBUG("ndp: unable to send neighbor solicitation\n");
                 break;
             }
+            EXPSTAT(EXPSTATS_ND_TX_NBR_SOL);
         }
         gnrc_netif_release(netif);
         return;
@@ -394,6 +402,7 @@ void gnrc_ndp_nbr_adv_send(const ipv6_addr_t *tgt, gnrc_netif_t *netif,
                 DEBUG("ndp: unable to send neighbor advertisement\n");
                 break;
             }
+            EXPSTAT(EXPSTATS_ND_TX_NBR_ADV);
         }
         gnrc_netif_release(netif);
         return;
@@ -451,6 +460,7 @@ void gnrc_ndp_rtr_sol_send(gnrc_netif_t *netif, const ipv6_addr_t *dst)
                 DEBUG("ndp: unable to send router advertisement\n");
                 break;
             }
+            EXPSTAT(EXPSTATS_ND_TX_RTR_SOL);
         }
         gnrc_netif_release(netif);
         return;
@@ -564,6 +574,7 @@ void gnrc_ndp_rtr_adv_send(gnrc_netif_t *netif, const ipv6_addr_t *src,
                 DEBUG("ndp: unable to send router solicitation\n");
                 break;
             }
+            EXPSTAT(EXPSTATS_ND_TX_RTR_ADV);
         }
         gnrc_netif_release(netif);
         return;

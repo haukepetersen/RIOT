@@ -38,6 +38,13 @@
 #include "nimble_rpble.h"
 #endif
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)      expstats_log(x)
+#else
+#define EXPSTAT(x)
+#endif
+
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
@@ -192,21 +199,25 @@ static void _receive(gnrc_pktsnip_t *icmpv6)
     switch (icmpv6_hdr->code) {
         case GNRC_RPL_ICMPV6_CODE_DIS:
             DEBUG("RPL: DIS received\n");
+            EXPSTAT(EXPSTATS_RPL_RX_DIS);
             gnrc_rpl_recv_DIS((gnrc_rpl_dis_t *)(icmpv6_hdr + 1), iface, &ipv6_hdr->src,
                               &ipv6_hdr->dst, byteorder_ntohs(ipv6_hdr->len));
             break;
         case GNRC_RPL_ICMPV6_CODE_DIO:
             DEBUG("RPL: DIO received\n");
+            EXPSTAT(EXPSTATS_RPL_RX_DIO);
             gnrc_rpl_recv_DIO((gnrc_rpl_dio_t *)(icmpv6_hdr + 1), iface, &ipv6_hdr->src,
                               &ipv6_hdr->dst, byteorder_ntohs(ipv6_hdr->len));
             break;
         case GNRC_RPL_ICMPV6_CODE_DAO:
             DEBUG("RPL: DAO received\n");
+            EXPSTAT(EXPSTATS_RPL_RX_DAO);
             gnrc_rpl_recv_DAO((gnrc_rpl_dao_t *)(icmpv6_hdr + 1), iface, &ipv6_hdr->src,
                               &ipv6_hdr->dst, byteorder_ntohs(ipv6_hdr->len));
             break;
         case GNRC_RPL_ICMPV6_CODE_DAO_ACK:
             DEBUG("RPL: DAO-ACK received\n");
+            EXPSTAT(EXPSTATS_RPL_RX_DAO_ACK);
             gnrc_rpl_recv_DAO_ACK((gnrc_rpl_dao_ack_t *)(icmpv6_hdr + 1), iface, &ipv6_hdr->src,
                                   &ipv6_hdr->dst, byteorder_ntohs(ipv6_hdr->len));
             break;
@@ -229,6 +240,7 @@ static void _receive(gnrc_pktsnip_t *icmpv6)
             break;
 #endif
         default:
+            EXPSTAT(EXPSTATS_RPL_RX_ERR);
             DEBUG("RPL: Unknown ICMPV6 code received\n");
             break;
     }
@@ -245,15 +257,18 @@ static void _parent_timeout(gnrc_rpl_parent_t *parent)
     evtimer_del(&gnrc_rpl_evtimer, (evtimer_event_t *)&parent->timeout_event);
 
     if (parent->state == GNRC_RPL_PARENT_ACTIVE) {
+        EXPSTAT(EXPSTATS_RPL_EVT_P_STALE);
         parent->state = GNRC_RPL_PARENT_STALE;
     }
 
     if ((parent->state >= GNRC_RPL_PARENT_STALE) &&
         (parent->state < GNRC_RPL_PARENT_TIMEOUT)) {
+        EXPSTAT(EXPSTATS_RPL_EVT_P_SENDDIS);
         parent->state++;
         gnrc_rpl_send_DIS(parent->dodag->instance, &parent->addr, NULL, 0);
     }
     else {
+        EXPSTAT(EXPSTATS_RPL_EVT_P_REMOVE);
         gnrc_rpl_dodag_t *dodag = parent->dodag;
         gnrc_rpl_parent_remove(parent);
         gnrc_rpl_parent_update(dodag, NULL);
@@ -300,16 +315,19 @@ static void *_event_loop(void *args)
 #endif
             case GNRC_RPL_MSG_TYPE_PARENT_TIMEOUT:
                 DEBUG("RPL: GNRC_RPL_MSG_TYPE_PARENT_TIMEOUT received\n");
+                EXPSTAT(EXPSTATS_RPL_EVT_P_TO);
                 parent = msg.content.ptr;
                 _parent_timeout(parent);
                 break;
             case GNRC_RPL_MSG_TYPE_DODAG_DAO_TX:
                 DEBUG("RPL: GNRC_RPL_MSG_TYPE_DODAG_DAO_TX received\n");
+                EXPSTAT(EXPSTATS_RPL_EVT_DAOTX);
                 instance = msg.content.ptr;
                 _dao_handle_send(&instance->dodag);
                 break;
             case GNRC_RPL_MSG_TYPE_INSTANCE_CLEANUP:
                 DEBUG("RPL: GNRC_RPL_MSG_TYPE_INSTANCE_CLEANUP received\n");
+                EXPSTAT(EXPSTATS_RPL_EVT_INST_CLEANUP);
                 instance = msg.content.ptr;
                 if (instance->dodag.parents == NULL) {
                     gnrc_rpl_instance_remove(instance);
@@ -317,6 +335,7 @@ static void *_event_loop(void *args)
                 break;
             case GNRC_RPL_MSG_TYPE_TRICKLE_MSG:
                 DEBUG("RPL: GNRC_RPL_MSG_TYPE_TRICKLE_MSG received\n");
+                EXPSTAT(EXPSTATS_RPL_EVT_TRICKLE_MSG);
                 trickle = msg.content.ptr;
                 if (trickle && (trickle->callback.func != NULL)) {
                     trickle_callback(trickle);
@@ -324,6 +343,7 @@ static void *_event_loop(void *args)
                 break;
             case GNRC_NETAPI_MSG_TYPE_RCV:
                 DEBUG("RPL: GNRC_NETAPI_MSG_TYPE_RCV received\n");
+                EXPSTAT(EXPSTATS_RPL_RX);
                 _receive(msg.content.ptr);
                 break;
             case GNRC_NETAPI_MSG_TYPE_SND:

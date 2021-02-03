@@ -44,6 +44,20 @@
 
 #include "net/gnrc/ipv6.h"
 
+#ifdef MODULE_EXPSTATS
+#include "expstats.h"
+#define EXPSTAT(x)                  expstats_log(x)
+#define EXPSTAT_SEQ(stat,seq)       expstats_log_seq(stat, seq)
+#define EXPSTAT_SNIP_TX(stat,snip)  expstats_log_snip_tx(stat, snip)
+#else
+#define EXPSTAT(x)
+#define EXPSTAT_SNIP_TX(stat,snip)
+#endif
+
+#ifdef MODULE_AVGSTATS
+#include "avgstats.h"
+#endif
+
 #define ENABLE_DEBUG        0
 #include "debug.h"
 
@@ -275,6 +289,11 @@ static void _send_to_iface(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
     netif->ipv6.stats.tx_bytes += gnrc_pkt_len(pkt->next);
 #endif
 
+#ifdef MODULE_AVGSTATS
+    avgstats_inc(AVGSTATS_IP_TX_CNT);
+    avgstats_add(AVGSTATS_IP_TX_BYTES, (unsigned)gnrc_pkt_len(pkt->next));
+#endif
+
 #ifdef MODULE_GNRC_SIXLOWPAN
     if (gnrc_netif_is_6lo(netif)) {
         DEBUG("ipv6: send to 6LoWPAN instead\n");
@@ -485,12 +504,24 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 {
     gnrc_ipv6_nib_nc_t nce;
 
+#ifdef MODULE_EXPSTATS
+    uint32_t seq = expstats_snip_tx_get_seq(pkt);
+#endif
+
     DEBUG("ipv6: send unicast\n");
     if (gnrc_ipv6_nib_get_next_hop_l2addr(&ipv6_hdr->dst, netif, pkt,
                                           &nce) < 0) {
         /* packet is released by NIB */
         DEBUG("ipv6: no link-layer address or interface for next hop to %s\n",
               ipv6_addr_to_str(addr_str, &ipv6_hdr->dst, sizeof(addr_str)));
+#ifdef MODULE_EXPSTATS
+        if (seq != 0) {
+            EXPSTAT_SEQ(EXPSTATS_IP_DROP, seq);
+        }
+        else {
+            EXPSTAT(EXPSTATS_IP_DROP);
+        }
+#endif
         return;
     }
     netif = gnrc_netif_get_by_pid(gnrc_ipv6_nib_nc_get_iface(&nce));
@@ -512,6 +543,7 @@ static void _send_unicast(gnrc_pktsnip_t *pkt, bool prep_hdr,
 #ifdef MODULE_NETSTATS_IPV6
         netif->ipv6.stats.tx_unicast_count++;
 #endif
+        // EXPSTAT(EXPSTATS_IP_SEND_UNI);
         _send_to_iface(netif, pkt);
     }
 }
@@ -742,6 +774,11 @@ static void _receive(gnrc_pktsnip_t *pkt)
         stats->rx_bytes += (gnrc_pkt_len(pkt) - netif_hdr->size);
 #endif
     }
+
+#ifdef MODULE_AVGSTATS
+    avgstats_inc(AVGSTATS_IP_RX_CNT);
+    avgstats_add(AVGSTATS_IP_RX_BYTES, (unsigned)(gnrc_pkt_len(pkt) - netif_hdr->size));
+#endif
 
     if ((pkt->data == NULL) || (pkt->size < sizeof(ipv6_hdr_t)) ||
         !ipv6_hdr_is(pkt->data)) {

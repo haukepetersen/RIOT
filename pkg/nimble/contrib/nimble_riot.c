@@ -118,6 +118,13 @@ void nimble_riot_init(void)
     res = ble_hs_id_infer_auto(0, &nimble_riot_own_addr_type);
     assert(res == 0);
 
+#ifdef MODULE_EXPSTATS
+    // blacklist channel 22
+    const uint8_t map[5] = { 0xff, 0xff, 0xbf, 0xff, 0x1f };
+    res = ble_hs_hci_set_chan_class(map);
+    assert(res == 0);
+#endif
+
 #ifdef MODULE_NIMBLE_NETIF
     extern void nimble_netif_init(void);
     nimble_netif_init();

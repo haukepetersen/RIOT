@@ -60,6 +60,9 @@ int _gnrc_netapi_send_recv(kernel_pid_t pid, gnrc_pktsnip_t *pkt, uint16_t type)
     /* send message */
     int ret = msg_try_send(&msg, pid);
     if (ret < 1) {
+#ifdef MOUDLE_EXPSTATS
+        expstats_log_num(EXPSTATS_GNRC_MSG_DROP, (unsigned)pid);
+#endif
         DEBUG("gnrc_netapi: dropped message to %" PRIkernel_pid " (%s)\n", pid,
               (ret == 0) ? "receiver queue is full" : "invalid receiver");
     }
