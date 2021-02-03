@@ -19,7 +19,7 @@
 #ifndef DBGPIN_PARAMS_H
 #define DBGPIN_PARAMS_H
 
-#include "periph/gpio.h"
+// #include "periph/gpio.h"
 
 #ifdef __cplusplus
 extern "C"
