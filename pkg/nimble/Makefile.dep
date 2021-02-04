@@ -89,5 +89,4 @@ ifneq (,$(filter nimble_rpble,$(USEMODULE)))
   USEMODULE += nimble_scanner
   USEMODULE += bluetil_ad
   USEMODULE += bluetil_addr
-  USEMODULE += event_timeout
 endif

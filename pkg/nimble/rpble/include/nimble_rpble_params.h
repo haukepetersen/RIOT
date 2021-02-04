@@ -43,8 +43,11 @@ extern "C" {
 #ifndef NIMBLE_RPBLE_CONN_SCANITVL
 #define NIMBLE_RPBLE_CONN_SCANITVL      (120000U)   /* 120ms */
 #endif
-#ifndef NIMBLE_RPBLE_CONN_ITVL
-#define NIMBLE_RPBLE_CONN_ITVL          (90000U)    /* 90ms */
+#ifndef NIMBLE_RPBLE_CONN_ITVL_MIN
+#define NIMBLE_RPBLE_CONN_ITVL_MIN      (90000U)    /* 90ms */
+#endif
+#ifndef NIMBLE_RPBLE_CONN_ITVL_MAX
+#define NIMBLE_RPBLE_CONN_ITVL_MAX      (90000U)    /* 90ms */
 #endif
 #ifndef NIMBLE_RPBLE_CONN_LATENCY
 #define NIMBLE_RPBLE_CONN_LATENCY       (0)
@@ -68,7 +71,8 @@ extern "C" {
       .scan_win      = NIMBLE_RPBLE_SCAN_WIN,      \
       .adv_itvl      = NIMBLE_RPBLE_ADV_ITVL,      \
       .conn_scanitvl = NIMBLE_RPBLE_CONN_SCANITVL, \
-      .conn_itvl     = NIMBLE_RPBLE_CONN_ITVL,     \
+      .conn_itvl_min = NIMBLE_RPBLE_CONN_ITVL_MIN, \
+      .conn_itvl_max = NIMBLE_RPBLE_CONN_ITVL_MAX, \
       .conn_latency  = NIMBLE_RPBLE_CONN_LATENCY,  \
       .conn_super_to = NIMBLE_RPBLE_CONN_SUPER_TO, \
       .conn_timeout  = NIMBLE_RPBLE_CONN_TIMEOUT,  \

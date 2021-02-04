@@ -72,7 +72,9 @@
 /* keep the timing parameters for connections and advertisements */
 static struct ble_gap_adv_params _adv_params = { 0 };
 static struct ble_gap_conn_params _conn_params = { 0 };
-static uint32_t _conn_timeout;   /* in ms */
+static uint32_t _conn_timeout;      /* in ms */
+static uint32_t _conn_itvl_min;     /* in ms */
+static uint32_t _conn_itvl_max;     /* in ms */
 
 /* local RPL context */
 static nimble_rpble_ctx_t _local_rpl_ctx;
@@ -246,6 +248,11 @@ static void _parent_connect(struct ble_npl_event *ev)
     }
 
     _dbg_msg("parent found, trying to connect", _psel.addr.val);
+
+    /* set a random connection itvl */
+    uint32_t itvl = random_uint32_range(_conn_itvl_min, _conn_itvl_max);
+    _conn_params.itvl_min = (itvl / BLE_HCI_CONN_ITVL);
+    _conn_params.itvl_max = _conn_params.itvl_min;
     int res = nimble_netif_connect(&_psel.addr, &_conn_params, _conn_timeout);
     if (res < 0) {
         DEBUG("# err: unable to start connection to parent\n");
@@ -332,12 +339,12 @@ int nimble_rpble_init(const nimble_rpble_cfg_t *cfg)
 
     _conn_params.scan_itvl = (cfg->conn_scanitvl / BLE_HCI_SCAN_ITVL);
     _conn_params.scan_window = (cfg->conn_scanitvl / BLE_HCI_SCAN_ITVL);
-    _conn_params.itvl_min = (cfg->conn_itvl / BLE_HCI_CONN_ITVL);
-    _conn_params.itvl_max = (cfg->conn_itvl / BLE_HCI_CONN_ITVL);
     _conn_params.latency = cfg->conn_latency;
     _conn_params.supervision_timeout = (cfg->conn_super_to / 1000 /
                                         BLE_HCI_CONN_SPVN_TMO_UNITS);
     _conn_timeout = cfg->conn_timeout / 1000;
+    _conn_itvl_min = cfg->conn_itvl_min;
+    _conn_itvl_max = cfg->conn_itvl_max;
 
     /* register event callback */
     nimble_netif_eventcb(_on_netif_evt);

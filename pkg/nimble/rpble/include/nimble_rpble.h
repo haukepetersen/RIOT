@@ -82,7 +82,8 @@ typedef struct {
     uint32_t adv_itvl;
 
     uint32_t conn_scanitvl;
-    uint32_t conn_itvl;
+    uint32_t conn_itvl_min;
+    uint32_t conn_itvl_max;
     uint16_t conn_latency;
     uint32_t conn_super_to;
     uint32_t conn_timeout;
