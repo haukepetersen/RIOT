@@ -37,11 +37,15 @@ typedef struct {
     int maxhi;
     int minlo;
     uint8_t state;
-    hilo_cb_t on_pulse;
+    // hilo_cb_t on_pulse;
+    uint32_t last_pulse;
+    uint16_t cnt;
+    uint16_t cnt_per_h;
 } hilo_t;
 
 
-void hilo_init(hilo_t *hilo, hilo_cb_t on_pulse);
+// void hilo_init(hilo_t *hilo, hilo_cb_t on_pulse);
+void hilo_init(hilo_t *hilo);
 
 void hilo_update(hilo_t *th, int val);
 

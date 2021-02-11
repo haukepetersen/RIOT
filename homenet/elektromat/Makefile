@@ -24,17 +24,17 @@ endif
 USEMODULE += xtimer
 USEMODULE += periph_adc
 
-ifeq (henning,$(HAUS))
-  # henning (96U/kWh)
-  CFLAGS += -DPWR_U_KWH=96
-endif
-ifeq (hauke,$(HAUS))
-  # hauke (75U/kWh)
-  CFLAGS += -DPWR_U_KWH=75
-endif
-ifeq (,$(HAUS))
-  $(error Define HAUS)
-endif
+# ifeq (henning,$(HAUS))
+#   # henning (96U/kWh)
+#   CFLAGS += -DPWR_U_KWH=96
+# endif
+# ifeq (hauke,$(HAUS))
+#   # hauke (75U/kWh)
+#   CFLAGS += -DPWR_U_KWH=75
+# endif
+# ifeq (,$(HAUS))
+#   $(error Define HAUS)
+# endif
 
 DEVELHELP ?= 0
 

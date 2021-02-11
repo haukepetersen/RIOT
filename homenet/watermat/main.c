@@ -30,6 +30,7 @@
 
 #include "log.h"
 #include "xtimer.h"
+#include "ztimer.h"
 #include "random.h"
 #include "periph/gpio.h"
 #include "periph/adc.h"
@@ -48,19 +49,20 @@
 #define SAMPLING_DELAY      (1000000u / SAMPLE_RATE)
 #define STARTUP_SAMPLES     (7500U)
 
-#define TYPE_WAT            (0x05)
+#define MS_PER_HOUR         (3600 * 1000U)
+
+#define TYPE_COUNTER        (0x06)
 
 typedef struct __attribute__((packed)) {
-    uint16_t sid;   /* hex 6-9 */
-    uint16_t bat;   /* hex 10-13 */
-    uint16_t cnt;   /* hex 14-17 */
-    uint8_t hi;     /* hex 18-19 */
-    uint8_t lo;     /* hex 20-21 */
-    uint8_t val;    /* hex 22-23 */
-    uint8_t state;  /* hex 28-29 */
+    uint16_t sid;           /* hex 6-9 */
+    uint16_t bat;           /* hex 10-13 */
+    uint16_t cnt;           /* hex 14-17 */
+    uint16_t cnt_per_h;     /* hex 18-21 */
+    uint8_t hi;             /* hex 22-23 */
+    uint8_t lo;             /* hex 24-25 */
+    uint8_t val;            /* hex 26-27 */
+    uint8_t state;          /* hex 28-29 */
 } airdata_t;
-
-static uint16_t _cnt = 0;
 
 static uint8_t _ir_sample(void)
 {
@@ -74,7 +76,12 @@ static uint8_t _ir_sample(void)
 
 static void _on_pulse(void)
 {
+    uint32_t now = ztimer_now(ZTIMER_MSEC);
+
     _cnt++;
+
+    _cnt_per_hour = (uint16_t)(MS_PER_HOUR / (now - _last_pulse));
+    _last_pulse = now;
 }
 
 int main(void)
@@ -86,7 +93,7 @@ int main(void)
     gpio_clear(D_ON);
 
     /* setup BLE */
-    airdata_t *data = air_init(TYPE_WAT, sizeof(airdata_t));
+    airdata_t *data = air_init(TYPE_COUNTER, sizeof(airdata_t));
     random_bytes((uint8_t *)&data->sid, 2);
     air_start();
 
@@ -116,7 +123,8 @@ int main(void)
             uint16_t bat = xenbat_sample();
 
             memcpy(&data->bat, &bat, sizeof(uint16_t));
-            memcpy(&data->cnt, &cnt, sizeof(uint16_t));
+            memcpy(&data->cnt, &_cnt, sizeof(uint16_t));
+            memcpy(&data->cnt_per_h, &_cnt_per_hour, sizeof(uint16_t));
             data->val = (uint8_t)val;
             data->hi = (uint8_t)hilo.hi;
             data->lo = (uint8_t)hilo.lo;

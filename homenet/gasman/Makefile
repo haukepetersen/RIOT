@@ -20,6 +20,8 @@ endif
 
 USEMODULE += core_thread_flags
 USEMODULE += qmc5883l_int
+USEMODULE += ztimer_msec
+USEMODULE += ztimer_periph_rtt
 
 USEMODULE += lib_air
 USEMODULE += lib_hilo

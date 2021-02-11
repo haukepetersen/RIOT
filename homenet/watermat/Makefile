@@ -2,6 +2,13 @@ APPLICATION = watermat
 BOARD = particle-xenon
 RIOTBASE ?= $(CURDIR)/../..
 
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_air
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_hilo
+EXTERNAL_MODULE_DIRS += $(CURDIR)/../lib_xenbat
+USEMODULE += lib_air
+USEMODULE += lib_hilo
+USEMODULE += lib_xenbat
+
 PROGRAMMER ?= jlink
 
 DEBUG ?= 0

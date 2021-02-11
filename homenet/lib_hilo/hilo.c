@@ -4,13 +4,19 @@
 #include <string.h>
 
 #include "log.h"
+#include "ztimer.h"
+
 #include "hilo.h"
 
-void hilo_init(hilo_t *hilo, hilo_cb_t cb)
+#define MS_PER_HOUR         (3600 * 1000U)
+
+void hilo_init(hilo_t *hilo)
+// void hilo_init(hilo_t *hilo, hilo_cb_t cb)
 {
     memset(hilo, 0, sizeof(hilo_t));
-    hilo->on_pulse = cb;
-    hilo->minlo = UINT8_MAX;
+    // hilo->on_pulse = cb;
+    hilo->maxhi = INT_MIN;
+    hilo->minlo = INT_MAX;
 }
 
 void hilo_update(hilo_t *hilo, int val)
@@ -29,7 +35,13 @@ void hilo_sample(hilo_t *hilo, int val)
         hilo->state = 1;
         hilo->minlo = val;
 
-        hilo->on_pulse();
+        // hilo->on_pulse();
+        /* on pulse */
+        uint32_t now = ztimer_now(ZTIMER_MSEC);
+        hilo->cnt ++;
+        hilo->cnt_per_h = (uint16_t)(MS_PER_HOUR / (now - hilo->last_pulse));
+        hilo->last_pulse = now;
+
     }
     else if ((val > hilo->hi) && (hilo->state == 1)) {
         hilo->state = 0;
