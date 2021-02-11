@@ -10,6 +10,13 @@ First try with DEBUG=0:
 avg 305µA
 
 
+RUN#1: in place, 3.3V via breakout VDD pins
+avg: 720µA
+
+
+OLD: b2:32:20:88:a8:52
+NEW: a5:c9:39:e0:3b:b6
+
 
 
 ## Dongle test
