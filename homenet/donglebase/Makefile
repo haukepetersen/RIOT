@@ -1,4 +1,4 @@
-APPLICATION = dongletest
+APPLICATION = donglebase
 BOARD ?= nrf52840dongle
 RIOTBASE ?= $(CURDIR)/../..
 

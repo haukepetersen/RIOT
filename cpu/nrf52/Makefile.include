@@ -33,6 +33,7 @@ endif
 ifneq (,$(filter nrf52840xxaa,$(CPU_MODEL)))
   ROM_LEN ?= 0x100000
   RAM_LEN ?= 0x40000
+#   RAM_LEN ?= 0x02000
 endif
 
 ROM_START_ADDR ?= 0x00000000

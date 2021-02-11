@@ -55,8 +55,17 @@ static int print_teststart(int argc, char **argv)
     (void) argc;
     (void) argv;
 
+    for (unsigned i = 0; i < 9; i++) {
+        printf("RAM[%i].POWER -> 0x%08x\n", i, (int)NRF_POWER->RAM[i].POWER);
+    }
 
-    NRF_CLOCK->TASKS_HFCLKSTOP = 1;
+    for (unsigned i = 1; i < 9; i++) {
+        NRF_POWER->RAM[i].POWER = 0x0;
+    }
+
+    for (unsigned i = 0; i < 9; i++) {
+        printf("RAM[%i].POWER -> 0x%08x\n", i, (int)NRF_POWER->RAM[i].POWER);
+    }
 
     return 0;
 }

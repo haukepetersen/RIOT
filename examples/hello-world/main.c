@@ -23,30 +23,6 @@
 #include "cpu.h"
 #include "board.h"
 
-#include "periph/gpio.h"
-
-static void _off(void *arg)
-{
-    (void)arg;
-    LED0_ON;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_OFF;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_ON;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_OFF;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_ON;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_OFF;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_ON;
-    for (int i = 0; i < 3000000; i++) {__asm("nop");}
-    LED0_OFF;
-
-    NRF_POWER->SYSTEMOFF = 1;
-}
-
 int main(void)
 {
     // puts("Hello World!");
@@ -56,10 +32,9 @@ int main(void)
 
     // NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 
-    printf("DCDC: 0x%08x\n", (int)NRF_POWER->DCDCEN);
-    printf("HFXO: 0x%08x\n", (int)NRF_CLOCK->HFCLKSTAT);
-
-    gpio_init_int(BTN0_PIN, BTN0_MODE, GPIO_FALLING, _off, NULL);
+    for (unsigned i = 0; i < 9; i++) {
+        printf("RAM[%i].POWER -> 0x%08x\n", i, (int)NRF_POWER->RAM[i].POWER);
+    }
 
     // if (NRF_CLOCK->HFCLKSTAT) {
     //     LED0_OFF;
