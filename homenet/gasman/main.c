@@ -36,9 +36,6 @@
 #include "xenbat.h"
 #include "ztimer.h"
 
-#define ENABLE_DEBUG    (0)
-#include "debug.h"
-
 #define SAMPLE_RATE         (10U)
 #define STARTUP_SAMPLES     (3000U)
 
@@ -72,6 +69,16 @@ static void _on_mag_rdy(void *arg)
     thread_flags_set((thread_t *)arg, FLAG_DRDY);
 }
 
+static void _signal(unsigned cnt)
+{
+    for (unsigned repeat = 0; repeat < cnt; repeat++) {
+        LED0_ON;
+        for (unsigned i = 0; i < 1000000; i++) {__asm("nop");}
+        LED0_OFF;
+        for (unsigned i = 0; i < 1000000; i++) {__asm("nop");}
+    }
+}
+
 int main(void)
 {
     thread_t *t_main = (thread_t *)thread_get(thread_getpid());
@@ -86,12 +93,12 @@ int main(void)
 
     int res = qmc5883l_init(&_mag, &_mag_params);
     if (res != QMC5883L_OK) {
-        DEBUG("err init qmc\n");
+        LOG_ERROR("err init qmc\n");
         return 1;
     }
     res = qmc5883l_init_int(&_mag, _on_mag_rdy, t_main);
     if (res != QMC5883L_OK) {
-        DEBUG("err init qmc int\n");
+        LOG_ERROR("err init qmc int\n");
         return 1;
 
     }
@@ -101,6 +108,8 @@ int main(void)
     hilo_init(&hilo);
 
     unsigned update_cnt = 0;
+
+    _signal(5);
 
     for (unsigned i = 0; i < STARTUP_SAMPLES; i++) {
         int16_t sample[3];

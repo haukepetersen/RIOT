@@ -31,3 +31,9 @@ avg: 26.9µA  | 27.7µA
 - skald: same data, + ADC sampling battery (VDDH) once a second
  + RAM OFF for RAM sections 1-8, only section 0 enabled
 avg: 25,7µA
+
+
+
+## Testing
+
+addr of xenon: dd:9f:41:8c:67:a2
