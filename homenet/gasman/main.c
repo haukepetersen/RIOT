@@ -36,7 +36,8 @@
 #include "xenbat.h"
 #include "ztimer.h"
 
-#define SAMPLE_RATE         (10U)
+#define RATE_UPDATE         (1 * 10U)
+#define RATE_AVG            (60 * 10U)
 #define STARTUP_SAMPLES     (3000U)
 
 #define FLAG_DRDY           (0x0001)
@@ -127,18 +128,20 @@ int main(void)
         int val = (int)sample[0];    /* we use the x-axis only */
         hilo_sample(&hilo, val);
 
-        if (++update_cnt == SAMPLE_RATE) {
-            update_cnt = 0;
-
-            uint16_t bat = xenbat_sample();
-
-            memcpy(&data->bat, &bat, sizeof(uint16_t));
+        if ((update_cnt % RATE_UPDATE) == 0) {
             memcpy(&data->cnt, &hilo.cnt, sizeof(uint16_t));
-            memcpy(&data->cnt_per_h, &hilo.cnt_per_h, sizeof(uint16_t));
             data->hi = (uint8_t)((hilo.hi + INT16_MIN) >> 8);
             data->lo = (uint8_t)((hilo.lo + INT16_MIN) >> 8);
             data->val = (uint8_t)((val + INT16_MIN) >> 8);
             data->state = hilo.state;
+        }
+
+        if ((update_cnt % RATE_AVG) == 0) {
+            uint16_t bat = xenbat_sample();
+            memcpy(&data->bat, &bat, sizeof(uint16_t));
+
+            hilo_calc_avg(&hilo);
+            memcpy(&data->cnt_per_h, &hilo.cnt_per_h, sizeof(uint16_t));
         }
     }
 

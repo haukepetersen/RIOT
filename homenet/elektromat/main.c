@@ -51,7 +51,8 @@
 #define A0                  ADC_LINE(1)
 #define D_ON                GPIO_PIN(0, 31)
 
-#define SAMPLE_RATE         (25u)
+#define SAMPLE_RATE         (1 * 25u)
+#define AVG_RATE            (60 * 25u)
 #define SAMPLING_DELAY      (1000u / SAMPLE_RATE)
 #define STARTUP_SAMPLES     (5000U)
 
@@ -127,17 +128,20 @@ int main(void)
         hilo_sample(&hilo, val);
 
         /* update advertising data */
-        if (++update_cnt == SAMPLE_RATE) {
-            update_cnt = 0;
-            uint16_t bat = xenbat_sample();
-
-            memcpy(&data->bat, &bat, sizeof(uint16_t));
+        if ((update_cnt % SAMPLE_RATE) == 0) {
             memcpy(&data->cnt, &hilo.cnt, sizeof(uint16_t));
-            memcpy(&data->cnt_per_h, &hilo.cnt_per_h, sizeof(uint16_t));
             data->val = (uint8_t)val;
             data->hi = (uint8_t)hilo.hi;
             data->lo = (uint8_t)hilo.lo;
             data->state = hilo.state;
+        }
+
+        if ((update_cnt % AVG_RATE) == 0) {
+            hilo_calc_avg(&hilo);
+            memcpy(&data->cnt_per_h, &hilo.cnt_per_h, sizeof(uint16_t));
+
+            uint16_t bat = xenbat_sample();
+            memcpy(&data->bat, &bat, sizeof(uint16_t));
         }
 
         ztimer_periodic_wakeup(ZTIMER_MSEC, &last_wakeup, SAMPLING_DELAY);
