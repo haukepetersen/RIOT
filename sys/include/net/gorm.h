@@ -143,6 +143,8 @@ extern "C" {
 #define GORM_EVT_CONN_ABORT         (0x0004)
 #define GORM_EVT_CONN_TIMEOUT       (0x0008)
 #define GORM_EVT_CONN_CLOSED        (0x0010)
+#define GORM_EVT_COC_CONNECTED      (0x0020)
+#define GORM_EVT_COC_CLOSED         (0x0040)
 /** @} */
 
 /**
@@ -157,27 +159,42 @@ enum {
     GORM_ERR_OVERFLOW = -5,     /**< given data exceeds MTU */
 };
 
+
+
 typedef struct gorm_ctx gorm_ctx_t;
 
 typedef struct gorm_coc {
     struct gorm_coc *next;
-    gorm_ctx_t *con;        /**< connection handle, if NULL than coc is not connected*/
+    gorm_ctx_t *con;            /**< connection handle, if NULL then COC is unused*/
     uint16_t psm;
-    uint16_t cid_src;
-    uint16_t cid_dst;
+    uint16_t cid_own;
+    uint16_t cid_peer;          /**< peers CID, if 0 then COC is not connected */
     uint16_t rx_len;
     uint16_t rx_pos;
     uint16_t credits;
-    uint16_t peer_mps;
-    uint16_t peer_mtu;
+    uint16_t mps_own;
+    uint16_t mps_peer;
+    uint16_t mtu_peer;
     gorm_bufq_t rxq;
-    // uint8_t *rb;            /**< reassembly buffer */
+    // uint8_t *rb;             /**< reassembly buffer */
     void(*on_data)(struct gorm_coc *);
+    void *arg;                  /**< user argument passed to on_data */
 } gorm_coc_t;
 
 typedef struct {
+#ifdef MODULE_GORM_L2CAP_COC
     gorm_coc_t *cocs;
+#endif
+    uint8_t last_sig_id;
 } gorm_l2cap_ctx_t;
+
+
+typedef void (*gorm_event_cb_t)(gorm_ctx_t *con, uint16_t type);
+
+typedef struct gorm_event_handler {
+    struct gorm_event_handler *next;
+    gorm_event_cb_t event_cb;
+} gorm_event_handler_t;
 
 /**
  * @brief   Context data holding the full context for each connection
@@ -186,15 +203,18 @@ struct gorm_ctx {
     gorm_ll_ctx_t ll;       /**< link-layer context, needs to be first field */
     gorm_arch_evt_t event;  /**< event used for synchronizing ISRs and thread */
     /* add more context fields for higher level protocols on demand (e.g. SM) */
-#ifdef MODULE_GORM_L2CAP_COC
     gorm_l2cap_ctx_t l2cap;
-#endif
 };
+
 
 /**
  * @brief   Initialize Gorm
  */
 void gorm_init(netdev_t *radio);
+
+void gorm_ctx_init(gorm_ctx_t *con);
+
+void gorm_app_handler_add(gorm_event_handler_t *handler);
 
 /**
  * @brief   Run Gorm's event loop, servicing the upper (host) layers

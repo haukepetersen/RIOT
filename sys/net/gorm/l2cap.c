@@ -22,6 +22,7 @@
 #include "net/gorm/gatt.h"
 #include "net/gorm/util.h"
 #include "net/gorm/l2cap.h"
+#include "net/gorm/arch/rand.h"
 
 #define ENABLE_DEBUG    (1)
 #include "debug.h"
@@ -44,9 +45,11 @@ static void _on_signal_data(gorm_ctx_t *con, gorm_buf_t *buf,
     (void)sig_len;
 
     switch (code) {
+        case BLE_L2CAP_SIG_CON_REQ:
+            gorm_coc_on_con_req(con, buf, data, len);
+            break;
         case BLE_L2CAP_SIG_DISCON_REQ:
         case BLE_L2CAP_SIG_CPU_REQ:
-        case BLE_L2CAP_SIG_CON_REQ:
             DEBUG("[gorm_l2cap] on_signal: got unsupported req (%i)\n", (int)code);
             data[0] = BLE_L2CAP_SIG_REJECT;
             gorm_util_htoles(&data[2], 2);
@@ -64,11 +67,23 @@ static void _on_signal_data(gorm_ctx_t *con, gorm_buf_t *buf,
     }
 }
 
+static void _send(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t len)
+{
+    gorm_util_htoles(buf->pkt.pdu, len);
+    buf->pkt.len = (uint8_t)(len + GORM_L2CAP_HDR_LEN);
+    gorm_buf_enq(&con->ll.txq, buf);
+}
+
+void gorm_l2cap_send(gorm_ctx_t *con, gorm_buf_t *buf,
+                     uint16_t data_len, uint16_t cid)
+{
+    gorm_util_htoles(&buf->pkt.pdu[2], cid);
+    _send(con, buf, data_len);
+}
+
 void gorm_l2cap_reply(gorm_ctx_t *con, gorm_buf_t *buf, uint16_t data_len)
 {
-    gorm_util_htoles(buf->pkt.pdu, data_len);
-    buf->pkt.len = (uint8_t)(data_len + GORM_L2CAP_HDR_LEN);
-    gorm_buf_enq(&con->ll.txq, buf);
+    _send(con, buf, data_len);
 }
 
 void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
@@ -92,4 +107,54 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
             gorm_coc_on_data(con, buf, cid, llid, data, len);
             break;
     }
+}
+
+// TODO: make thread safe?! Probably yes, as this might be called from app thread context
+uint16_t gorm_l2cap_cid_gen(gorm_ctx_t *con)
+{
+    int dup = 1;
+    uint16_t cid;
+    while (dup) {
+        dup = 0;
+        cid = gorm_arch_rand(BLE_L2CAP_CID_CB_MIN, UINT16_MAX);
+        gorm_coc_t *tmp = con->l2cap.cocs;
+
+        while (tmp) {
+            if (tmp->cid_own == cid) {
+                dup = 1;
+                break;
+            }
+            tmp = tmp->next;
+        }
+    }
+
+    return cid;
+}
+
+// TODO: use host lock instead
+void gorm_l2cap_coc_attach(gorm_ctx_t *con, gorm_coc_t *coc)
+{
+    unsigned is = irq_disable();
+    coc->next = con->l2cap.cocs;
+    con->l2cap.cocs = coc;
+    irq_restore(is);
+}
+
+// TODO: use host lock instead
+int gorm_l2cap_coc_detach(gorm_ctx_t *con, gorm_coc_t *coc)
+{
+    unsigned is = irq_disable();
+    if (con->l2cap.cocs == coc) {
+        con->l2cap.cocs->next = coc->next;
+    }
+    gorm_coc_t *tmp = con->l2cap.cocs->next;
+    while (tmp) {
+        if (tmp->next == coc) {
+            tmp->next = tmp->next->next;
+        }
+        tmp = tmp->next;
+    }
+    irq_restore(is);
+
+    return 0;
 }

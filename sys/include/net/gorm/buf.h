@@ -141,5 +141,17 @@ static inline void gorm_buf_return(gorm_buf_t *buf)
  */
 void gorm_buf_return_q(gorm_bufq_t *queue);
 
+/**
+ * @brief   Move all buffers from the source queue to the destination queue
+ */
+static inline void gorm_buf_move_q(gorm_bufq_t *dst, gorm_bufq_t *src)
+{
+    gorm_buf_t *buf = gorm_buf_deq(src);
+    while (buf) {
+        gorm_buf_enq(dst, buf);
+        buf = gorm_buf_deq(src);
+    }
+}
+
 #endif /* NET_GORM_BUF_H */
 /** @} */

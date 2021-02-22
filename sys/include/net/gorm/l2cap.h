@@ -48,7 +48,11 @@ extern "C" {
 #define GORM_L2CAP_SDUHDR_LEN       (6U)
 
 
+#define GORM_L2CAP_SIG_ID_INC       (23U)
 
+
+void gorm_l2cap_send(gorm_ctx_t *con, gorm_buf_t *buf,
+                     uint16_t data_len, uint16_t cid);
 
 /**
  * @brief   Send a reply to an incoming L2CAP packet
@@ -71,7 +75,15 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *data);
 
 
 
+static inline uint8_t gorm_l2cap_sig_next_identifier(gorm_ctx_t *con)
+{
+    con->l2cap.last_sig_id += GORM_L2CAP_SIG_ID_INC;
+    return con->l2cap.last_sig_id;
+}
 
+uint16_t gorm_l2cap_cid_gen(gorm_ctx_t *con);
+void gorm_l2cap_coc_attach(gorm_ctx_t *con, gorm_coc_t *coc);
+int gorm_l2cap_coc_detach(gorm_ctx_t *con, gorm_coc_t *coc);
 
 
 

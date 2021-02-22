@@ -130,6 +130,11 @@ extern "C" {
 #define GORM_NETIF_MTU                              (1280U)
 #endif
 
+// TODO: cleanup
+#ifndef CONFIG_GORM_NETIF_MPS
+#define CONFIG_GORM_NETIF_MPS                       GORM_NETIF_MTU
+#endif
+
 /**
  * @brief   Thread priority assigned to the Gorm thread in standalone mode
  *

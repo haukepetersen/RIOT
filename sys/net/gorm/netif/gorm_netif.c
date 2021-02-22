@@ -46,7 +46,9 @@ static char _stack[THREAD_STACKSIZE_DEFAULT];
 static gnrc_netif_t *_netif = NULL;
 static gnrc_nettype_t _nettype = NETTYPE;
 
+static gorm_ctx_t _con[GORM_NETIF_CONCNT];
 static gorm_coc_t _coc[GORM_NETIF_CONCNT];
+static gorm_event_handler_t _gorm_event;
 
 
 static void _netif_init(gnrc_netif_t *netif)
@@ -185,22 +187,22 @@ static void _on_coc_pkt(gorm_coc_t *coc)
     assert(coc);
 
     /* allocate netif header */
-    gnrc_pktsnip_t *hsnip = gnrc_netif_hdr_build(coc->con->ll.addr, BLE_ADDR_LEN,
+    gnrc_pktsnip_t *hsnip = gnrc_netif_hdr_build(coc->con->ll.peer_addr, BLE_ADDR_LEN,
                                                  _netif->l2addr, BLE_ADDR_LEN);
     if (hsnip == NULL) {
         return;
     }
     /* we need to add the device PID to the netif header */
     gnrc_netif_hdr_t *netif_hdr = (gnrc_netif_hdr_t *)hsnip->data;
-    netif_hdr->if_pid = _nimble_netif->pid;
+    netif_hdr->if_pid = _netif->pid;
 
     /* allocate space in the pktbuf and store the packet */
     gnrc_pktsnip_t *psnip = gnrc_pktbuf_add(hsnip, NULL, coc->rx_len, _nettype);
     if (psnip == NULL) {
-        gnrc_pktbuf_release(phnip);
+        gnrc_pktbuf_release(psnip);
         return;
     }
-    gorm_coc_copy_flat(coc, psnip->data);
+    gorm_coc_read_to_flat(coc, psnip->data);
 
     /* dispatch the received packet to GNRC */
     if (!gnrc_netapi_dispatch_receive(psnip->type, GNRC_NETREG_DEMUX_CTX_ALL,
@@ -209,13 +211,68 @@ static void _on_coc_pkt(gorm_coc_t *coc)
     }
 }
 
+static void _coc_accept(gorm_ctx_t *ctx)
+{
+    gorm_coc_t *coc = _get_free_coc()
+    assert(coc);    /* this should always work, else we are in deep trouble */
+    gorm_coc_accept(ctx, coc, BLE_L2CAP_CID_IPSP, CONFIG_GORM_NETIF_MPS
+                    _on_coc_pkt, NULL);
+}
+
+static void _on_gorm_evt(gorm_ctx_t *ctx, uint16_t type)
+{
+    switch (type) {
+        case GORM_EVT_CONNECTED:
+            // TODO: get role and only accept if master? or slave?
+            _coc_accept(ctx);
+        case GORM_EVT_CONN_ABORT:
+        case GORM_EVT_CONN_TIMEOUT:
+        case GORM_EVT_CONN_CLOSED:
+            printf("APP evt: conn closed\n");
+            break;
+    }
+}
+
 int gorm_netif_init(void)
 {
-    memset(_coc, 0, sizeof(_coc));
+    for (unsigned i = 0; i < GORM_NETIF_CONCNT; i++) {
+        memset(&_coc[i], 0, sizeof(_coc));
+        gorm_ctx_init(&_con[i]);
+    }
+
+    _gorm_event.event_cb = _on_gorm_evt;
+    gorm_app_handler_add(&_gorm_event);
+
     gnrc_netif_create(_stack, sizeof(_stack), GNRC_NETIF_PRIO,
                       "gorm_netif", &_netdev_dummy, &_netif_ops);
 
-    _on_coc_pkt(NULL);
-
     return GORM_OK;
+}
+
+int gorm_netif_accept(gorm_adv_ctx_t *adv_ctx);
+{
+    /* are we already advertising? */
+    if (_state & ADV) {
+        return -EALREADY;
+    }
+
+    /* find empty context */
+    gorm_ctx_t *con = _find_unused_context();
+    if (con == NULL) {
+        return -ENOMEM;
+    }
+
+    return gorm_gap_adv_conn(con, adv_ctx);
+
+    /* set advertising data */
+    return gorm_ll_adv_conn(&con->ll, adv_ctx);
+}
+
+int gorm_netif_connect(gorm_gap_conn_params_t *con_ctx)
+{
+    (void)addr;
+    (void)con_params;
+    (void)timeout;
+
+    return 0;
 }

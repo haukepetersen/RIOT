@@ -39,7 +39,7 @@ static void on_trx(netdev_t *netdev, netdev_event_t event)
     }
 }
 
-static void remember(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
+static void _remember(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 {
     _trx_buf = buf;
     _trx_cb = cb;
@@ -48,7 +48,7 @@ static void remember(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 void gorm_ll_trx_send(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
                       gorm_ll_trx_cb_t cb, gorm_ll_ctx_t *ll_ctx)
 {
-    remember(buf, cb);
+    _remember(buf, cb);
     _trx_ctx = ll_ctx;
     netdev_ble_set_ctx(_radio, ctx);
     netdev_ble_send(_radio, &buf->pkt);
@@ -57,7 +57,7 @@ void gorm_ll_trx_send(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
 void gorm_ll_trx_recv(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
                       gorm_ll_trx_cb_t cb, gorm_ll_ctx_t *ll_ctx)
 {
-    remember(buf, cb);
+    _remember(buf, cb);
     _trx_ctx = ll_ctx;
     netdev_ble_set_ctx(_radio, ctx);
     netdev_ble_recv(_radio, &buf->pkt);
@@ -65,13 +65,13 @@ void gorm_ll_trx_recv(gorm_buf_t *buf, netdev_ble_ctx_t *ctx,
 
 void gorm_ll_trx_send_next(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 {
-    remember(buf, cb);
+    _remember(buf, cb);
     netdev_ble_send(_radio, &buf->pkt);
 }
 
 void gorm_ll_trx_recv_next(gorm_buf_t *buf, gorm_ll_trx_cb_t cb)
 {
-    remember(buf, cb);
+    _remember(buf, cb);
     netdev_ble_recv(_radio, &buf->pkt);
 }
 

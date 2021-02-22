@@ -35,28 +35,31 @@
 
 #define CTX_NUMOF                   GORM_CFG_CONNECTION_NUMOF
 
-#define STATE_STANDBY               (0U)
-#define STATE_ADVERTISING           (1U)
+// #define STATE_STANDBY               (0U)
+// #define STATE_ADVERTISING           (1U)
 
 /* internal state, used to keep track of global advertisement status */
-static uint8_t _state = STATE_STANDBY;
+// static uint8_t _state = STATE_STANDBY;
 
 /* allocate memory for the defined number of possible connections */
-static gorm_ctx_t _ctx[CTX_NUMOF];
+// static gorm_ctx_t _ctx[CTX_NUMOF];
+
+static gorm_event_handler_t *_app_handler = NULL;
 
 /* allocate initial buffer memory */
 static gorm_buf_t _buf_pool[GORM_CFG_POOLSIZE];
 
 
-static gorm_ctx_t *_get_by_state(uint8_t state)
-{
-    for (unsigned i = 0; i < CTX_NUMOF; i++) {
-        if (_ctx[i].ll.state == state) {
-            return &_ctx[i];
-        }
-    }
-    return NULL;
-}
+// static gorm_ctx_t *_get_by_state(uint8_t state)
+
+// {
+//     for (unsigned i = 0; i < CTX_NUMOF; i++) {
+//         if (_ctx[i].ll.state == state) {
+//             return &_ctx[i];
+//         }
+//     }
+//     return NULL;
+// }
 
 static void _on_data(gorm_ctx_t *con)
 {
@@ -80,16 +83,18 @@ static void _on_data(gorm_ctx_t *con)
     }
 }
 
-static void _adv_cont(void)
+static void _notify_app(gorm_ctx_t *ctx, uint16_t event)
 {
-    if (_state == STATE_ADVERTISING) {
-        gorm_adv_start();
+    gorm_event_handler_t *handler = _app_handler;
+    while (handler) {
+        handler->event_cb(ctx, event);
+        handler = handler->next;
     }
 }
 
 static void _on_event(gorm_arch_evt_t *event)
 {
-    gorm_ctx_t *ctx = (gorm_ctx_t *)event->ctx;
+    gorm_ctx_t *ctx = event->ctx;
 
     /* read pending events */
     unsigned is = irq_disable();
@@ -114,28 +119,31 @@ static void _on_event(gorm_arch_evt_t *event)
             DEBUG("       timeout_rx:           %u\n", (unsigned)ctx->ll.timeout_rx);
             DEBUG("       interval:             %u\n", (unsigned)ctx->ll.interval);
             DEBUG("       slave_latency:        %u\n", (unsigned)ctx->ll.slave_latency);
+
+            _notify_app(ctx, GORM_EVT_CONN_TIMEOUT);
             state &= ~GORM_EVT_CONN_TIMEOUT;
         }
         if (state & GORM_EVT_CONN_CLOSED) {
             DEBUG("[gorm] connection closed\n");
+            _notify_app(ctx, GORM_EVT_CONN_CLOSED);
             state = 0;
-            _adv_cont();
+            // TODO: state cleanup -> clear ctx and all included COCs etc
         }
         if (state & GORM_EVT_CONN_ABORT) {
             DEBUG("[gorm] connection attempt aborted\n");
+            _notify_app(ctx, GORM_EVT_CONN_ABORT);
             state = 0;
-            _adv_cont();
         }
         if (state & GORM_EVT_CONNECTED) {
-            state &= ~(GORM_EVT_CONNECTED);
             DEBUG("[gorm] connection established\n");
-            /* once the last active context is connected, we advertise using the
-             * next unused context */
-            _adv_cont();
+            _notify_app(ctx, GORM_EVT_CONNECTED);
+            state &= ~(GORM_EVT_CONNECTED);
         }
         if (state & GORM_EVT_DATA) {
-            state &= ~(GORM_EVT_DATA);
             _on_data(ctx);
+            if (gorm_buf_peek(&ctx->ll.rxq) == NULL) {
+                state &= ~(GORM_EVT_DATA);
+            }
         }
     }
 }
@@ -157,14 +165,19 @@ void gorm_init(netdev_t *dev)
 #ifdef MODULE_GORM_GATT
     gorm_gatt_server_init();
 #endif
+}
 
-    /* initialize the allocated contexts */
-    for (unsigned i = 0; i < CTX_NUMOF; i++) {
-        memset(&_ctx[i], 0, sizeof(gorm_ctx_t));
-        _ctx[i].ll.state = GORM_LL_STATE_STANDBY;
-        gorm_arch_evt_init(&_ctx[i].event, (void *)&_ctx[i], _on_event);
-    }
-    DEBUG("[gorm] contexts initialized\n");
+void gorm_ctx_init(gorm_ctx_t *con)
+{
+    memset(con, 0, sizeof(gorm_ctx_t));
+    con->ll.state = GORM_LL_STATE_STANDBY;
+    gorm_arch_evt_init(&con->event, con, _on_event);
+}
+
+void gorm_app_handler_add(gorm_event_handler_t *handler)
+{
+    handler->next = _app_handler;
+    _app_handler = handler;
 }
 
 void gorm_run(void)
@@ -177,34 +190,34 @@ void gorm_notify(gorm_ctx_t *con, uint16_t event)
     gorm_arch_evt_post(&con->event, event);
 }
 
-int gorm_adv_start(void)
-{
-    _state = STATE_ADVERTISING;
-    DEBUG("[gorm] adv_start: start advertising\n");
+// int gorm_adv_start(void)
+// {
+//     _state = STATE_ADVERTISING;
+//     DEBUG("[gorm] adv_start: start advertising\n");
 
-    /* make sure we are not already advertising */
-    if (_get_by_state(GORM_LL_STATE_ADV) != NULL) {
-        DEBUG("[gorm] adv_start: advertising already in progress\n");
-        return GORM_OK;
-    }
+//     /* make sure we are not already advertising */
+//     if (_get_by_state(GORM_LL_STATE_ADV) != NULL) {
+//         DEBUG("[gorm] adv_start: advertising already in progress\n");
+//         return GORM_OK;
+//     }
 
-    /* get an unused context */
-    gorm_ctx_t *con = _get_by_state(GORM_LL_STATE_STANDBY);
-    if (con) {
-        DEBUG("[gorm] adv_start: trigger advertisements on ctx %p\n", con);
-        gorm_ll_adv_conn(&con->ll, gorm_gap_get_default_adv_ctx());
-        return GORM_OK;
-    }
+//     /* get an unused context */
+//     gorm_ctx_t *con = _get_by_state(GORM_LL_STATE_STANDBY);
+//     if (con) {
+//         DEBUG("[gorm] adv_start: trigger advertisements on ctx %p\n", con);
+//         gorm_ll_adv_conn(&con->ll, gorm_gap_get_default_adv_ctx());
+//         return GORM_OK;
+//     }
 
-    return GORM_ERR_CTX_BUSY;
-}
+//     return GORM_ERR_CTX_BUSY;
+// }
 
-void gorm_adv_stop(void)
-{
-    _state = STATE_STANDBY;
+// void gorm_adv_stop(void)
+// {
+//     _state = STATE_STANDBY;
 
-    gorm_ctx_t *con = _get_by_state(GORM_LL_STATE_ADV);
-    if (con) {
-        gorm_ll_terminate(&con->ll);
-    }
-}
+//     gorm_ctx_t *con = _get_by_state(GORM_LL_STATE_ADV);
+//     if (con) {
+//         gorm_ll_terminate(&con->ll);
+//     }
+// }
