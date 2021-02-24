@@ -1,6 +1,6 @@
 MODULE = gorm
 
-SRC = ll.c ll_trx.c util.c gorm.c buf.c addr.c
+SRC = ll.c ll_trx.c util.c gorm.c buf.c addr.c auto_init.c
 
 ifneq (,$(filter gorm_peripheral,$(USEMODULE)))
   SRC += ll_chan.c ll_ctrl.c l2cap.c

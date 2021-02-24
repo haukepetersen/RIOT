@@ -236,12 +236,13 @@ void gorm_notify(gorm_ctx_t *con, uint16_t type);
  *          progress
  * @return  GORM_ERR_CTX_BUSY if no free context is available
  */
-int gorm_adv_start(void);
+// int gorm_adv_start(void);
 
 /**
  * @brief   Stop advertising the default GAP data
  */
-void gorm_adv_stop(void);
+// void gorm_adv_stop(void);
+
 
 #ifdef __cplusplus
 }

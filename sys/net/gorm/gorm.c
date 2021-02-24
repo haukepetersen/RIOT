@@ -23,6 +23,7 @@
 
 #include "net/gorm.h"
 #include "net/gorm/ll.h"
+#include "net/gorm/gap.h"
 #include "net/gorm/ll/ctrl.h"
 #include "net/gorm/l2cap.h"
 

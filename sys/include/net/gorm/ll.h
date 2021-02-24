@@ -48,7 +48,6 @@ extern "C" {
 #define GORM_LL_STATE_CONN      (0x03)
 #define GORM_LL_STATE_STANDBY   (0x04)
 #define GORM_LL_STATE_SCAN      (0x05)
-#define GORM_LL_STATE_ADV_ONLY  (0x06)
 /** @} */
 
 /**
@@ -64,7 +63,10 @@ typedef struct {
     netdev_ble_ctx_t ctx;   /**< radio context */
 
     /* pointer to advertising configuration and data */
-    const gorm_gap_adv_ctx_t *gap;  /**< pointer to active advertising context */
+    // const gorm_gap_adv_ctx_t *gap;  /**< pointer to active advertising context */
+    gorm_buf_t *sd_pkt;
+    uint8_t adv_type;
+    uint32_t adv_interval;
 
     /* remember address of connected peer */
     uint8_t peer_addr[BLE_ADDR_LEN];    /**< peer address when connected */
@@ -125,28 +127,18 @@ typedef struct {
 int gorm_ll_init(netdev_t *dev);
 
 /**
- * @brief   Advertise given context and listen for new connections
+ * @brief   Advertise given context
  *
  * @param[in,out] ctx   connection context, needs to be unused (STATE_STANDBY)
  * @param[in] adv_ctx   pre-configured advertising data
+ * @param[in] mode      type of advertising, NON, UND, or DIR
  *
- * @return  GORM_OK on success
- * @return  GORM_ERR_NOBUF if no packet buffer for advertising data is available
- * @return  GORM_ERR_CTX_BUSY if given context is busy
+ * @return  0 on success
+ * @return  TODO if no packet buffer for advertising data is available
+ * @return  TODO if given context is busy
  */
-int gorm_ll_adv_conn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
-
-/**
- * @brief   Advertise given context not accepting any connection (TX only)
- *
- * @param[in,out] ctx   connection context, needs to be unused (STATE_STANDBY)
- * @param[in] adv_ctx   pre-configured advertising data
- *
- * @return  GORM_OK on success
- * @return  GORM_ERR_CTX_BUSY if context is busy
- * @return  GORM_ERR_NOBUF if no packet buffer for advertising data is available
- */
-int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
+int gorm_ll_adv(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx,
+                gorm_gap_adv_mode_t mode);
 
 /**
  * @brief   Cancel any operation the given context is involved in
@@ -157,6 +149,12 @@ int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx);
  * @param[in,out] ctx   context to terminate
  */
 void gorm_ll_terminate(gorm_ll_ctx_t *ctx);
+
+
+static inline int gorm_ll_is_standby(gorm_ll_ctx_t *con)
+{
+    return con->state == GORM_LL_STATE_STANDBY;
+}
 
 #ifdef __cplusplus
 }

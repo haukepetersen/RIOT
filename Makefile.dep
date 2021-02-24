@@ -98,8 +98,15 @@ ifneq (,$(filter gorm_standalone,$(USEMODULE)))
 endif
 
 ifneq (,$(filter gorm_netif,$(USEMODULE)))
-  USEMODULE += gorm
+  # TODO: those roles are useless from a module perspective?!
+  USEMODULE += gorm_broadcaster
   USEMODULE += gorm_peripheral
+  USEMODULE += gorm_scanner
+  USEMODULE += gorm_central
+
+  USEMODULE += gorm_gap
+
+#   USEMODULE += gorm_gatt
   USEMODULE += gorm_l2cap_coc
 #   USEMODULE += l2util
 #   USEMODULE += bluetil_addr
@@ -114,6 +121,10 @@ ifneq (,$(filter gorm_netif,$(USEMODULE)))
   ifneq (,$(filter gnrc_ipv6_default,$(USEMODULE)))
     USEMODULE += gnrc_ipv6_nib_6ln
   endif
+endif
+
+ifneq (,$(filter gorm_l2cap_coc,$(USEMODULE)))
+  USEMODULE += iolist
 endif
 
 ifneq (,$(filter gorm_ibeacon,$(USEMODULE)))
@@ -143,6 +154,9 @@ ifneq (,$(filter gorm,$(USEMODULE)))
   USEMODULE += gorm_arch_riot
   # include supported link layer features
   USEMODULE += gorm_feature_ll_ping
+
+  # TODO: make this nicer, only include if also shell commands are in use
+  USEMODULE += bluetil_ad
 endif
 
 ifneq (,$(filter gorm_arch_riot,$(USEMODULE)))

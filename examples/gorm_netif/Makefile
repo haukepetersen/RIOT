@@ -37,6 +37,8 @@ USEMODULE += gorm_netif
 # which is not needed in a production environment but helps in the
 # development process:
 DEVELHELP ?= 1
+CFLAGS += -DDEBUG_ASSERT_VERBOSE
+
 
 # Uncomment the following 2 lines to specify static link lokal IPv6 address
 # this might be useful for testing, in cases where you cannot or do not want to

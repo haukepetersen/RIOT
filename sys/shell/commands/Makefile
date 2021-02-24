@@ -123,6 +123,10 @@ ifneq (,$(filter nimble_statconn,$(USEMODULE)))
   SRC += sc_nimble_statconn.c
 endif
 
+ifneq (,$(filter gorm,$(USEMODULE)))
+  SRC += sc_gorm.c
+endif
+
 ifneq (,$(filter suit_transport_coap,$(USEMODULE)))
   SRC += sc_suit.c
 endif

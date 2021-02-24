@@ -26,8 +26,4 @@ ifneq (,$(filter auto_init_security,$(USEMODULE)))
   DIRS += security
 endif
 
-ifneq (,$(filter auto_init_gorm,$(USEMODULE)))
-  DIRS += gorm
-endif
-
 include $(RIOTBASE)/Makefile.base

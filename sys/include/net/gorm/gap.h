@@ -48,17 +48,39 @@
 extern "C" {
 #endif
 
+
+
+typedef enum {
+    GORM_GAP_CONN_NON = 0x00,
+    GORM_GAP_CONN_UND = 0x01,
+    GORM_GAP_CONN_DIR = 0x02,
+} gorm_gap_adv_mode_t;
+
+typedef struct gorm_ctx gorm_ctx_t;
+
 /**
  * @brief   Structure holding an advertising context
  */
 typedef struct {
-    uint32_t interval;                      /**< advertising interval [in us] */
+    uint16_t interval_ms;                   /**< advertising interval [in ms] */
     uint8_t addr[BLE_ADDR_LEN];             /**< device address */
-    uint8_t adv_data[BLE_ADV_PDU_LEN];      /**< advertising payload */
-    size_t adv_len;                         /**< size of adv_data */
-    uint8_t scan_data[BLE_ADV_PDU_LEN];     /**< SCAN_RESPONSE payload */
-    size_t scan_len;                        /**< size of scan_len */
+    uint8_t ad[BLE_ADV_PDU_LEN];      /**< advertising payload */
+    size_t ad_len;                         /**< size of adv_data */
+    uint8_t sd[BLE_ADV_PDU_LEN];     /**< SCAN_RESPONSE payload */
+    size_t sd_len;                        /**< size of scan_len */
 } gorm_gap_adv_ctx_t;
+
+typedef struct {
+    uint16_t interval_ms;
+    uint16_t timeout_ms;
+    uint16_t latency;
+} gorm_gap_conn_ctx_t;
+
+typedef struct {
+    uint32_t timeout_ms;
+    uint16_t interval_ms;
+    uint16_t window_ms;
+} gorm_gap_scan_ctx_t;
 
 /**
  * @brief   Initialize the GAP module
@@ -67,28 +89,44 @@ typedef struct {
  * @param[in] name          device name, as '\0' terminated string
  * @param[in] appearance    custom device appearance
  */
-void gorm_gap_init(const uint8_t *addr, const char *name, uint16_t appearance);
+// void gorm_gap_init(const uint8_t *addr, const char *name, uint16_t appearance);
+
+int gorm_gap_adv_init(gorm_gap_adv_ctx_t *ctx, uint32_t interval_ms,
+                      uint8_t *ad, size_t ad_len,
+                      uint8_t *sd, size_t sd_len);
+
+int gorm_gap_conn_init(gorm_gap_conn_ctx_t *ctx, uint16_t interval_ms,
+                                 uint16_t timeout_ms, uint16_t latency);
+
+int gorm_gap_scan_init(gorm_gap_scan_ctx_t *ctx,
+                       uint32_t timeout_ms,
+                       uint16_t interval_ms, uint16_t window_ms);
+
+int gorm_gap_adv_start(gorm_ctx_t *con, gorm_gap_adv_ctx_t *adv_ctx,
+                       gorm_gap_adv_mode_t mode);
+
+int gorm_gap_adv_stop(gorm_ctx_t *con);
 
 /**
  * @brief   Change the advertised device address
  *
  * @param[in] addr          new device address, must hold 6 bytes
  */
-void gorm_gap_set_addr(const uint8_t *addr);
+// void gorm_gap_set_addr(const uint8_t *addr);
 
 /**
  * @brief   Change the advertised device name
  *
  * @param[in] name          new device name
  */
-void gorm_gap_set_name(const char *name);
+// void gorm_gap_set_name(const char *name);
 
 /**
  * @brief   Change the advertised device's appearance
  *
  * @param[in] appearance    new appearance
  */
-void gorm_gap_set_appearance(uint16_t appearance);
+// void gorm_gap_set_appearance(uint16_t appearance);
 
 /**
  * @brief    Change the device's preferred connection parameters
@@ -101,8 +139,8 @@ void gorm_gap_set_appearance(uint16_t appearance);
  * @param[in] latency       preferred slave latency
  * @param[in] timeout       preferred connection timeout
  */
-void gorm_gap_set_pref_con_params(uint16_t min_interval, uint16_t max_interval,
-                                  uint16_t latency, uint16_t timeout);
+// void gorm_gap_set_pref_con_params(uint16_t min_interval, uint16_t max_interval,
+//                                   uint16_t latency, uint16_t timeout);
 
 /**
  * @brief   Copy the device name into the given buffer
@@ -112,7 +150,7 @@ void gorm_gap_set_pref_con_params(uint16_t min_interval, uint16_t max_interval,
  *
  * @return  number of bytes written to @p buf
  */
-size_t gorm_gap_copy_name(uint8_t *buf, size_t max_len);
+// size_t gorm_gap_copy_name(uint8_t *buf, size_t max_len);
 
 /**
  * @brief   Write the device's appearance into the given buffer
@@ -123,7 +161,7 @@ size_t gorm_gap_copy_name(uint8_t *buf, size_t max_len);
  * @return   2 if appearance was written successfully
  * @return   0 if not enough space in @p buf
  */
-size_t gorm_gap_copy_appearance(uint8_t *buf, size_t max_len);
+// size_t gorm_gap_copy_appearance(uint8_t *buf, size_t max_len);
 
 /**
  * @brief   Write the preferred connection parameters to the given buffer
@@ -134,14 +172,14 @@ size_t gorm_gap_copy_appearance(uint8_t *buf, size_t max_len);
  * @return  8 if preferred connection parameters were written to @p buf
  * @return  0 if not enough space in @p buf
  */
-size_t gorm_gap_copy_con_params(uint8_t *buf, size_t max_len);
+// size_t gorm_gap_copy_con_params(uint8_t *buf, size_t max_len);
 
 /**
  * @brief   Get the default advertising context
  *
  * @return  pointer to default advertising context
  */
-gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void);
+// gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void);
 
 /**
  * @brief   Add advertising data field to the given buffer
@@ -156,8 +194,8 @@ gorm_gap_adv_ctx_t *gorm_gap_get_default_adv_ctx(void);
  *
  * @return  overall length of AD data in the buffer
  */
-size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
-                       uint8_t type, const void *data, size_t len);
+// size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
+//                        uint8_t type, const void *data, size_t len);
 
 /**
  * @brief   Convenience function for writing flags to given AD data
@@ -170,18 +208,18 @@ size_t gorm_gap_ad_add(uint8_t *buf, size_t pos,
  *
  * @return  always returns 3 (as the flag field is 3 bytes long)
  */
-static inline size_t gorm_gap_ad_add_flags(uint8_t *buf, size_t pos,
-                                           uint8_t flags)
-{
-    return gorm_gap_ad_add(buf, pos, BLUETIL_AD_FLAGS_DEFAULT, &flags, 1);
-}
+// static inline size_t gorm_gap_ad_add_flags(uint8_t *buf, size_t pos,
+//                                            uint8_t flags)
+// {
+//     return gorm_gap_ad_add(buf, pos, BLUETIL_AD_FLAGS_DEFAULT, &flags, 1);
+// }
 
 /**
  * @brief   Dump GAP configuration to STDOUT
  *
  * @todo    ifdef somehow?!
  */
-void gorm_gap_print(void);
+// void gorm_gap_print(void);
 
 #ifdef __cplusplus
 }

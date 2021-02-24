@@ -94,7 +94,9 @@ void gorm_l2cap_on_data(gorm_ctx_t *con, uint8_t llid, gorm_buf_t *buf)
 
     switch (cid) {
         case GORM_L2CAP_CID_ATT:
-            gorm_gatt_on_data(con, buf, data, len);
+            if (IS_ACTIVE(MODULE_GORM_GATT)) {
+                gorm_gatt_on_data(con, buf, data, len);
+            }
             break;
         case GORM_L2CAP_CID_LE_SIGNAL:
             _on_signal_data(con, buf, data, len);

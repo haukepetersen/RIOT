@@ -26,7 +26,10 @@
 #include "net/gorm/config.h"
 #include "net/gorm/arch/rand.h"
 
-#define ENABLE_DEBUG                (1)
+// TODO remove (used for LED macros)
+#include "board.h"
+
+#define ENABLE_DEBUG                1
 #include "debug.h"
 
 #define TRANSMIT_WIN_DELAY          (1250UL)
@@ -74,6 +77,10 @@ typedef struct __attribute__((packed)) {
 static int _on_data_sent(gorm_buf_t *buf, void *arg);
 static int _on_data_received(gorm_buf_t *buf, void *arg);
 static void _on_connection_event_close(void *arg);
+
+static int _on_adv_sent(gorm_buf_t *buf, void *arg);
+static int _on_adv_reply(gorm_buf_t *buf, void *arg);
+static void _on_adv_chan(void *arg);
 
 static const uint8_t adv_chan_list[] = GORM_CFG_LL_PERIPH_ADV_CHANNELS;
 
@@ -189,6 +196,7 @@ static int _on_data_received(gorm_buf_t *buf, void *arg)
     if (SN(flags) == NESN(con->flags) && (con->ctx.crc & NETDEV_BLE_CRC_OK)) {
         /* if the packet contains actual payload we pass it to the host */
         if (con->in_rx->pkt.len > 0) {
+            LED1_TOGGLE;
             gorm_buf_enq(&con->rxq, con->in_rx);
             gorm_notify((gorm_ctx_t *)con, GORM_EVT_DATA);
             con->in_rx = NULL;
@@ -364,6 +372,11 @@ static void _connect(gorm_ll_ctx_t *con, gorm_buf_t *buf)
         goto err;
     }
 
+    /* before we start we can cleanup the advertising state */
+    con->adv_type = 0;
+    gorm_buf_return(con->in_tx);
+    gorm_buf_return(con->sd_pkt);
+
     /* let the magic begin! */
     gorm_arch_timer_set_from_now(&con->timer_spv, con->timeout_spv,
                                  _on_supervision_timeout, con);
@@ -380,7 +393,7 @@ err:
 
 static int _on_adv_reply(gorm_buf_t *buf, void *arg)
 {
-    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
+    gorm_ll_ctx_t *con = arg;
 
     /* drop packet if the CRC is not ok */
     if (!(con->ctx.crc & NETDEV_BLE_CRC_OK)) {
@@ -395,10 +408,13 @@ static int _on_adv_reply(gorm_buf_t *buf, void *arg)
     /* and do something about it, if we know how */
     switch (buf->pkt.flags & BLE_LL_PDU_MASK) {
         case BLE_LL_SCAN_REQ: {
-            _build_ad_pkt(&con->in_tx->pkt, BLE_LL_SCAN_RESP, con->gap->addr,
-                          con->gap->scan_data, con->gap->scan_len);
-            gorm_ll_trx_send_next(con->in_tx, NULL);
-            return 0;
+            if (con->sd_pkt) {
+                gorm_ll_trx_send_next(con->sd_pkt, NULL);
+                // DEBUG("[gorm_ll] adv_reply: got SCAN_REQ\n");
+                return 0;
+            }
+            /* if no scan response is configured, we simply don't reply... */
+            break;
         }
         case BLE_LL_CONNECT_IND: {
             _connect(con, buf);
@@ -412,15 +428,41 @@ static int _on_adv_reply(gorm_buf_t *buf, void *arg)
 
 static int _on_adv_sent(gorm_buf_t *buf, void *arg)
 {
+    /* we keep the buffer, as the advertising data does not change */
     (void)buf;
-    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
-    gorm_ll_trx_recv_next(con->in_rx, _on_adv_reply);
-    return 0;
+    gorm_ll_ctx_t *con = arg;
+
+    /* there are two cases were we expect to receive a response:
+     * - we are sending connectable advertisements
+     * - we are in discoverable mode
+     */
+    if ((con->adv_type == BLE_LL_ADV_IND) ||
+        (con->adv_type == BLE_LL_ADV_SCAN_IND)) {
+        gorm_ll_trx_recv_next(con->in_rx, _on_adv_reply);
+        /* set timeout / start of next advertising channel */
+        // TODO: we only need to listen for some microseconds for a reply. But
+        // we must sync this timeout with the ongoing transmission sequence
+        // somehow... */
+        // XXX -> this puts the radio in to RX way too long
+        // better: have the radio time out after N microseconds if nothing was
+        //         received, using a RX_TIMEOUT event. This timeout could be
+        //         specified through the netdev_ble_ctx_t context.
+        gorm_arch_timer_set_from_now(&con->timer_con,
+                                     GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION,
+                                     _on_adv_chan, con);
+        return 0;
+    }
+    else {
+        /* just send the next advertising packet right away */
+        _on_adv_chan(con);
+    }
+
+    return 1;
 }
 
 static void _on_adv_chan(void *arg)
 {
-    gorm_ll_ctx_t *con = (gorm_ll_ctx_t *)arg;
+    gorm_ll_ctx_t *con = arg;
 
     /* stop listening for connection requests and the like */
     /* TODO: make sure we only stop our own operation here... */
@@ -428,19 +470,12 @@ static void _on_adv_chan(void *arg)
     gorm_ll_trx_stop(con);
 
     if (con->event_counter < sizeof(adv_chan_list)) {
-        /* build packet */
-        _build_ad_pkt(&con->in_tx->pkt, BLE_LL_ADV_IND, con->gap->addr,
-                      con->gap->adv_data, con->gap->adv_len);
+        /* setup the radio */
         con->ctx.aa.u32 = GORM_LL_ADV_AA;
         con->ctx.crc = GORM_LL_ADV_CRC;
         con->ctx.chan = adv_chan_list[con->event_counter];
-        /* send out advertisement packet */
+        /* send out advertising packet */
         gorm_ll_trx_send(con->in_tx, &con->ctx, _on_adv_sent, con);
-        /* set timeout / start of next advertising channel */
-        /* TODO: still set this in case we skip the event */
-        gorm_arch_timer_set_from_now(&con->timer_con,
-                                     GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION,
-                                     _on_adv_chan, con);
         con->event_counter++;
     }
     else {
@@ -455,35 +490,14 @@ static void _on_adv_event(void *arg)
     /* schedule next advertising event. Add a [0,10ms] `advDelay` to the
      * `advInterval`
      * -> spec v5.0-vol6-b-4.4.2.2.1 */
-    uint32_t next = (con->gap->interval + gorm_arch_rand(0, 10000));
+    uint32_t next = (con->adv_interval + gorm_arch_rand(0, 10000));
     gorm_arch_timer_set_from_last(&con->timer_spv, next, _on_adv_event, con);
 
-    /* trigger the actual sending and receiving of advertisement data */
-    _on_adv_chan(con);
-}
-
-static int _advertise(gorm_ll_ctx_t *con, const gorm_gap_adv_ctx_t *adv_ctx)
-{
-    con->in_tx = gorm_buf_get();
-    if (!con->in_tx) {
-        DEBUG("[gorm_ll] _advertise: unable to allocate tx buffer\n");
-        con->state = GORM_LL_STATE_STANDBY;
-        if (con->in_tx) {
-            gorm_buf_return(con->in_rx);
-            con->in_tx = NULL;
-        }
-        return GORM_ERR_NOBUF;
-    }
-
-    /* reset general state and start advertising */
+    /* trigger the actual sending and receiving of advertisement data. For each
+     * new advertising event we start with the first configured advertising
+     * channel */
     con->event_counter = 0;
-    con->gap = adv_ctx;
-    gorm_arch_timer_anchor(&con->timer_spv, 0);
-    gorm_arch_timer_set_from_last(&con->timer_spv, con->gap->interval,
-                                  _on_adv_event, con);
-
-    DEBUG("[gorm_ll] _advertise: starting to advertise now\n");
-    return GORM_OK;
+    _on_adv_chan(con);
 }
 
 int gorm_ll_init(netdev_t *dev)
@@ -496,37 +510,129 @@ int gorm_ll_init(netdev_t *dev)
     return GORM_OK;
 }
 
-int gorm_ll_adv_conn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
+int gorm_ll_adv(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx,
+                gorm_gap_adv_mode_t mode)
 {
-    assert(ctx && adv_ctx);
+    assert(ctx);
+    assert(adv_ctx);
 
     if (ctx->state != GORM_LL_STATE_STANDBY) {
-        return GORM_ERR_CTX_BUSY;
+        return -EBUSY;
     }
 
-    /* allocate RX buffer, needed as we want to listen for scan requests and
-     * connection indications */
-    ctx->in_rx = gorm_buf_get();
-    if (!ctx->in_rx) {
-        DEBUG("[gorm_ll] adv_conn: unable to allocate rx buffer\n");
-        return GORM_ERR_NOBUF;
+
+    puts("AD packet");
+    for (size_t i = 0; i < adv_ctx->ad_len; i++) {
+        printf("%02x ", (int)adv_ctx->ad[i]);
+    }
+    puts("");
+
+    /* allocate ADV_IND packet */
+    ctx->in_tx = gorm_buf_get();
+    if (ctx->in_tx == NULL) {
+        DEBUG("[gorm_ll] adv: unable to allocate AD packet\n");
+        return -ENOBUFS;
+    }
+    /* build advertising packet */
+    if (mode != GORM_GAP_CONN_NON) {
+        ctx->adv_type = BLE_LL_ADV_IND;
+    }
+    else if (adv_ctx->sd_len > 0) {
+        ctx->adv_type = BLE_LL_ADV_SCAN_IND;
+    }
+    else {
+        ctx->adv_type = BLE_LL_ADV_NONCON_IND;
+    }
+    _build_ad_pkt(&ctx->in_tx->pkt, ctx->adv_type,
+                  adv_ctx->addr, adv_ctx->ad, adv_ctx->ad_len);
+
+    /* build scan response packet, if applicable */
+    if ((ctx->adv_type == GORM_GAP_CONN_NON) ||
+        (ctx->adv_type == BLE_LL_ADV_SCAN_IND)) {
+        ctx->sd_pkt = gorm_buf_get();
+        if (ctx->sd_pkt == NULL) {
+            DEBUG("[gorm_ll] adv: unable to allocate SD packet\n");
+            gorm_buf_return(ctx->in_tx);
+            ctx->in_tx = NULL;
+            return -ENOBUFS;
+        }
+        if (adv_ctx->sd_len > 0) {
+            _build_ad_pkt(&ctx->sd_pkt->pkt, BLE_LL_SCAN_RESP,
+                          adv_ctx->addr, adv_ctx->sd, adv_ctx->sd_len);
+        }
+        else {
+            _build_ad_pkt(&ctx->sd_pkt->pkt, BLE_LL_SCAN_RESP,
+                          adv_ctx->addr, NULL, 0);
+        }
     }
 
+    /* allocate response packet, if applicable */
+    if ((ctx->adv_type == BLE_LL_ADV_IND) ||
+        (ctx->adv_type == BLE_LL_ADV_SCAN_IND)) {
+        ctx->in_rx = gorm_buf_get();
+        if (ctx->in_rx == NULL) {
+            DEBUG("[gorm_ll] conn: unable to allocate RX buffer\n");
+            gorm_buf_return(ctx->in_tx);
+            ctx->in_tx = NULL;
+            if (ctx->sd_pkt) {
+                gorm_buf_return(ctx->sd_pkt);
+                ctx->sd_pkt = NULL;
+            }
+            return -ENOBUFS;
+        }
+    }
+
+    /* reset general state and start advertising */
     ctx->state = GORM_LL_STATE_ADV;
-    return _advertise(ctx, adv_ctx);
-}
+    ctx->event_counter = 0;
+    ctx->adv_interval = adv_ctx->interval_ms * 1000;
 
-int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
-{
-    assert(ctx && adv_ctx);
-
-    if (ctx->state != GORM_LL_STATE_STANDBY) {
-        return GORM_ERR_CTX_BUSY;
+    puts("AD packet");
+    for (size_t i = 0; i < adv_ctx->ad_len; i++) {
+        printf("%02x ", (int)adv_ctx->ad[i]);
     }
+    puts("");
 
-    ctx->state = GORM_LL_STATE_ADV_ONLY;
-    return _advertise(ctx, adv_ctx);
+    gorm_arch_timer_anchor(&ctx->timer_spv, 0);
+    gorm_arch_timer_set_from_last(&ctx->timer_spv, ctx->adv_interval,
+                                  _on_adv_event, ctx);
+
+    DEBUG("[gorm_ll] adv: starting to advertise now\n");
+    return 0;
 }
+
+// int gorm_ll_adv_conn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
+// {
+//     assert(ctx && adv_ctx);
+
+//     if (ctx->state != GORM_LL_STATE_STANDBY) {
+//         return GORM_ERR_CTX_BUSY;
+//     }
+
+//     /* allocate RX buffer, needed as we want to listen for scan requests and
+//      * connection indications */
+//     ctx->in_rx = gorm_buf_get();
+//     if (!ctx->in_rx) {
+//         DEBUG("[gorm_ll] adv_conn: unable to allocate rx buffer\n");
+//         return GORM_ERR_NOBUF;
+//     }
+
+//     ctx->state = GORM_LL_STATE_ADV;
+//     return _advertise(ctx, adv_ctx);
+// }
+
+// int gorm_ll_adv_nonconn(gorm_ll_ctx_t *ctx, const gorm_gap_adv_ctx_t *adv_ctx)
+// {
+//     assert(ctx && adv_ctx);
+
+//     if (ctx->state != GORM_LL_STATE_STANDBY) {
+//         return GORM_ERR_CTX_BUSY;
+//     }
+
+//     ctx->state = GORM_LL_STATE_ADV_ONLY;
+//     return _advertise(ctx, adv_ctx);
+// }
+
 
 void gorm_ll_terminate(gorm_ll_ctx_t *con)
 {

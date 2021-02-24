@@ -25,10 +25,12 @@ static gorm_buf_t *_trx_buf;
 static gorm_ll_trx_cb_t _trx_cb;
 static gorm_ll_ctx_t *_trx_ctx;
 
-static void on_trx(netdev_t *netdev, netdev_event_t event)
+static void _on_trx(netdev_t *netdev, netdev_event_t event)
 {
     (void)netdev;
     (void)event;
+
+    // printf("radio evt %i\n", (int)event);
 
     int done = 1;
     if (_trx_cb) {
@@ -95,6 +97,6 @@ int gorm_ll_trx_init(netdev_t *dev)
 
     /* setup the radio */
     _radio = dev;
-    _radio->event_callback = on_trx;
+    _radio->event_callback = _on_trx;
     return _radio->driver->init(_radio);
 }

@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 #ifndef GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION
-#define GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION       (10U * US_PER_MS)
+#define GORM_CFG_LL_PERIPH_ADV_EVENT_DURATION       (1U * US_PER_MS)
 #endif
 
 #ifndef GORM_CFG_LL_PERIPH_ADV_CHANNELS
@@ -140,24 +140,11 @@ extern "C" {
  *
  * @todo    Move to RIOT specific configuration!
  */
-#ifndef GORM_CFG_THREAD_STACKSIZE_HOST
-#define GORM_CFG_THREAD_STACKSIZE_HOST              (THREAD_STACKSIZE_DEFAULT)
+#ifndef CONFIG_GORM_THREAD_STACKSIZE
+#define CONFIG_GORM_THREAD_STACKSIZE                (THREAD_STACKSIZE_DEFAULT)
 #endif
-#ifndef GORM_CFG_THREAD_PRIO_HOST
-#define GORM_CFG_THREAD_PRIO_HOST                   (THREAD_PRIORITY_MAIN - 1)
-#endif
-#ifndef GORM_CFG_THREAD_NAME_HOST
-#define GORM_CFG_THREAD_NAME_HOST                   "gorm_host"
-#endif
-
-#ifndef GORM_CFG_THREAD_STACKSIZE_CONTROLLER
-#define GORM_CFG_THREAD_STACKSIZE_CONTROLLER        (THREAD_STACKSIZE_DEFAULT)
-#endif
-#ifndef GORM_CFG_THREAD_PRIO_CONTROLLER
-#define GORM_CFG_THREAD_PRIO_CONTROLLER             (0)
-#endif
-#ifndef GORM_CFG_THREAD_NAME_CONTROLLER
-#define GORM_CFG_THREAD_NAME_CONTROLLER             "gorm_ctrl"
+#ifndef CONFIG_GORM_THREAD_PRIO
+#define CONFIG_GORM_THREAD_PRIO                     (THREAD_PRIORITY_MAIN - 4)
 #endif
 
 #ifdef __cplusplus

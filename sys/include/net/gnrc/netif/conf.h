@@ -22,6 +22,7 @@
 
 #include <kernel_defines.h>
 
+#include "net/ble.h"
 #include "net/ieee802154.h"
 #include "net/ethernet/hdr.h"
 #include "net/gnrc/ipv6/nib/conf.h"
@@ -147,6 +148,8 @@ extern "C" {
 #define GNRC_NETIF_L2ADDR_MAXLEN   (IEEE802154_LONG_ADDRESS_LEN)
 #elif   MODULE_NETDEV_ETH
 #define GNRC_NETIF_L2ADDR_MAXLEN   (ETHERNET_ADDR_LEN)
+#elif   MODULE_NETDEV_BLE
+#define GNRC_NETIF_L2ADDR_MAXLEN   (BLE_ADDR_LEN)
 #elif   MODULE_NRF24L01P
 #define GNRC_NETIF_L2ADDR_MAXLEN   (5U)
 #elif   MODULE_CC110X

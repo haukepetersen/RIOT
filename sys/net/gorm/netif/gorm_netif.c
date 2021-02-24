@@ -27,6 +27,7 @@
 
 #include "net/gorm.h"
 #include "net/gorm/coc.h"
+#include "net/gorm/addr.h"
 
 #define ENABLE_DEBUG            (1)
 #include "debug.h"
@@ -43,17 +44,47 @@
                                  | GNRC_NETIF_HDR_FLAGS_MULTICAST)
 
 static char _stack[THREAD_STACKSIZE_DEFAULT];
-static gnrc_netif_t *_netif = NULL;
+static gnrc_netif_t _netif;
 static gnrc_nettype_t _nettype = NETTYPE;
 
 static gorm_ctx_t _con[GORM_NETIF_CONCNT];
 static gorm_coc_t _coc[GORM_NETIF_CONCNT];
 static gorm_event_handler_t _gorm_event;
 
+// TODO: so far only called from Gorm thread, make threadsafe if also used in
+//       other thread contexts
+static gorm_coc_t *_get_free_coc(void)
+{
+    for (unsigned i = 0; i < GORM_NETIF_CONCNT; i++) {
+        if (!gorm_coc_is_used(&_coc[i])) {
+            return &_coc[i];
+        }
+    }
+    return NULL;
+}
+
+// TODO: make thread safe
+static gorm_ctx_t *_get_free_con(void)
+{
+    for (unsigned i = 0; i < GORM_NETIF_CONCNT; i++) {
+        if (gorm_ll_is_standby(&_con[i].ll)) {
+            return &_con[i];
+        }
+    }
+    return NULL;
+}
+
 
 static void _netif_init(gnrc_netif_t *netif)
 {
+    memcpy(netif->l2addr, gorm_addr_get_own(), BLE_ADDR_LEN);
+
     gnrc_netif_default_init(netif);
+
+    /* disable fragmentation for 6LoWPAN, as L2CAP takes care of that */
+    if (IS_USED(MODULE_GNRC_NETIF_6LO)) {
+        netif->sixlo.max_frag_size = 0;
+    }
 }
 
 static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
@@ -88,7 +119,7 @@ static int _netif_send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
     return res;
 }
 
-/* not used, we pass incoming data directly from the Gorm thread */
+/* not used, we pass incoming data directly to the Gorm thread */
 static gnrc_pktsnip_t *_netif_recv(gnrc_netif_t *netif)
 {
     (void)netif;
@@ -97,7 +128,8 @@ static gnrc_pktsnip_t *_netif_recv(gnrc_netif_t *netif)
 
 static int _netdev_init(netdev_t *dev)
 {
-    _netif = dev->context;
+    /* nothing to do here, yet?! */
+    (void)dev;
     return 0;
 }
 
@@ -110,7 +142,7 @@ static inline int _netdev_get(netdev_t *dev, netopt_t opt,
     switch (opt) {
         case NETOPT_ADDRESS:
             assert(max_len >= BLE_ADDR_LEN);
-            memcpy(value, _netif->l2addr, BLE_ADDR_LEN);
+            memcpy(value, _netif.l2addr, BLE_ADDR_LEN);
             res = BLE_ADDR_LEN;
             break;
         case NETOPT_ADDR_LEN:
@@ -188,13 +220,13 @@ static void _on_coc_pkt(gorm_coc_t *coc)
 
     /* allocate netif header */
     gnrc_pktsnip_t *hsnip = gnrc_netif_hdr_build(coc->con->ll.peer_addr, BLE_ADDR_LEN,
-                                                 _netif->l2addr, BLE_ADDR_LEN);
+                                                 _netif.l2addr, BLE_ADDR_LEN);
     if (hsnip == NULL) {
         return;
     }
     /* we need to add the device PID to the netif header */
     gnrc_netif_hdr_t *netif_hdr = (gnrc_netif_hdr_t *)hsnip->data;
-    netif_hdr->if_pid = _netif->pid;
+    netif_hdr->if_pid = _netif.pid;
 
     /* allocate space in the pktbuf and store the packet */
     gnrc_pktsnip_t *psnip = gnrc_pktbuf_add(hsnip, NULL, coc->rx_len, _nettype);
@@ -213,9 +245,9 @@ static void _on_coc_pkt(gorm_coc_t *coc)
 
 static void _coc_accept(gorm_ctx_t *ctx)
 {
-    gorm_coc_t *coc = _get_free_coc()
+    gorm_coc_t *coc = _get_free_coc();
     assert(coc);    /* this should always work, else we are in deep trouble */
-    gorm_coc_accept(ctx, coc, BLE_L2CAP_CID_IPSP, CONFIG_GORM_NETIF_MPS
+    gorm_coc_accept(ctx, coc, BLE_L2CAP_CID_IPSP, CONFIG_GORM_NETIF_MPS,
                     _on_coc_pkt, NULL);
 }
 
@@ -225,6 +257,7 @@ static void _on_gorm_evt(gorm_ctx_t *ctx, uint16_t type)
         case GORM_EVT_CONNECTED:
             // TODO: get role and only accept if master? or slave?
             _coc_accept(ctx);
+            break;
         case GORM_EVT_CONN_ABORT:
         case GORM_EVT_CONN_TIMEOUT:
         case GORM_EVT_CONN_CLOSED:
@@ -243,36 +276,35 @@ int gorm_netif_init(void)
     _gorm_event.event_cb = _on_gorm_evt;
     gorm_app_handler_add(&_gorm_event);
 
-    gnrc_netif_create(_stack, sizeof(_stack), GNRC_NETIF_PRIO,
+    gnrc_netif_create(&_netif, _stack, sizeof(_stack), GNRC_NETIF_PRIO,
                       "gorm_netif", &_netdev_dummy, &_netif_ops);
 
-    return GORM_OK;
+    return 0;
 }
 
-int gorm_netif_accept(gorm_adv_ctx_t *adv_ctx);
+int gorm_netif_accept(gorm_gap_adv_ctx_t *adv_ctx)
 {
-    /* are we already advertising? */
-    if (_state & ADV) {
-        return -EALREADY;
-    }
-
     /* find empty context */
-    gorm_ctx_t *con = _find_unused_context();
+    gorm_ctx_t *con = _get_free_con();
     if (con == NULL) {
         return -ENOMEM;
     }
 
-    return gorm_gap_adv_conn(con, adv_ctx);
-
-    /* set advertising data */
-    return gorm_ll_adv_conn(&con->ll, adv_ctx);
+    return gorm_gap_adv_start(con, adv_ctx, GORM_GAP_CONN_UND);
 }
 
-int gorm_netif_connect(gorm_gap_conn_params_t *con_ctx)
+int gorm_netif_connect(uint8_t *addr,
+                       gorm_gap_conn_ctx_t *con_ctx,
+                       gorm_gap_scan_ctx_t *scan_ctx)
 {
     (void)addr;
-    (void)con_params;
-    (void)timeout;
+    (void)con_ctx;
+    (void)scan_ctx;
 
     return 0;
+}
+
+void gorm_netif_dump_state(void)
+{
+    puts("GORM_NETIF STATE REPORT HERE");
 }

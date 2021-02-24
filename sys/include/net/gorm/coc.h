@@ -98,6 +98,17 @@ int gorm_coc_connect(gorm_ctx_t *con, gorm_coc_t *coc,
 /* timings are set globally -> use gorm_gap_x() */
 
 
+static inline int gorm_coc_is_used(gorm_coc_t *coc)
+{
+    return (coc->con != NULL);
+}
+
+static inline int gorm_coc_is_connected(gorm_coc_t *coc)
+{
+    return gorm_coc_is_used(coc) && (coc->cid_peer != 0);
+}
+
+
 #ifdef __cplusplus
 }
 #endif

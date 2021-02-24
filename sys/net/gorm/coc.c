@@ -19,6 +19,8 @@
 
 #include <errno.h>
 
+#include "iolist.h"
+
 #include "net/gorm.h"
 #include "net/gorm/l2cap.h"
 #include "net/gorm/util.h"

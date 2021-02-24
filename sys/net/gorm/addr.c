@@ -22,6 +22,8 @@
 
 #include "net/gorm/addr.h"
 
+static uint8_t _own_random[BLE_ADDR_LEN];
+
 /* TODO: this code is shared with Skald, so factor out into some generic BLE
  *       address code */
 void gorm_addr_gen_random(uint8_t *buf)
@@ -35,4 +37,12 @@ void gorm_addr_gen_random(uint8_t *buf)
     buf[5] = buf[0];
     /* make address individual and local */
     buf[0] = ((tmp & 0xfc) | 0x02);
+}
+
+uint8_t *gorm_addr_get_own(void)
+{
+    if (_own_random[0] == 0) {
+        gorm_addr_gen_random(_own_random);
+    }
+    return _own_random;
 }

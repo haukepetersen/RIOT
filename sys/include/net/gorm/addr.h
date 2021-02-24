@@ -36,6 +36,9 @@ extern "C" {
  */
 void gorm_addr_gen_random(uint8_t *buf);
 
+// TODO: add addr type
+uint8_t *gorm_addr_get_own(void);
+
 #ifdef __cplusplus
 }
 #endif
