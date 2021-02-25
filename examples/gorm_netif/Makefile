@@ -38,7 +38,8 @@ USEMODULE += gorm_netif
 # development process:
 DEVELHELP ?= 1
 CFLAGS += -DDEBUG_ASSERT_VERBOSE
-
+USEMODULE += dbgpin
+CFLAGS += "-DDBGPIN_PINS=GPIO_PIN(0,18),GPIO_PIN(0,17),GPIO_PIN(0,16),GPIO_PIN(0,15)"
 
 # Uncomment the following 2 lines to specify static link lokal IPv6 address
 # this might be useful for testing, in cases where you cannot or do not want to

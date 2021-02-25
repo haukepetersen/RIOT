@@ -53,9 +53,17 @@
 #define SHORTS_TX               (SHORTS_BASE | RADIO_SHORTS_DISABLED_RXEN_Msk)
 
 /* interrupt masks */
+// #define INT_DIS                 (RADIO_INTENCLR_DISABLED_Msk | \
+//                                  RADIO_INTENCLR_ADDRESS_Msk)
+// #define INT_EN                  (RADIO_INTENSET_DISABLED_Msk | \
+//                                  RADIO_INTENSET_ADDRESS_Msk)
 #define INT_DIS                 (RADIO_INTENCLR_DISABLED_Msk | \
+                                 RADIO_INTENCLR_READY_Msk    | \
+                                 RADIO_INTENCLR_END_Msk      | \
                                  RADIO_INTENCLR_ADDRESS_Msk)
 #define INT_EN                  (RADIO_INTENSET_DISABLED_Msk | \
+                                 RADIO_INTENSET_READY_Msk    | \
+                                 RADIO_INTENSET_END_Msk      | \
                                  RADIO_INTENSET_ADDRESS_Msk)
 
 /* driver internal radio states */
@@ -130,6 +138,12 @@ static void _terminate(void)
     NRF_RADIO->EVENTS_DISABLED = 0;
     NRF_RADIO->TASKS_DISABLE = 1;
     while (NRF_RADIO->EVENTS_DISABLED == 0) {}
+
+    // DEBUG
+    if (_state = STATE_RX) {
+        dbgpin_clear(0);
+    }
+
     _state = STATE_IDLE;
 }
 
@@ -205,6 +219,16 @@ void isr_radio(void)
     if (NRF_RADIO->EVENTS_ADDRESS) {
         NRF_RADIO->EVENTS_ADDRESS = 0;
         _state |= STATE_BUSY;
+    }
+
+    unsigned pin = (_state & STATE_RX) ? 0 : 1;
+    if (NRF_RADIO->EVENTS_READY) {
+        NRF_RADIO->EVENTS_READY = 0;
+        dbgpin_set(pin);
+    }
+    if (NRF_RADIO->EVENTS_END) {
+        NRF_RADIO->EVENTS_END = 0;
+        dbgpin_clear(pin);
     }
 
     if (NRF_RADIO->EVENTS_DISABLED) {
