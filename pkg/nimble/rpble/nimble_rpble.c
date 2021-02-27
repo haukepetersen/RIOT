@@ -250,7 +250,10 @@ static void _parent_connect(struct ble_npl_event *ev)
     _dbg_msg("parent found, trying to connect", _psel.addr.val);
 
     /* set a random connection itvl */
-    uint32_t itvl = random_uint32_range(_conn_itvl_min, _conn_itvl_max);
+    uint32_t itvl = _conn_itvl_min;
+    if (_conn_itvl_min < _conn_itvl_max) {
+        itvl = random_uint32_range(_conn_itvl_min, _conn_itvl_max);
+    }
     _conn_params.itvl_min = (itvl / BLE_HCI_CONN_ITVL);
     _conn_params.itvl_max = _conn_params.itvl_min;
     int res = nimble_netif_connect(&_psel.addr, &_conn_params, _conn_timeout);
