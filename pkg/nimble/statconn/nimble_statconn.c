@@ -27,8 +27,15 @@
 
 #include "host/ble_hs.h"
 
+#ifdef MODULE_MYPRINT
+#include "myprint.h"
+#endif
+
 #if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
 #include "random.h"
+
+#define ITVL_TO_MS(i)   ((i) * BLE_HCI_CONN_ITVL / 1000)
+#define ITVL_SPACING    3
 #endif
 
 #define ENABLE_DEBUG    0
@@ -43,6 +50,9 @@
 typedef struct {
     uint8_t addr[BLE_ADDR_LEN];     /**< peer addr, network byte order */
     uint8_t state;                  /**< internal state */
+#if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
+    uint16_t itvl;
+#endif
 } slot_t;
 
 static const uint8_t _ad[2] = { BLE_GAP_AD_FLAGS, BLUETIL_AD_FLAGS_DEFAULT };
@@ -55,7 +65,6 @@ static struct ble_gap_conn_params _conn_params;
 static uint32_t _conn_timeout;
 
 static nimble_netif_eventcb_t _eventcb = NULL;
-
 
 static slot_t *_get_addr(const uint8_t *addr)
 {
@@ -77,6 +86,59 @@ static slot_t *_get_state(uint8_t state)
     return NULL;
 }
 
+#if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
+static int _itvl_clash(uint16_t itvl)
+{
+    for (unsigned i = 0; i < ARRAY_SIZE(_slots); i++) {
+        int dist = (int)_slots[i].itvl - itvl;
+        dist = (dist < 0) ? dist * -1 : dist;
+        if (dist < ITVL_SPACING) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static uint16_t _itvl_gen(void)
+{
+    uint16_t itvl;
+
+    do {
+        itvl = (uint16_t)random_uint32_range(NIMBLE_STATCONN_CONN_ITVL_MIN_MS,
+                                             NIMBLE_STATCONN_CONN_ITVL_MAX_MS);
+    } while (_itvl_clash(itvl) != 0);
+
+    return itvl;
+}
+
+static void _itvl_check_slave(int handle, const uint8_t *addr)
+{
+    struct ble_gap_conn_desc desc;
+
+    slot_t *slot = _get_addr(addr);
+    assert(slot);
+    nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+    assert(conn);
+    int res = ble_gap_conn_find(conn->gaphandle, &desc);
+    assert(res == 0);
+
+    uint16_t itvl_ms = ITVL_TO_MS(desc.conn_itvl);
+
+    if (_itvl_clash(itvl_ms)) {
+#ifdef MODULE_MYPRINT
+        myprintf("iclash_s:%i-", (int)itvl_ms);
+#endif
+        slot->itvl = 0;
+        nimble_netif_close(handle);
+    } else {
+        slot->itvl = itvl_ms;
+#ifdef MODULE_MYPRINT
+        myprintf("igot_s:%i\n", (int)itvl_ms);
+#endif
+    }
+}
+#endif
+
 static void _activate(uint8_t role)
 {
     mutex_lock(&_lock);
@@ -88,9 +150,11 @@ static void _activate(uint8_t role)
         bluetil_addr_swapped_cp(slot->addr, peer.val);
         /* compute a random new random connection interval if configured */
 #if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
-        uint32_t itvl = random_uint32_range(NIMBLE_STATCONN_CONN_ITVL_MIN_MS,
-                                            NIMBLE_STATCONN_CONN_ITVL_MAX_MS);
-        _conn_params.itvl_min = BLE_GAP_CONN_ITVL_MS(itvl);
+        slot->itvl = _itvl_gen();
+        _conn_params.itvl_min = BLE_GAP_CONN_ITVL_MS(slot->itvl);
+#ifdef MODULE_MYPRINT
+        myprintf("igen_m:%i\n", (int)slot->itvl);
+#endif
 #else
         _conn_params.itvl_min = BLE_GAP_CONN_ITVL_MS(
                                             NIMBLE_STATCONN_CONN_ITVL_MIN_MS);
@@ -111,6 +175,21 @@ static void _update(const uint8_t *addr, uint8_t role, uint8_t state)
     slot_t *slot = _get_addr(addr);
     if (slot) {
         slot->state = (role | state);
+#if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
+        if (role == ROLE_S) {
+            slot->itvl = 0;
+        }
+#endif
+    }
+    else if (role == ROLE_S && state == CONNECTED) {
+        /* we might get an incoming connection from a not yet fully initialized
+         * peer, so lets put it in our database if we see it */
+        slot = _get_state(UNUSED);
+        assert(slot);
+
+        memcpy(slot->addr, addr, BLE_ADDR_LEN);
+        slot->state = (ROLE_S | CONNECTED);
+        slot->itvl = 0;
     }
     else {
         DEBUG("[statconn] warning: state change on unknown peer address\n");
@@ -137,6 +216,9 @@ static void _on_netif_evt(int handle, nimble_netif_event_t event,
             break;
         case NIMBLE_NETIF_CONNECTED_SLAVE:
             _update(addr, ROLE_S, CONNECTED);
+#if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
+            _itvl_check_slave(handle, addr);
+#endif
             break;
         case NIMBLE_NETIF_CLOSED_MASTER:
             _update(addr, ROLE_M, PENDING);
@@ -240,6 +322,9 @@ int nimble_statconn_rm(const uint8_t *addr)
         nimble_netif_accept_stop();
     }
     s->state = UNUSED;
+#if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
+    s->itvl = 0;
+#endif
     memset(s->addr, 0, sizeof(BLE_ADDR_LEN));
     mutex_unlock(&_lock);
 
