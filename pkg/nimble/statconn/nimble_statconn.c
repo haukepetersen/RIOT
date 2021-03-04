@@ -189,7 +189,9 @@ static void _update(const uint8_t *addr, uint8_t role, uint8_t state)
 
         memcpy(slot->addr, addr, BLE_ADDR_LEN);
         slot->state = (ROLE_S | CONNECTED);
+#if NIMBLE_STATCONN_CONN_ITVL_MIN_MS != NIMBLE_STATCONN_CONN_ITVL_MAX_MS
         slot->itvl = 0;
+#endif
     }
     else {
         DEBUG("[statconn] warning: state change on unknown peer address\n");
