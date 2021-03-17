@@ -320,12 +320,7 @@
 #define CLOCK_ENABLE_LSI            1
 #else
 #define CLOCK_ENABLE_LSI            0
-#endif
-
-/** Determine the required flash wait states from the core clock frequency */
-#if defined(CPU_FAM_STM32G0)
-#if CLOCK_CORECLOCK >= 48000000
-#define FLASH_WAITSTATES            (FLASH_ACR_LATENCY_1)   /* 2 wait states */
+#endifstmclk_init_sysclkASH_ACR_LATENCY_1)   /* 2 wait states */
 #elif CLOCK_CORECLOCK >= 24000000
 #define FLASH_WAITSTATES            (FLASH_ACR_LATENCY_0)   /* 1 wait states */
 #else

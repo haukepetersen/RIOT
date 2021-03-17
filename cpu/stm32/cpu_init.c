@@ -51,7 +51,7 @@
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
     defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7) || \
-    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32WL)
+    defined(CPU_FAM_STM32L1)
 
 #define STM32_CPU_MAX_GPIOS    (12U)
 
@@ -163,7 +163,7 @@ void cpu_init(void)
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
     defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7) || \
-    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32WL)
+    defined(CPU_FAM_STM32L1)
     _gpio_init_ain();
 #endif
 #if !defined(CPU_FAM_STM32MP1) || IS_USED(MODULE_STM32MP1_ENG_MODE)

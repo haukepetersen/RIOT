@@ -10,7 +10,7 @@ else ifneq (,$(filter $(CPU_FAM),f0 f1 f3))
   SRC += stmclk_f0f1f3.c
 else ifneq (,$(filter $(CPU_FAM),l0 l1))
   SRC += stmclk_l0l1.c
-else ifneq (,$(filter $(CPU_FAM),l4 wb))
+else ifneq (,$(filter $(CPU_FAM),l4 wb wl))
   SRC += stmclk_l4wb.c
 else ifneq (,$(filter $(CPU_FAM),l5))
   SRC += stmclk_l5.c
