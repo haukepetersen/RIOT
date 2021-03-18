@@ -13,7 +13,6 @@ STM32_INFO     := $(shell echo $(CPU_MODEL_UPPERCASE) | sed -E -e 's/^STM32(F|L|
 STM32_TYPE     = $(word 1, $(STM32_INFO))
 STM32_FAMILY   = $(word 2, $(STM32_INFO))
 STM32_MODEL    = $(word 3, $(STM32_INFO))
-$(info $(STM32_MODEL) $(STM32_TYPE))
 ifneq (MP, $(STM32_TYPE))
   STM32_MODEL2   = $(word 4, $(STM32_INFO))
   STM32_MODEL3   = $(word 5, $(STM32_INFO))
