@@ -65,6 +65,9 @@ def parse_cmsis(cpu_line):
     with open(cpu_line_cmsis, 'rb') as cmsis:
         cmsis_content = cmsis.readlines()
 
+    # For the STM32WL5X family we only parse the vectors for the CM4 core
+    filter_core = "CORE_CM4" if cpu_line.startswith("STM32WL5") else False
+
     irq_lines = []
     use_line = False
     for line in cmsis_content:
@@ -73,6 +76,13 @@ def parse_cmsis(cpu_line):
         except UnicodeDecodeError:
             # skip line that contains non unicode characters
             continue
+
+        # for multi-core headers, only match entries for specific core
+        if filter_core:
+            if filter_core in line:
+                filter_core = False
+            continue
+
         # start filling lines after interrupt Doxygen comment
         if "typedef enum" in line:
             use_line = True

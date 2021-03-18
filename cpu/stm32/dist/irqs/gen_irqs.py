@@ -68,37 +68,30 @@ def irq_numof(cpu_fam, cpu_line):
     with open(cpu_line_cmsis, 'rb') as cmsis:
         cmsis_content = cmsis.readlines()
 
-    for line_idx, line in enumerate(cmsis_content):
+    # For the STM32WL5X family we only parse the vectors for the CM4 core
+    filter_core = "CORE_CM4" if cpu_line.startswith("stm32wl5") else False
+    last_irqn = 0
+    for line in cmsis_content:
         try:
             line = line.decode()
         except UnicodeDecodeError:
             # skip line that contains non unicode characters
             continue
-        # skip useless lines
-        if (
-            # Skip lines with comments
-            line.startswith("/*") or
-            # Skip line starting with too many spaces
-            line.startswith(" " * 8) or
-            # Skip remapped USB interrupt
-            # (set as alias for USBWakeUp_IRQn on stm32f3)
-            "USBWakeUp_RMP_IRQn" in line
-        ):
+
+        if filter_core:
+            if filter_core in line:
+                filter_core = False
             continue
-        # Stop at the end of the IRQn_Type enum definition
+        if "USBWakeUp_RMP_IRQn" in line:
+            continue
         if "IRQn_Type" in line:
             break
 
-    # Ensure we are on a valid line, otherwise search in earlier lines
-    last_irq_line = cmsis_content[line_idx - 1].decode()
-    while last_irq_line.startswith(" " * 8):
-        line_idx -= 1
-        last_irq_line = cmsis_content[line_idx - 1].decode()
+        match = re.match(r"[ ]+[a-zA-Z0-9_]+_IRQn[ ]+= (?P<irqn>\d+)", line)
+        if match:
+            last_irqn = int(match.group("irqn"))
 
-    # Use a regexp to find the last IRQ line index
-    irq_numof_match = re.search(r"(= \d+)", last_irq_line).group(0)
-
-    return int(irq_numof_match.replace("= ", "").strip()) + 1
+    return last_irqn + 1
 
 
 def generate_irqs(context):
