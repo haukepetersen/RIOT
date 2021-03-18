@@ -1,7 +1,7 @@
 PKG_NAME=stm32cmsis
 
 # The package URL depends on the family of the target STM32
-PKG_URL=https://github.com/akshaim/cmsis_device_wl
+PKG_URL=https://github.com/STMicroelectronics/cmsis_device_$(CPU_FAM)
 
 PKG_VERSION_f0=70d2069248b18e1cce13a035abc3230abe48754f  # v2.3.4
 PKG_VERSION_f1=2948138428461c0621fd53b269862c6e6bb043ce  # v4.3.1
@@ -16,9 +16,7 @@ PKG_VERSION_l1=4a2f3cd6ea4bbc8e36daff0c7574b0fc1dfb7df7  # v2.3.0
 PKG_VERSION_l4=e442c72651e8d4757f6562acc14da949644944ce  # v1.6.1
 PKG_VERSION_l5=d922865fc0326a102c26211c44b8e42f52c1e53d  # v1.0.3
 PKG_VERSION_wb=44490652c88a513ec9a892c328db0246cf113987  # v1.4.0
-PKG_VERSION_wl=a11ce83ad53ba67dc1ec29d52e3c69e7bca7efb0
-
-$(info $(CPU_FAM) PKgss)
+PKG_VERSION_wl=35631ff4d3a3cc361241af5f62190d0ea43bd65b  # v1.0.0
 
 PKG_VERSION=$(PKG_VERSION_$(CPU_FAM))
 PKG_LICENSE=Apache-2
