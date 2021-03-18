@@ -31,6 +31,12 @@
 
 #define CLOCK_HSE                       MHZ(32)
 
+/* use a core clock of 48MHz and run APBx buses at the same speed */
+// #define CONFIG_CLOCK_PLL_N              12
+#define CONFIG_USE_CLOCK_MSI            1
+#define CONFIG_CLOCK_APB1_DIV           1
+#define CONFIG_CLOCK_APB2_DIV           1
+
 #include "periph_cpu.h"
 #include "clk_conf.h"
 // #include "cfg_i2c1_pb8_pb9.h"
