@@ -33,33 +33,13 @@
 
 #include "periph_cpu.h"
 #include "clk_conf.h"
-#include "cfg_i2c1_pb8_pb9.h"
-#include "cfg_rtt_default.h"
+// #include "cfg_i2c1_pb8_pb9.h"
+// #include "cfg_rtt_default.h"
 // #include "cfg_timer_tim2.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @name    DMA streams configuration
- * @{
- */
-static const dma_conf_t dma_config[] = {
-    { .stream = 1 },    /* DMA1 Channel 2 - SPI1_RX | USART3_TX */
-    { .stream = 2 },    /* DMA1 Channel 3 - SPI1_TX */
-    { .stream = 3 },    /* DMA1 Channel 4 - USART1_TX */
-    { .stream = 6 },    /* DMA1 Channel 7 - USART2_TX */
-};
-
-#define DMA_0_ISR  isr_dma1_channel2
-#define DMA_1_ISR  isr_dma1_channel3
-#define DMA_2_ISR  isr_dma1_channel4
-#define DMA_3_ISR  isr_dma1_channel7
-
-#define DMA_NUMOF           ARRAY_SIZE(dma_config)
-/** @} */
-
 
 /**
  * @name    Timer configuration
