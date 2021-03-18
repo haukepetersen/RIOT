@@ -61,11 +61,11 @@ extern "C" {
  * @name    User button
  * @{
  */
-#define BTN0_PIN            GPIO_PIN(PORT_C, 4)
+#define BTN0_PIN            GPIO_PIN(PORT_C, 13)
 #define BTN0_MODE           GPIO_IN_PU
-#define BTN1_PIN            GPIO_PIN(PORT_D, 0)
+#define BTN1_PIN            GPIO_PIN(PORT_A, 1)
 #define BTN1_MODE           GPIO_IN_PU
-#define BTN2_PIN            GPIO_PIN(PORT_D, 1)
+#define BTN2_PIN            GPIO_PIN(PORT_C, 6)
 #define BTN2_MODE           GPIO_IN_PU
 /** @} */
 
