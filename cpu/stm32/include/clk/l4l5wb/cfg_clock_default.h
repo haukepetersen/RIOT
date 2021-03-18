@@ -189,6 +189,8 @@ extern "C" {
 /* Set max allowed sysclk */
 #if defined(CPU_FAM_STM32WB)
 #define CLOCK_CORECLOCK_MAX             MHZ(64)
+#elif defined(CPU_FAM_STM32WL)
+#define CLOCK_CORECLOCK_MAX             MHZ(48)
 #elif defined(CPU_FAM_STM32L5)
 #define CLOCK_CORECLOCK_MAX             MHZ(110)
 #elif defined(CPU_LINE_STM32L4A6xx) || defined(CPU_LINE_STM32L4P5xx) || \
@@ -202,7 +204,9 @@ extern "C" {
 #endif
 
 #if CLOCK_CORECLOCK > CLOCK_CORECLOCK_MAX
-#if CLOCK_CORECLOCK_MAX == MHZ(64)
+#if CLOCK_CORECLOCK_MAX == MHZ(48)
+#error "SYSCLK cannot exceed 48MHz"
+#elif CLOCK_CORECLOCK_MAX == MHZ(64)
 #error "SYSCLK cannot exceed 64MHz"
 #elif CLOCK_CORECLOCK_MAX == MHZ(80)
 #error "SYSCLK cannot exceed 80MHz"
@@ -216,16 +220,16 @@ extern "C" {
 #endif /* CLOCK_CORECLOCK > CLOCK_CORECLOCK_MAX */
 #endif /* CONFIG_USE_CLOCK_PLL */
 
-#define CLOCK_AHB                       CLOCK_CORECLOCK /* HCLK, max: 64/80/120MHz */
+#define CLOCK_AHB                       CLOCK_CORECLOCK /* HCLK, max: 48/64/80/120MHz */
 
 #ifndef CONFIG_CLOCK_APB1_DIV
 #define CONFIG_CLOCK_APB1_DIV           (4)
 #endif
-#define CLOCK_APB1                      (CLOCK_AHB / CONFIG_CLOCK_APB1_DIV)     /* PCLK1, max: 64/80/120MHz */
+#define CLOCK_APB1                      (CLOCK_AHB / CONFIG_CLOCK_APB1_DIV)     /* PCLK1, max: 48/64/80/120MHz */
 #ifndef CONFIG_CLOCK_APB2_DIV
 #define CONFIG_CLOCK_APB2_DIV           (2)
 #endif
-#define CLOCK_APB2                      (CLOCK_AHB / CONFIG_CLOCK_APB2_DIV)     /* PCLK1, max: 64/80/120MHz */
+#define CLOCK_APB2                      (CLOCK_AHB / CONFIG_CLOCK_APB2_DIV)     /* PCLK1, max: 48/64/80/120MHz */
 
 #ifdef __cplusplus
 }

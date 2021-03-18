@@ -490,7 +490,7 @@ void stmclk_init_sysclk(void)
     }
 
     if (IS_ACTIVE(CLOCK_ENABLE_MSI)) {
-#if defined(CPU_FAM_STM32WB) || defined(CPU_FAM_STM32WL)
+#if defined(CPU_FAM_STM32WB)
         RCC->CR |= (CLOCK_MSIRANGE | RCC_CR_MSION);
 #else
         RCC->CR |= (CLOCK_MSIRANGE | RCC_CR_MSION | RCC_CR_MSIRGSEL);
