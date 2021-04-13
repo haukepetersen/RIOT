@@ -45,7 +45,7 @@ static trickle_t trickle = { .callback = { .func = &callback,
 static void callback(void *args)
 {
     (void) args;
-    uint32_t now = xtimer_now_usec();
+    uint32_t now = ztimer_now(ZTIMER_USEC);
 
     printf("now = %" PRIu32 ", t = %" PRIu32 "\n", now, trickle.t);
 
