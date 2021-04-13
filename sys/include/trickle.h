@@ -32,7 +32,7 @@
  extern "C" {
 #endif
 
-#include "xtimer.h"
+#include "ztimer.h"
 #include "thread.h"
 
 /**
@@ -59,7 +59,7 @@ typedef struct {
     trickle_callback_t callback;    /**< callback function and parameter that
                                          trickle calls after each interval */
     msg_t msg;                      /**< the msg_t to use for intervals */
-    xtimer_t msg_timer;             /**< xtimer to send a msg_t to the target
+    ztimer_t msg_timer;             /**< timer to send a msg_t to the target
                                          thread for a new interval */
 } trickle_t;
 
