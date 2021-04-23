@@ -102,6 +102,15 @@ extern "C" {
 #define NIMBLE_NETIF_MTU            (1280U)
 #endif
 
+#if IS_USED(MODULE_NIMBLE_NETIF_EXT) || DOXYGEN
+typedef struct {
+    uint32_t adv_itvl_ms;       /** advertising interval [ms] */
+    uint8_t primary_phy;
+    uint8_t secondary_phy;
+    int8_t tx_power;
+} nimble_netif_accept_cfg_t;
+#endif
+
 /**
  * @brief   Return codes used by the NimBLE netif module
  */
@@ -255,6 +264,19 @@ int nimble_netif_update(int handle,
  * @return  NIMBLE_NETIF_DEVERR if reading the channel map failed otherwise
  */
 int nimble_netif_used_chanmap(int handle, uint8_t map[5]);
+
+#if IS_USED(MODULE_NIMBLE_NETIF_EXT)
+/**
+ * phy_mask: [BLE_GAP_LE_PHY_1M_MASK, BLE_GAP_LE_PHY_2M_MASK, BLE_GAP_LE_PHY_CODED_MASK]
+ */
+int nimble_netif_connect_ext(const ble_addr_t *addr,
+                             const struct ble_gap_conn_params *conn_params,
+                             uint8_t  phy_mask,
+                             uint32_t timeout);
+
+int nimble_netif_accept_ext(const uint8_t *ad, size_t ad_len,
+                            const nimble_netif_accept_cfg_t *cfg);
+#endif
 
 #ifdef __cplusplus
 }

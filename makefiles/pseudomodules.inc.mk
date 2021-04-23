@@ -101,6 +101,7 @@ PSEUDOMODULES += netstats_ipv6
 PSEUDOMODULES += netstats_rpl
 PSEUDOMODULES += nimble
 PSEUDOMODULES += nimble_autoconn_%
+PSEUDOMODULES += nimble_netif_ext
 PSEUDOMODULES += newlib
 PSEUDOMODULES += newlib_gnu_source
 PSEUDOMODULES += newlib_nano

@@ -51,6 +51,8 @@
 #define NETTYPE                 GNRC_NETTYPE_UNDEF
 #endif
 
+#define EXT_ADV_INST            0
+
 /* thread flag used for signaling transmit readiness */
 #define FLAG_TX_UNSTALLED       (1u << 13)
 #define FLAG_TX_NOTCONN         (1u << 12)
@@ -569,6 +571,43 @@ int nimble_netif_connect(const ble_addr_t *addr,
     return handle;
 }
 
+int nimble_netif_connect_ext(const ble_addr_t *addr,
+                             const struct ble_gap_conn_params *conn_params,
+                             uint8_t  phy_mask,
+                             uint32_t timeout)
+{
+    assert(addr);
+    assert(phy_mask);
+
+    /* the netif_conn module expects addresses in network byte order */
+    uint8_t addrn[BLE_ADDR_LEN];
+    bluetil_addr_swapped_cp(addr->val, addrn);
+
+    /* check that there is no open connection with the given address */
+    if (nimble_netif_conn_connected(addrn) ||
+        nimble_netif_conn_connecting()) {
+        return NIMBLE_NETIF_BUSY;
+    }
+
+    /* get empty connection context */
+    int handle = nimble_netif_conn_start_connection(addrn);
+    if (handle == NIMBLE_NETIF_CONN_INVALID) {
+        return NIMBLE_NETIF_NOMEM;
+    }
+
+    int res = ble_gap_ext_connect(nimble_riot_own_addr_type, addr, timeout,
+                                  phy_mask,
+                                  conn_params, conn_params, conn_params,
+                                  _on_gap_master_evt, (void *)handle);
+    printf("gap_ext_connect res %i\n", res);
+    assert(res == 0);
+    (void)res;
+
+    _notify(handle, NIMBLE_NETIF_INIT_MASTER, addrn);
+
+    return handle;
+}
+
 int nimble_netif_close(int handle)
 {
     nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
@@ -605,10 +644,58 @@ int nimble_netif_accept(const uint8_t *ad, size_t ad_len,
 
     /* set advertisement data */
     res = ble_gap_adv_set_data(ad, (int)ad_len);
+    printf("res: %i\n", res);
     assert(res == 0);
     /* remember context and start advertising */
     res = ble_gap_adv_start(nimble_riot_own_addr_type, NULL, BLE_HS_FOREVER,
                             adv_params, _on_gap_slave_evt, (void *)handle);
+    assert(res == 0);
+
+    _notify(handle, NIMBLE_NETIF_ACCEPTING, _netif.l2addr);
+
+    return NIMBLE_NETIF_OK;
+}
+
+int nimble_netif_accept_ext(const uint8_t *ad, size_t ad_len,
+                            const nimble_netif_accept_cfg_t *cfg)
+{
+    assert(ad && (ad_len > 0));
+    assert(cfg);
+
+    int handle;
+    int res;
+    (void)res;
+
+    handle = nimble_netif_conn_start_adv();
+    if (handle < 0) {
+        return handle;
+    }
+
+    struct ble_gap_ext_adv_params params;
+    memset(&params, 0, sizeof(struct ble_gap_ext_adv_params));
+    params.connectable = 1;
+    params.own_addr_type = nimble_riot_own_addr_type,
+    params.itvl_min = BLE_GAP_ADV_ITVL_MS(cfg->adv_itvl_ms);
+    params.itvl_max = BLE_GAP_ADV_ITVL_MS(cfg->adv_itvl_ms);
+    params.primary_phy = cfg->primary_phy;
+    params.secondary_phy = cfg->secondary_phy;
+    params.tx_power = cfg->tx_power;
+
+    res = ble_gap_ext_adv_configure(EXT_ADV_INST, &params, NULL,
+                                    _on_gap_slave_evt, (void *)handle);
+    printf("config res %i\n", res);
+    assert(res == 0);
+    struct os_mbuf *data = os_msys_get_pkthdr(ad_len, 0);
+    if (data == NULL) {
+        nimble_netif_conn_free(handle, NULL);
+        return NIMBLE_NETIF_NOMEM;
+    }
+    res = os_mbuf_append(data, ad, ad_len);
+    assert(res == 0);
+    res = ble_gap_ext_adv_set_data(EXT_ADV_INST, data);
+    assert(res == 0);
+    res = ble_gap_ext_adv_start(EXT_ADV_INST, 0, 0);
+    printf("config start %i\n", res);
     assert(res == 0);
 
     _notify(handle, NIMBLE_NETIF_ACCEPTING, _netif.l2addr);
@@ -623,7 +710,14 @@ int nimble_netif_accept_stop(void)
         return NIMBLE_NETIF_NOTADV;
     }
 
-    int res = ble_gap_adv_stop();
+    int res;
+    if (IS_USED(MODULE_NIMBLE_NETIF_EXT)) {
+        res = ble_gap_ext_adv_stop(EXT_ADV_INST);
+    }
+    else {
+        res = ble_gap_adv_stop();
+    }
+    printf("stop res %i\n", res);
     assert(res == 0);
     (void)res;
     nimble_netif_conn_free(handle, NULL);

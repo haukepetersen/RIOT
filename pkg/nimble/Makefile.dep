@@ -70,6 +70,10 @@ ifneq (,$(filter nimble_statconn,$(USEMODULE)))
   USEMODULE += nimble_addr
 endif
 
+ifneq (,$(filter nimble_netif_ext,$(USEMODULE)))
+  USEMODULE += nimble_netif
+endif
+
 ifneq (,$(filter nimble_netif,$(USEMODULE)))
   FEATURES_REQUIRED += ble_nimble_netif
   USEMODULE += l2util

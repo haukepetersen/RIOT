@@ -38,9 +38,11 @@
 #define DEFAULT_NODE_NAME           "bleRIOT"
 #define DEFAULT_SCAN_DURATION       (500U)      /* 500ms */
 #define DEFAULT_CONN_TIMEOUT        (500U)      /* 500ms */
+#define DEFAULT_TX_POWER            0           /* 0dBm */
 
 #if !IS_USED(MODULE_NIMBLE_AUTOCONN) && !IS_USED(MODULE_NIMBLE_STATCONN)
 static const char *_name_to_connect = NULL;
+static uint8_t _phy_mask;
 
 static void _scan_for_name(uint8_t type, const ble_addr_t *addr, int8_t rssi,
                            const uint8_t *ad, size_t ad_len)
@@ -55,7 +57,13 @@ static void _scan_for_name(uint8_t type, const ble_addr_t *addr, int8_t rssi,
                                   _name_to_connect, strlen(_name_to_connect));
     if (res) {
         nimble_scanner_stop();
-        nimble_netif_connect(addr, NULL, DEFAULT_CONN_TIMEOUT);
+        if (IS_USED(MODULE_NIMBLE_NETIF_EXT) && _phy_mask) {
+            nimble_netif_connect_ext(addr, NULL, _phy_mask,
+                                     DEFAULT_CONN_TIMEOUT);
+        }
+        else {
+            nimble_netif_connect(addr, NULL, DEFAULT_CONN_TIMEOUT);
+        }
     }
 }
 
@@ -196,7 +204,7 @@ static void _cmd_info(void)
 }
 
 #if !IS_USED(MODULE_NIMBLE_AUTOCONN) && !IS_USED(MODULE_NIMBLE_STATCONN)
-static void _cmd_adv(const char *name)
+static void _cmd_adv(const char *name, uint8_t phy_mode)
 {
     int res;
     (void)res;
@@ -231,8 +239,21 @@ static void _cmd_adv(const char *name)
         return;
     }
 
-    /* start listening for incoming connections */
-    res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
+    if (IS_USED(MODULE_NIMBLE_NETIF_EXT) && phy_mode) {
+        nimble_netif_accept_cfg_t cfg = {
+            .adv_itvl_ms = BLE_GAP_ADV_FAST_INTERVAL2_MIN,
+            .primary_phy = (phy_mode == BLE_HCI_LE_PHY_2M) ? BLE_HCI_LE_PHY_1M
+                                                           : phy_mode,
+            .secondary_phy = phy_mode,
+            .tx_power = 0,
+        };
+        res = nimble_netif_accept_ext(ad.buf, ad.pos, &cfg);
+    }
+    else {
+        /* start listening for incoming connections */
+        res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
+    }
+
     if (res != NIMBLE_NETIF_OK) {
         printf("err: unable to start advertising (%i)\n", res);
     }
@@ -277,10 +298,18 @@ static void _cmd_scan(unsigned duration)
     nimble_scanlist_print();
 }
 
-static void _cmd_connect_addr(ble_addr_t *addr)
+static void _cmd_connect_addr(ble_addr_t *addr, uint8_t phy_mask)
 {
-    /* simply use NimBLEs default connection parameters */
-    int res = nimble_netif_connect(addr, NULL, DEFAULT_CONN_TIMEOUT);
+    int res;
+
+    if (IS_USED(MODULE_NIMBLE_NETIF_EXT) && phy_mask) {
+        res = nimble_netif_connect_ext(addr, NULL, phy_mask,
+                                       DEFAULT_CONN_TIMEOUT);
+    }
+    else {
+        /* simply use NimBLEs default connection parameters */
+        res = nimble_netif_connect(addr, NULL, DEFAULT_CONN_TIMEOUT);
+    }
     if (res < 0) {
         printf("err: unable to trigger connection sequence (%i)\n", res);
         return;
@@ -294,23 +323,25 @@ static void _cmd_connect_addr(ble_addr_t *addr)
 
 }
 
-static void _cmd_connect_addr_raw(const uint8_t *addr_in)
+static void _cmd_connect_addr_raw(const uint8_t *addr_in, uint8_t phy_mask)
 {
     /* RANDOM is the most common type, has no noticeable effect when connecting
        anyhow... */
     ble_addr_t addr = { .type = BLE_ADDR_RANDOM };
     /* NimBLE expects address in little endian, so swap */
     bluetil_addr_swapped_cp(addr_in, addr.val);
-    _cmd_connect_addr(&addr);
+    _cmd_connect_addr(&addr, phy_mask);
 }
 
-static void _cmd_connect_name(const char *name, unsigned duration)
+static void _cmd_connect_name(const char *name, unsigned duration,
+                              uint8_t phy_mask)
 {
     if (_name_to_connect != NULL) {
         printf("err: already trying to connect to '%s'\n", _name_to_connect);
         return;
     }
     _name_to_connect = name;
+    _phy_mask = phy_mask;
     printf("trying to find and connect to a node with name '%s'\n", name);
     _do_scan(_scan_for_name, duration);
     if (_name_to_connect != NULL) {
@@ -319,14 +350,14 @@ static void _cmd_connect_name(const char *name, unsigned duration)
     }
 }
 
-static void _cmd_connect_scanlist(unsigned pos)
+static void _cmd_connect_scanlist(unsigned pos, uint8_t phy_mask)
 {
     nimble_scanlist_entry_t *sle = nimble_scanlist_get_by_pos(pos);
     if (sle == NULL) {
         puts("err: unable to find given entry in scanlist");
         return;
     }
-    _cmd_connect_addr(&sle->addr);
+    _cmd_connect_addr(&sle->addr, phy_mask);
 }
 #endif /* MODULE_NIMBLE_AUTOCONN */
 
@@ -393,9 +424,11 @@ int _nimble_netif_handler(int argc, char **argv)
 #if !IS_USED(MODULE_NIMBLE_AUTOCONN) && !IS_USED(MODULE_NIMBLE_STATCONN)
     else if (memcmp(argv[1], "adv", 3) == 0) {
         char *name = NULL;
+        uint8_t phy_mode = 0;
         if (argc > 2) {
             if (_ishelp(argv[2])) {
-                printf("usage: %s adv [help|stop|<name>]\n", argv[0]);
+                printf("usage: %s adv [help|stop|<name>] [phy mode]\n"
+                       "        phy mode: [1M|2M|coded]\n", argv[0]);
                 return 0;
             }
             if (memcmp(argv[2], "stop", 4) == 0) {
@@ -403,8 +436,23 @@ int _nimble_netif_handler(int argc, char **argv)
                 return 0;
             }
             name = argv[2];
+            if (argc >= 4) {
+                if (memcmp(argv[3], "1M", 2) == 0) {
+                    phy_mode = BLE_HCI_LE_PHY_1M;
+                }
+                else if (memcmp(argv[3], "2M", 2) == 0) {
+                    phy_mode = BLE_HCI_LE_PHY_2M;
+                }
+                else if (memcmp(argv[3], "coded", 5) == 0) {
+                    phy_mode = BLE_HCI_LE_PHY_CODED;
+                }
+                else {
+                    puts("unable to parse phy mode");
+                    return 0;
+                }
+            }
         }
-        _cmd_adv(name);
+        _cmd_adv(name, phy_mode);
     }
     else if (memcmp(argv[1], "scan", 4) == 0) {
         uint32_t duration = DEFAULT_SCAN_DURATION;
@@ -423,18 +471,45 @@ int _nimble_netif_handler(int argc, char **argv)
     }
     else if (memcmp(argv[1], "connect", 7) == 0) {
         if ((argc < 3) || _ishelp(argv[2])) {
-            printf("usage: %s connect [help|list|<scanlist entry #>|<BLE addr>|<name>]\n",
-                   argv[0]);
+#if IS_USED(MODULE_NIMBLE_NETIF_EXT)
+            printf("usage: %s %s [help|list|<scanlist entry #>|<BLE addr>|<name>] [phy mode]\n"
+                   "        phy mode: [1M|2M|coded]\n",
+                   argv[0], argv[1]);
+#else
+            printf("usage: %s %s [help|list|<scanlist entry #>|<BLE addr>|<name>]\n",
+                   argv[0], argv[1]);
+#endif
             return 0;
         }
         if (memcmp(argv[2], "list", 4) == 0) {
             _conn_list();
             return 0;
         }
+
+        uint8_t phy_mask = 0;
+#if IS_USED(MODULE_NIMBLE_NETIF_EXT)
+        /* parse PHY mode */
+        if (argc >= 4) {
+            if (memcmp(argv[3], "1M", 2) == 0) {
+                phy_mask = BLE_GAP_LE_PHY_1M_MASK;
+            }
+            else if (memcmp(argv[3], "2M", 2) == 0) {
+                phy_mask = BLE_GAP_LE_PHY_2M_MASK;
+            }
+            else if (memcmp(argv[3], "coded", 5) == 0) {
+                phy_mask = BLE_GAP_LE_PHY_CODED_MASK;
+            }
+            else {
+                puts("unable to parse phy mode");
+                return 0;
+            }
+        }
+#endif
+
         /* try if param is an BLE address */
         uint8_t addr[BLE_ADDR_LEN];
         if (bluetil_addr_from_str(addr, argv[2]) != NULL) {
-            _cmd_connect_addr_raw(addr);
+            _cmd_connect_addr_raw(addr, phy_mask);
             return 0;
         }
         /* try if param is a name (contains non-number chars) */
@@ -443,12 +518,12 @@ int _nimble_netif_handler(int argc, char **argv)
             if (argc > 3) {
                 duration = atoi(argv[3]);
             }
-            _cmd_connect_name(argv[2], duration);
+            _cmd_connect_name(argv[2], duration, phy_mask);
             return 0;
         }
 
         unsigned pos = atoi(argv[2]);
-        _cmd_connect_scanlist(pos);
+        _cmd_connect_scanlist(pos, phy_mask);
     }
 #endif
     else if (memcmp(argv[1], "close", 5) == 0) {
