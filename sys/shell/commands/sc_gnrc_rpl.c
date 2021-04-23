@@ -24,7 +24,7 @@
 #include "net/gnrc/rpl/dodag.h"
 #include "utlist.h"
 #include "trickle.h"
-#if IS_USED(MODULE_XTIMER)
+#if !IS_USED(MODULE_ZTIMER_MSEC)
 #include "xtimer.h"
 #endif
 #ifdef MODULE_GNRC_RPL_P2P
@@ -299,7 +299,7 @@ int _gnrc_rpl_dodag_show(void)
                 gnrc_rpl_instances[i].mop, gnrc_rpl_instances[i].of->ocp,
                 gnrc_rpl_instances[i].min_hop_rank_inc, gnrc_rpl_instances[i].max_rank_inc);
 
-#if IS_USED(MODULE_XTIMER)
+#if !IS_USED(MODULE_XTIMER)
         uint64_t tc;
         tc = xtimer_left_usec(&dodag->trickle.msg_timer);
         tc = (int64_t) tc == 0 ? 0 : tc / US_PER_SEC;
