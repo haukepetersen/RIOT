@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = hello-world
+APPLICATION = balkonien_fw
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= particle_xenon
@@ -21,6 +21,7 @@ endif
 
 USEMODULE += periph_adc
 USEMODULE += bh1750fvi
+USEMODULE += ds18b20
 USEMODULE += ztimer_msec ztimer_periph_rtt
 
 include $(RIOTBASE)/Makefile.include
