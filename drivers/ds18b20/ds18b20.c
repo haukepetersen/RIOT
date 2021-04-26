@@ -21,7 +21,7 @@
 #include <string.h>
 
 #include "log.h"
-#include "xtimer.h"
+#include "ztimer.h"
 #include "onewire.h"
 
 #include "ds18b20.h"
@@ -60,11 +60,11 @@ enum {
 };
 
 /* conversion times */
-static const uint32_t _conv_time_us[RES_NUM] = {
-    [DS18B20_RES_9BIT] = 93750U,    /**< conversion for 9 bit resolution */
-    [DS18B20_RES_10BIT] = 187500U,  /**< conversion for 10 bit resolution */
-    [DS18B20_RES_11BIT] = 375000U,  /**< conversion for 11 bit resolution */
-    [DS18B20_RES_12BIT] = 750000U,  /**< conversion for 12 bit resolution */
+static const uint32_t _conv_time_ms[RES_NUM] = {
+    [DS18B20_RES_9BIT] = 94U,   /**< conversion for 9 bit resolution */
+    [DS18B20_RES_10BIT] = 188U, /**< conversion for 10 bit resolution */
+    [DS18B20_RES_11BIT] = 375U, /**< conversion for 11 bit resolution */
+    [DS18B20_RES_12BIT] = 750U, /**< conversion for 12 bit resolution */
 };
 
 static int _read_scratchpad(const ds18b20_t *dev, uint8_t *buf)
@@ -119,11 +119,11 @@ int ds18b20_init(ds18b20_t *dev, onewire_t *owi, const ds18b20_params_t *params)
     return DS18B20_OK;
 }
 
-uint32_t ds18b20_get_conv_time_us(const ds18b20_t *dev)
+uint32_t ds18b20_get_conv_time_ms(const ds18b20_t *dev)
 {
     assert(dev);
 
-    return _conv_time_us[(int)dev->res];
+    return _conv_time_ms[(int)dev->res];
 }
 
 int ds18b20_trigger(const ds18b20_t *dev)
@@ -173,6 +173,6 @@ int ds18b20_get_temp(const ds18b20_t *dev, int16_t *temp)
     if (res != DS18B20_OK) {
         return res;
     }
-    xtimer_usleep(_conv_time_us[(int)dev->res]);
+    ztimer_sleep(ZTIMER_MSEC, _conv_time_ms[(int)dev->res]);
     return ds18b20_read(dev, temp);
 }

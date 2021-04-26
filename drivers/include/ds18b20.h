@@ -95,13 +95,13 @@ static inline int ds18b20_id(const onewire_rom_t *rom)
 }
 
 /**
- * @brief   Get the appropriate conversion time [in us]
+ * @brief   Get the appropriate conversion time [ms]
  *
  * @param[in] dev       device descriptor
  *
- * @return  appropriate conversion time [in us]
+ * @return  appropriate conversion time [ms]
  */
-uint32_t ds18b20_get_conv_time_us(const ds18b20_t *dev);
+uint32_t ds18b20_get_conv_time_ms(const ds18b20_t *dev);
 
 /**
  * @brief   Trigger a new temperature data conversion
