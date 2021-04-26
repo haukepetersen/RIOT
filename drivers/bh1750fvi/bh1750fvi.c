@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 
-#include "xtimer.h"
+#include "ztimer.h"
 
 #include "bh1750fvi.h"
 #include "bh1750fvi_internal.h"
@@ -61,7 +61,7 @@ uint16_t bh1750fvi_sample(const bh1750fvi_t *dev)
     i2c_release(dev->i2c);
 
     /* wait for measurement to complete */
-    xtimer_usleep(DELAY_HMODE);
+    ztimer_sleep(ZTIMER_MSEC, DELAY_HMODE_MS);
 
     /* read the results */
     DEBUG("[bh1750fvi] sample: reading the results\n");

@@ -54,8 +54,8 @@ extern "C" {
  * @name    Measurement delays (in us)
  * @{
  */
-#define DELAY_HMODE             (120000)    /**< typ. 120ms in H-mode */
-#define DELAY_LMODE             (16000)     /**< typ. 16ms in L-mode */
+#define DELAY_HMODE_MS          120     /**< typ. 120ms in H-mode */
+#define DELAY_LMODE_MS          16      /**< typ. 16ms in L-mode */
 /** @} */
 
 
