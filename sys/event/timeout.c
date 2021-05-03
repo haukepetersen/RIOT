@@ -24,12 +24,13 @@ void event_timeout_init(event_timeout_t *event_timeout, event_queue_t *queue, ev
     event_timeout->event = event;
 }
 
-void event_timeout_set(event_timeout_t *event_timeout, uint32_t timeout)
+void event_timeout_set_ztimer(event_timeout_t *event_timeout,
+                              ztimer_clock_t *clock, uint32_t timeout)
 {
-    xtimer_set(&event_timeout->timer, timeout);
-}
-
-void event_timeout_clear(event_timeout_t *event_timeout)
-{
-    xtimer_remove(&event_timeout->timer);
+    /* set the timer in a critical section to make sure that the set clock
+     * always corresponds to the active timer */
+    unsigned state = irq_disable();
+    ztimer_set(clock, &event_timeout->timer, timeout);
+    event_timeout->clock = clock;
+    irq_restore(state);
 }
