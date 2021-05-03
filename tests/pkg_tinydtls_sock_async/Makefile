@@ -15,6 +15,8 @@ USEMODULE += sock_udp
 USEMODULE += sock_util
 USEMODULE += event_thread_medium
 USEMODULE += event_timeout
+# temporarily pull in ZTIMER_USEC, remove once ported to ZTIMER_MSEC
+USEMODULE += ztimer_usec
 
 # Use tinydtls for sock_dtls
 USEPKG += tinydtls
