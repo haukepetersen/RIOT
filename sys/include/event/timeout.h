@@ -73,8 +73,8 @@ void event_timeout_init(event_timeout_t *event_timeout, event_queue_t *queue,
  * @param[in]   clock           ztimer clock to schedule the timeout on
  * @param[in]   timeout         timeout in ticks based on @p clock
  */
-event_timeout_set_ztimer(event_timeout_t *event_timeout,
-                         ztimer_clock_t *clock, uint32_t timeout);
+void event_timeout_set_ztimer(event_timeout_t *event_timeout,
+                              ztimer_clock_t *clock, uint32_t timeout);
 
 #if IS_USED(MODULE_ZTIMER_USEC) || DOXYGEN
 /**
@@ -92,7 +92,7 @@ event_timeout_set_ztimer(event_timeout_t *event_timeout,
  * @param[in]   event_timeout   event_timout context object to use
  * @param[in]   timeout         timeout in microseconds
  */
-void event_timeout_set(event_timeout_t *event_timeout,
+static inline void event_timeout_set(event_timeout_t *event_timeout,
                                      uint32_t timeout)
 {
     event_timeout_set_ztimer(event_timeout, ZTIMER_USEC, timeout);

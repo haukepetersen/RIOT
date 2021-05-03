@@ -1,5 +1,6 @@
 ifneq (,$(filter gcoap,$(USEMODULE)))
    USEMODULE += gnrc_sock_async
+   USEMODULE += ztimer_usec
 endif
 
 ifneq (,$(filter sock_async,$(USEMODULE)))
