@@ -291,12 +291,12 @@ static void _on_resp_timeout(void *arg) {
 #else
         unsigned i        = CONFIG_COAP_MAX_RETRANSMIT - memo->send_limit;
 #endif
-        uint32_t timeout  = ((uint32_t)CONFIG_COAP_ACK_TIMEOUT << i) * US_PER_SEC;
+        uint32_t timeout  = ((uint32_t)CONFIG_COAP_ACK_TIMEOUT << i) * MS_PER_SEC;
 #if CONFIG_COAP_RANDOM_FACTOR_1000 > 1000
-        uint32_t end = ((uint32_t)TIMEOUT_RANGE_END << i) * US_PER_SEC;
+        uint32_t end = ((uint32_t)TIMEOUT_RANGE_END << i) * MS_PER_SEC;
         timeout = random_uint32_range(timeout, end);
 #endif
-        event_timeout_set(&memo->resp_evt_tmout, timeout);
+        event_timeout_set_ztimer(&memo->resp_evt_tmout, ZTIMER_MSEC, timeout);
 
         if (memo->state == GCOAP_MEMO_WAIT) {
             /* See _cease_retransmission: Still going through the timeouts and
@@ -876,9 +876,9 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
             }
             if (memo->msg.data.pdu_buf) {
                 memo->send_limit  = CONFIG_COAP_MAX_RETRANSMIT;
-                timeout           = (uint32_t)CONFIG_COAP_ACK_TIMEOUT * US_PER_SEC;
+                timeout           = (uint32_t)CONFIG_COAP_ACK_TIMEOUT * MS_PER_SEC;
 #if CONFIG_COAP_RANDOM_FACTOR_1000 > 1000
-                timeout = random_uint32_range(timeout, TIMEOUT_RANGE_END * US_PER_SEC);
+                timeout = random_uint32_range(timeout, TIMEOUT_RANGE_END * MS_PER_SEC);
 #endif
                 memo->state = GCOAP_MEMO_RETRANSMIT;
             }
@@ -910,7 +910,7 @@ size_t gcoap_req_send(const uint8_t *buf, size_t len,
             event_callback_init(&memo->resp_tmout_cb, _on_resp_timeout, memo);
             event_timeout_init(&memo->resp_evt_tmout, &_queue,
                                &memo->resp_tmout_cb.super);
-            event_timeout_set(&memo->resp_evt_tmout, timeout);
+            event_timeout_set_ztimer(&memo->resp_evt_tmout, ZTIMER_MSEC, timeout);
         }
         else {
             memset(&memo->resp_evt_tmout, 0, sizeof(event_timeout_t));
@@ -946,12 +946,14 @@ int gcoap_resp_init(coap_pkt_t *pdu, uint8_t *buf, size_t len, unsigned code)
     pdu->payload     = buf + header_len;
     pdu->payload_len = len - header_len;
 
+#if IS_USED(MODULE_GCOAP_OBSERVE)
     if (coap_get_observe(pdu) == COAP_OBS_REGISTER) {
         /* generate initial notification value */
         uint32_t now       = ztimer_now(ZTIMER_USEC);
         pdu->observe_value = (now >> GCOAP_OBS_TICK_EXPONENT) & 0xFFFFFF;
         coap_opt_add_uint(pdu, COAP_OPT_OBSERVE, pdu->observe_value);
     }
+#endif
 
     return 0;
 }
