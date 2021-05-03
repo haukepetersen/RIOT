@@ -385,7 +385,7 @@
 #include "net/ipv6/addr.h"
 #include "net/sock/udp.h"
 #include "net/nanocoap.h"
-#include "xtimer.h"
+// #include "xtimer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -709,6 +709,7 @@ struct gcoap_request_memo {
     event_callback_t resp_tmout_cb;     /**< Callback for response timeout */
 };
 
+#if IS_USED(MODULE_GCOAP_OBSERVE) || DOXYGEN
 /**
  * @brief   Memo for Observe registration and notifications
  */
@@ -718,6 +719,7 @@ typedef struct {
     uint8_t token[GCOAP_TOKENLEN_MAX];  /**< Client token for notifications */
     unsigned token_len;                 /**< Actual length of token attribute */
 } gcoap_observe_memo_t;
+#endif
 
 /**
  * @brief   Initializes the gcoap thread and device
@@ -838,6 +840,7 @@ static inline ssize_t gcoap_response(coap_pkt_t *pdu, uint8_t *buf,
                 : -1;
 }
 
+#if IS_USED(MODULE_GCOAP_OBSERVE) || DOXYGEN
 /**
  * @brief   Initializes a CoAP Observe notification packet on a buffer, for the
  *          observer registered for a resource
@@ -871,6 +874,7 @@ int gcoap_obs_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
  */
 size_t gcoap_obs_send(const uint8_t *buf, size_t len,
                       const coap_resource_t *resource);
+#endif
 
 /**
  * @brief   Provides important operational statistics

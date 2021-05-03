@@ -32,6 +32,7 @@
 #include "mutex.h"
 #include "random.h"
 #include "thread.h"
+#include "ztimer.h"
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
@@ -57,11 +58,13 @@ static void _find_req_memo(gcoap_request_memo_t **memo_ptr, coap_pkt_t *pdu,
 static int _find_resource(const coap_pkt_t *pdu,
                           const coap_resource_t **resource_ptr,
                           gcoap_listener_t **listener_ptr);
+#if IS_USED(MODULE_GCOAP_OBSERVE)
 static int _find_observer(sock_udp_ep_t **observer, sock_udp_ep_t *remote);
 static int _find_obs_memo(gcoap_observe_memo_t **memo, sock_udp_ep_t *remote,
                                                        coap_pkt_t *pdu);
 static void _find_obs_memo_resource(gcoap_observe_memo_t **memo,
                                    const coap_resource_t *resource);
+#endif
 
 static int _request_matcher_default(gcoap_listener_t *listener,
                                     const coap_resource_t **resource,
@@ -89,11 +92,13 @@ typedef struct {
                                            byte of an entry is zero, the entry
                                            is available */
     atomic_uint next_message_id;        /* Next message ID to use */
+#if IS_USED(MODULE_GCOAP_OBSERVE)
     sock_udp_ep_t observers[CONFIG_GCOAP_OBS_CLIENTS_MAX];
                                         /* Observe clients; allows reuse for
                                            observe memos */
     gcoap_observe_memo_t observe_memos[CONFIG_GCOAP_OBS_REGISTRATIONS_MAX];
                                         /* Observed resource registrations */
+#endif
     uint8_t resend_bufs[CONFIG_GCOAP_RESEND_BUFS_MAX][CONFIG_GCOAP_PDU_BUF_SIZE];
                                         /* Buffers for PDU for request resends;
                                            if first byte of an entry is zero,
@@ -346,25 +351,32 @@ static size_t _handle_req(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 {
     const coap_resource_t *resource     = NULL;
     gcoap_listener_t *listener          = NULL;
+#if IS_USED(MODULE_GCOAP_OBSERVE)
     sock_udp_ep_t *observer             = NULL;
     gcoap_observe_memo_t *memo          = NULL;
     gcoap_observe_memo_t *resource_memo = NULL;
+#else
+    (void)remote;
+#endif
 
     switch (_find_resource((const coap_pkt_t *)pdu, &resource, &listener)) {
         case GCOAP_RESOURCE_WRONG_METHOD:
             return gcoap_response(pdu, buf, len, COAP_CODE_METHOD_NOT_ALLOWED);
         case GCOAP_RESOURCE_NO_PATH:
             return gcoap_response(pdu, buf, len, COAP_CODE_PATH_NOT_FOUND);
+#if IS_USED(MODULE_GCOAP_OBSERVE)
         case GCOAP_RESOURCE_FOUND:
             /* find observe registration for resource */
             _find_obs_memo_resource(&resource_memo, resource);
             break;
+#endif
         case GCOAP_RESOURCE_ERROR:
         default:
             return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
             break;
     }
 
+#if IS_USED(MODULE_GCOAP_OBSERVE)
     if (coap_get_observe(pdu) == COAP_OBS_REGISTER) {
         /* lookup remote+token */
         int empty_slot = _find_obs_memo(&memo, remote, pdu);
@@ -441,6 +453,7 @@ static size_t _handle_req(coap_pkt_t *pdu, uint8_t *buf, size_t len,
         DEBUG("gcoap: Observe value unexpected: %" PRIu32 "\n", coap_get_observe(pdu));
         return -1;
     }
+#endif
 
     ssize_t pdu_len = resource->handler(pdu, buf, len, resource->context);
     if (pdu_len < 0) {
@@ -642,6 +655,7 @@ static ssize_t _well_known_core_handler(coap_pkt_t* pdu, uint8_t *buf, size_t le
     return plen;
 }
 
+#if IS_USED(MODULE_GCOAP_OBSERVE)
 /*
  * Find registered observer for a remote address and port.
  *
@@ -731,6 +745,7 @@ static void _find_obs_memo_resource(gcoap_observe_memo_t **memo,
         }
     }
 }
+#endif
 
 /*
  * gcoap interface functions
@@ -747,8 +762,10 @@ kernel_pid_t gcoap_init(void)
     mutex_init(&_coap_state.lock);
     /* Blank lists so we know if an entry is available. */
     memset(&_coap_state.open_reqs[0], 0, sizeof(_coap_state.open_reqs));
+#if IS_USED(MODULE_GCOAP_OBSERVE)
     memset(&_coap_state.observers[0], 0, sizeof(_coap_state.observers));
     memset(&_coap_state.observe_memos[0], 0, sizeof(_coap_state.observe_memos));
+#endif
     memset(&_coap_state.resend_bufs[0], 0, sizeof(_coap_state.resend_bufs));
     /* randomize initial value */
     atomic_init(&_coap_state.next_message_id, (unsigned)random_uint32());
@@ -931,7 +948,7 @@ int gcoap_resp_init(coap_pkt_t *pdu, uint8_t *buf, size_t len, unsigned code)
 
     if (coap_get_observe(pdu) == COAP_OBS_REGISTER) {
         /* generate initial notification value */
-        uint32_t now       = xtimer_now_usec();
+        uint32_t now       = ztimer_now(ZTIMER_USEC);
         pdu->observe_value = (now >> GCOAP_OBS_TICK_EXPONENT) & 0xFFFFFF;
         coap_opt_add_uint(pdu, COAP_OPT_OBSERVE, pdu->observe_value);
     }
@@ -939,6 +956,7 @@ int gcoap_resp_init(coap_pkt_t *pdu, uint8_t *buf, size_t len, unsigned code)
     return 0;
 }
 
+#if IS_USED(MODULE_GCOAP_OBSERVE)
 int gcoap_obs_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
                                                   const coap_resource_t *resource)
 {
@@ -958,7 +976,7 @@ int gcoap_obs_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     if (hdrlen > 0) {
         coap_pkt_init(pdu, buf, len, hdrlen);
 
-        uint32_t now       = xtimer_now_usec();
+        uint32_t now       = ztimer_now(ZTIMER_USEC);
         pdu->observe_value = (now >> GCOAP_OBS_TICK_EXPONENT) & 0xFFFFFF;
         coap_opt_add_uint(pdu, COAP_OPT_OBSERVE, pdu->observe_value);
 
@@ -985,6 +1003,7 @@ size_t gcoap_obs_send(const uint8_t *buf, size_t len,
         return 0;
     }
 }
+#endif
 
 uint8_t gcoap_op_state(void)
 {
