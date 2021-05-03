@@ -491,6 +491,8 @@ ifneq (,$(filter gcoap,$(USEMODULE)))
   USEMODULE += sock_util
   USEMODULE += event_callback
   USEMODULE += event_timeout
+  # temporarily pull in ZTIMER_USEC, remove once ported to ZTIMER_MSEC
+#   USEMODULE += ztimer_usec
   ifneq (,$(filter openwsn%,$(USEMODULE)))
     USEMODULE += openwsn_sock_udp
   endif
