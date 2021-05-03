@@ -82,6 +82,12 @@ typedef struct {
  */
 int bh1750fvi_init(bh1750fvi_t *dev, const bh1750fvi_params_t *params);
 
+uint32_t bh1750fvi_get_conv_time_ms(const bh1750fvi_t *dev);
+
+int bh1750fvi_trigger(const bh1750fvi_t *dev);
+
+int bh1750fvi_read(const bh1750fvi_t *dev, uint16_t *data);
+
 /**
  * @brief   Read a ambient light value from the given device [in LUX]
  *
