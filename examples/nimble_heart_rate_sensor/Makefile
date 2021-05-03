@@ -9,6 +9,8 @@ RIOTBASE ?= $(CURDIR)/../..
 
 # Some RIOT modules needed for this example
 USEMODULE += event_timeout
+# Temporarily pull in ZTIMER_USEC, remove once app is ported to ZTIMER_MSEC
+USEMODULE += ztimer_usec
 
 # Include NimBLE
 USEPKG += nimble
