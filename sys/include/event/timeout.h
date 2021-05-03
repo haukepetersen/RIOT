@@ -32,13 +32,14 @@
  * @brief       Event Timeout API
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
 #ifndef EVENT_TIMEOUT_H
 #define EVENT_TIMEOUT_H
 
 #include "event.h"
-#include "xtimer.h"
+#include "ztimer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +49,8 @@ extern "C" {
  * @brief   Timeout Event structure
  */
 typedef struct {
-    xtimer_t timer;         /**< xtimer object used for timeout */
+    ztimer_t timer;         /**< ztimer object used for timeout */
+    ztimer_clock_t *clock;  /**< clock on which the timer is scheduled */
     event_queue_t *queue;   /**< event queue to post event to   */
     event_t *event;         /**< event to post after timeout    */
 } event_timeout_t;
@@ -63,6 +65,18 @@ typedef struct {
 void event_timeout_init(event_timeout_t *event_timeout, event_queue_t *queue,
                         event_t *event);
 
+
+/**
+ * @brief   Set a timeout using the specified ztimer clock
+ *
+ * @param[in]   event_timeout   event timeout context object to use
+ * @param[in]   clock           ztimer clock to schedule the timeout on
+ * @param[in]   timeout         timeout in ticks based on @p clock
+ */
+event_timeout_set_ztimer(event_timeout_t *event_timeout,
+                         ztimer_clock_t *clock, uint32_t timeout);
+
+#if IS_USED(MODULE_ZTIMER_USEC) || DOXYGEN
 /**
  * @brief   Set a timeout
  *
@@ -72,10 +86,18 @@ void event_timeout_init(event_timeout_t *event_timeout, event_queue_t *queue,
  * @note: the used event_timeout struct must stay valid until after the timeout
  *        event has been processed!
  *
+ * @warning     This function is present for backwards compatibility only, use
+ *              event_timeout_set_ztimer() instead
+ *
  * @param[in]   event_timeout   event_timout context object to use
  * @param[in]   timeout         timeout in microseconds
  */
-void event_timeout_set(event_timeout_t *event_timeout, uint32_t timeout);
+void event_timeout_set(event_timeout_t *event_timeout,
+                                     uint32_t timeout)
+{
+    event_timeout_set_ztimer(event_timeout, ZTIMER_USEC, timeout);
+}
+#endif
 
 /**
  * @brief   Clear a timeout event
@@ -87,7 +109,10 @@ void event_timeout_set(event_timeout_t *event_timeout, uint32_t timeout);
  *
  * @param[in]   event_timeout   event_timeout context object to use
  */
-void event_timeout_clear(event_timeout_t *event_timeout);
+static inline void event_timeout_clear(event_timeout_t *event_timeout)
+{
+    ztimer_remove(event_timeout->clock, &event_timeout->timer);
+}
 
 #ifdef __cplusplus
 }

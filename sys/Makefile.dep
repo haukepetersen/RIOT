@@ -471,7 +471,7 @@ ifneq (,$(filter event_thread_%,$(USEMODULE)))
 endif
 
 ifneq (,$(filter event_timeout,$(USEMODULE)))
-  USEMODULE += xtimer
+  USEMODULE += ztimer
 endif
 
 ifneq (,$(filter event,$(USEMODULE)))
