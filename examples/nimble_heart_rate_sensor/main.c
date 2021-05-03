@@ -34,7 +34,7 @@
 
 #define HRS_FLAGS_DEFAULT       (0x01)      /* 16-bit BPM value */
 #define SENSOR_LOCATION         (0x02)      /* wrist sensor */
-#define UPDATE_INTERVAL         (250U * US_PER_MS)
+#define UPDATE_INTERVAL_MS      (250U)
 #define BPM_MIN                 (80U)
 #define BPM_MAX                 (210U)
 #define BPM_STEP                (2)
@@ -259,7 +259,8 @@ static void _start_advertising(void)
 
 static void _start_updating(void)
 {
-    event_timeout_set(&_update_timeout_evt, UPDATE_INTERVAL);
+    event_timeout_set_ztimer(&_update_timeout_evt,
+                             ZTIMER_MSEC, UPDATE_INTERVAL_MS);
     puts("[NOTIFY_ENABLED] heart rate service");
 }
 
@@ -290,7 +291,7 @@ static void _hr_update(event_t *e)
     (void)res;
 
     /* schedule next update event */
-    event_timeout_set(&_update_timeout_evt, UPDATE_INTERVAL);
+    event_timeout_set(&_update_timeout_evt, ZTIMER_MSEC, UPDATE_INTERVAL_MS);
 }
 
 int main(void)
