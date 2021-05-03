@@ -83,7 +83,7 @@ static void timed_callback(void *arg)
     order++;
     expect(order == 6);
     expect(arg == event_callback.arg);
-    uint32_t now = xtimer_now_usec();
+    uint32_t now = ztimer_now(ZTIMER_USEC);
     expect((now - before >= 100000LU));
     printf("triggered timed callback with arg 0x%08x after %" PRIu32 "us\n", (unsigned)arg, now - before);
     puts("[SUCCESS]");
@@ -177,7 +177,7 @@ int main(void)
 
     puts("posting timed callback with timeout 1sec");
     event_timeout_init(&event_timeout, &queue, (event_t *)&event_callback);
-    before = xtimer_now_usec();
+    before = ztimer_now(ZTIMER_USEC);
     event_timeout_set(&event_timeout, (1 * US_PER_SEC));
 
     event_timeout_t event_timeout_canceled;
