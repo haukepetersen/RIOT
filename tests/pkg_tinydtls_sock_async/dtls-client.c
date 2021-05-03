@@ -33,12 +33,12 @@
 #include "tinydtls_common.h"
 #include "tinydtls_keys.h"
 
-#ifndef CLIENT_SEND_TIMEOUT
+#ifndef CLIENT_SEND_TIMEOUT_MS
   /* timeout for client_send command */
-#define CLIENT_SEND_TIMEOUT  (1U * US_PER_SEC)
+#define CLIENT_SEND_TIMEOUT_MS  (1U * MS_PER_SEC)
 #endif
 
-#define SOCK_DTLS_CLIENT_TAG (2)
+#define SOCK_DTLS_CLIENT_TAG    (2)
 
 #ifdef CONFIG_DTLS_ECC
 static const ecdsa_public_key_t other_pubkeys[] = {
@@ -130,7 +130,8 @@ static void _dtls_handler(sock_dtls_t *sock, sock_async_flags_t type, void *arg)
         }
         else {
             printf("Sent DTLS message\n");
-            event_timeout_set(&_timeouter, CLIENT_SEND_TIMEOUT);
+            event_timeout_set_ztimer(&_timeouter,
+                                     ZTIMER_MSEC, CLIENT_SEND_TIMEOUT_MS);
         }
     }
     if (type & SOCK_ASYNC_CONN_FIN) {
@@ -245,7 +246,7 @@ static int client_send(char *addr_str, char *data)
         return res;
     }
 
-    event_timeout_set(&_timeouter, CLIENT_SEND_TIMEOUT);
+    event_timeout_set_ztimer(&_timeouter, ZTIMER_MSEC, CLIENT_SEND_TIMEOUT_MS);
     return 0;
 }
 
