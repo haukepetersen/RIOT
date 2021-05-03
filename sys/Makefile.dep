@@ -417,6 +417,8 @@ ifneq (,$(filter asymcute,$(USEMODULE)))
   USEMODULE += random
   USEMODULE += event_timeout
   USEMODULE += event_callback
+  # temporarily pull in ZTIMER_USEC, remove once ported to ZTIMER_MSEC
+  USEMODULE += ztimer_usec
 endif
 
 ifneq (,$(filter emcute,$(USEMODULE)))
