@@ -538,40 +538,40 @@ void nimble_netif_eventcb(nimble_netif_eventcb_t cb)
     _eventcb = cb;
 }
 
+// int nimble_netif_connect(const ble_addr_t *addr,
+//                          const struct ble_gap_conn_params *conn_params,
+//                          uint32_t timeout)
+// {
+//     assert(addr);
+//     assert(_eventcb);
+
+//     /* the netif_conn module expects addresses in network byte order */
+//     uint8_t addrn[BLE_ADDR_LEN];
+//     bluetil_addr_swapped_cp(addr->val, addrn);
+
+//     /* check that there is no open connection with the given address */
+//     if (nimble_netif_conn_connected(addrn) ||
+//         nimble_netif_conn_connecting()) {
+//         return NIMBLE_NETIF_BUSY;
+//     }
+
+//     /* get empty connection context */
+//     int handle = nimble_netif_conn_start_connection(addrn);
+//     if (handle == NIMBLE_NETIF_CONN_INVALID) {
+//         return NIMBLE_NETIF_NOMEM;
+//     }
+
+//     int res = ble_gap_connect(nimble_riot_own_addr_type, addr, timeout,
+//                               conn_params, _on_gap_master_evt, (void *)handle);
+//     assert(res == 0);
+//     (void)res;
+
+//     _notify(handle, NIMBLE_NETIF_INIT_MASTER, addrn);
+
+//     return handle;
+// }
+
 int nimble_netif_connect(const ble_addr_t *addr,
-                         const struct ble_gap_conn_params *conn_params,
-                         uint32_t timeout)
-{
-    assert(addr);
-    assert(_eventcb);
-
-    /* the netif_conn module expects addresses in network byte order */
-    uint8_t addrn[BLE_ADDR_LEN];
-    bluetil_addr_swapped_cp(addr->val, addrn);
-
-    /* check that there is no open connection with the given address */
-    if (nimble_netif_conn_connected(addrn) ||
-        nimble_netif_conn_connecting()) {
-        return NIMBLE_NETIF_BUSY;
-    }
-
-    /* get empty connection context */
-    int handle = nimble_netif_conn_start_connection(addrn);
-    if (handle == NIMBLE_NETIF_CONN_INVALID) {
-        return NIMBLE_NETIF_NOMEM;
-    }
-
-    int res = ble_gap_connect(nimble_riot_own_addr_type, addr, timeout,
-                              conn_params, _on_gap_master_evt, (void *)handle);
-    assert(res == 0);
-    (void)res;
-
-    _notify(handle, NIMBLE_NETIF_INIT_MASTER, addrn);
-
-    return handle;
-}
-
-int nimble_netif_connect_ext(const ble_addr_t *addr,
                              const struct ble_gap_conn_params *conn_params,
                              uint8_t  phy_mask,
                              uint32_t timeout)
@@ -626,37 +626,37 @@ int nimble_netif_close(int handle)
     return NIMBLE_NETIF_OK;
 }
 
+// int nimble_netif_accept(const uint8_t *ad, size_t ad_len,
+//                         const struct ble_gap_adv_params *adv_params)
+// {
+//     assert(ad);
+//     assert(adv_params);
+
+//     int handle;
+//     int res;
+//     (void)res;
+
+//     /* allocate a connection context for incoming connections */
+//     handle = nimble_netif_conn_start_adv();
+//     if (handle < 0) {
+//         return handle;
+//     }
+
+//     /* set advertisement data */
+//     res = ble_gap_adv_set_data(ad, (int)ad_len);
+//     printf("res: %i\n", res);
+//     assert(res == 0);
+//     /* remember context and start advertising */
+//     res = ble_gap_adv_start(nimble_riot_own_addr_type, NULL, BLE_HS_FOREVER,
+//                             adv_params, _on_gap_slave_evt, (void *)handle);
+//     assert(res == 0);
+
+//     _notify(handle, NIMBLE_NETIF_ACCEPTING, _netif.l2addr);
+
+//     return NIMBLE_NETIF_OK;
+// }
+
 int nimble_netif_accept(const uint8_t *ad, size_t ad_len,
-                        const struct ble_gap_adv_params *adv_params)
-{
-    assert(ad);
-    assert(adv_params);
-
-    int handle;
-    int res;
-    (void)res;
-
-    /* allocate a connection context for incoming connections */
-    handle = nimble_netif_conn_start_adv();
-    if (handle < 0) {
-        return handle;
-    }
-
-    /* set advertisement data */
-    res = ble_gap_adv_set_data(ad, (int)ad_len);
-    printf("res: %i\n", res);
-    assert(res == 0);
-    /* remember context and start advertising */
-    res = ble_gap_adv_start(nimble_riot_own_addr_type, NULL, BLE_HS_FOREVER,
-                            adv_params, _on_gap_slave_evt, (void *)handle);
-    assert(res == 0);
-
-    _notify(handle, NIMBLE_NETIF_ACCEPTING, _netif.l2addr);
-
-    return NIMBLE_NETIF_OK;
-}
-
-int nimble_netif_accept_ext(const uint8_t *ad, size_t ad_len,
                             const nimble_netif_accept_cfg_t *cfg)
 {
     assert(ad && (ad_len > 0));

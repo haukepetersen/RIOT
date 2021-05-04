@@ -39,11 +39,13 @@ static int _on_scan_evt(struct ble_gap_event *event, void *arg)
         _disc_cb(event->disc.event_type, &event->disc.addr, event->disc.rssi,
                  event->disc.data, (size_t)event->disc.length_data);
     }
-    if (event->type == BLE_GAP_EVENT_EXT_DISC) {
+#if MYNEWT_VAL_BLE_EXT_ADV
+    else if (event->type == BLE_GAP_EVENT_EXT_DISC) {
         _disc_cb(event->ext_disc.props, &event->ext_disc.addr,
                  event->ext_disc.rssi,
                  event->ext_disc.data, event->ext_disc.length_data);
     }
+#endif
     else {
         /* this should never happen */
         DEBUG("[scanner] unknown event triggered (%i)\n", (int)event->type);

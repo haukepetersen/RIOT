@@ -57,13 +57,7 @@ static void _scan_for_name(uint8_t type, const ble_addr_t *addr, int8_t rssi,
                                   _name_to_connect, strlen(_name_to_connect));
     if (res) {
         nimble_scanner_stop();
-        if (IS_USED(MODULE_NIMBLE_NETIF_EXT) && _phy_mask) {
-            nimble_netif_connect_ext(addr, NULL, _phy_mask,
-                                     DEFAULT_CONN_TIMEOUT);
-        }
-        else {
-            nimble_netif_connect(addr, NULL, DEFAULT_CONN_TIMEOUT);
-        }
+        nimble_netif_connect(addr, NULL, _phy_mask, DEFAULT_CONN_TIMEOUT);
     }
 }
 
@@ -210,12 +204,6 @@ static void _cmd_adv(const char *name, uint8_t phy_mode)
     (void)res;
     uint8_t buf[BLE_HS_ADV_MAX_SZ];
     bluetil_ad_t ad;
-    const struct ble_gap_adv_params _adv_params = {
-        .conn_mode = BLE_GAP_CONN_MODE_UND,
-        .disc_mode = BLE_GAP_DISC_MODE_LTD,
-        .itvl_min = BLE_GAP_ADV_FAST_INTERVAL2_MIN,
-        .itvl_max = BLE_GAP_ADV_FAST_INTERVAL2_MAX,
-    };
 
     /* make sure no advertising is in progress */
     if (nimble_netif_conn_is_adv()) {
@@ -239,20 +227,14 @@ static void _cmd_adv(const char *name, uint8_t phy_mode)
         return;
     }
 
-    if (IS_USED(MODULE_NIMBLE_NETIF_EXT) && phy_mode) {
-        nimble_netif_accept_cfg_t cfg = {
-            .adv_itvl_ms = BLE_GAP_ADV_FAST_INTERVAL2_MIN,
-            .primary_phy = (phy_mode == BLE_HCI_LE_PHY_2M) ? BLE_HCI_LE_PHY_1M
-                                                           : phy_mode,
-            .secondary_phy = phy_mode,
-            .tx_power = 0,
-        };
-        res = nimble_netif_accept_ext(ad.buf, ad.pos, &cfg);
-    }
-    else {
-        /* start listening for incoming connections */
-        res = nimble_netif_accept(ad.buf, ad.pos, &_adv_params);
-    }
+    nimble_netif_accept_cfg_t cfg = {
+        .adv_itvl_ms = BLE_GAP_ADV_FAST_INTERVAL2_MIN,
+        .primary_phy = (phy_mode == BLE_HCI_LE_PHY_2M) ? BLE_HCI_LE_PHY_1M
+                                                       : phy_mode,
+        .secondary_phy = phy_mode,
+        .tx_power = 0,
+    };
+    res = nimble_netif_accept(ad.buf, ad.pos, &cfg);
 
     if (res != NIMBLE_NETIF_OK) {
         printf("err: unable to start advertising (%i)\n", res);
@@ -302,14 +284,7 @@ static void _cmd_connect_addr(ble_addr_t *addr, uint8_t phy_mask)
 {
     int res;
 
-    if (IS_USED(MODULE_NIMBLE_NETIF_EXT) && phy_mask) {
-        res = nimble_netif_connect_ext(addr, NULL, phy_mask,
-                                       DEFAULT_CONN_TIMEOUT);
-    }
-    else {
-        /* simply use NimBLEs default connection parameters */
-        res = nimble_netif_connect(addr, NULL, DEFAULT_CONN_TIMEOUT);
-    }
+    res = nimble_netif_connect(addr, NULL, phy_mask, DEFAULT_CONN_TIMEOUT);
     if (res < 0) {
         printf("err: unable to trigger connection sequence (%i)\n", res);
         return;
@@ -424,7 +399,7 @@ int _nimble_netif_handler(int argc, char **argv)
 #if !IS_USED(MODULE_NIMBLE_AUTOCONN) && !IS_USED(MODULE_NIMBLE_STATCONN)
     else if (memcmp(argv[1], "adv", 3) == 0) {
         char *name = NULL;
-        uint8_t phy_mode = 0;
+        uint8_t phy_mode = BLE_HCI_LE_PHY_1M;
         if (argc > 2) {
             if (_ishelp(argv[2])) {
                 printf("usage: %s adv [help|stop|<name>] [phy mode]\n"
