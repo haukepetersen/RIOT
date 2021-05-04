@@ -72,6 +72,8 @@ endif
 
 ifneq (,$(filter nimble_netif_ext,$(USEMODULE)))
   USEMODULE += nimble_netif
+  FEATURES_OPTIONAL += ble_phy_2mbit
+  FEATURES_OPTIONAL += ble_phy_coded
 endif
 
 ifneq (,$(filter nimble_netif,$(USEMODULE)))

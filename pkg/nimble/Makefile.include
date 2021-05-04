@@ -108,21 +108,25 @@ ifneq (,$(filter nimble_netif,$(USEMODULE)))
   # for the internal MTU of 256 byte, we need 10 mbufs per connection...
   CFLAGS += -DMYNEWT_VAL_MSYS_1_BLOCK_COUNT=35
 
-  # for nimble_netif we always use NimBLEs extended advertising API, even when
-  # defaulting to legacy advertising
-  CFLAGS += -DMYNEWT_VAL_BLE_EXT_ADV=1
-
   # optimize the NimBLE controller for IP traffic
   ifneq (,$(filter nimble_controller,$(USEMODULE)))
     CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_DATA_LEN_EXT=1
-    CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_LL_EXT_ADV=1
   endif
 endif
 ifneq (,$(filter nimble_netif_ext,$(USEMODULE)))
   CFLAGS += -DMYNEWT_VAL_BLE_EXT_ADV=1
-  CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_LE_2M_PHY=1
-  CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_LL_EXT_ADV=1
-#   CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_LE_CODED_PHY=1
+  ifneq (,$(filter nimble_controller,$(USEMODULE)))
+    ifneq (,$(filter ble_phy_2mbit,$(FEATURES_USED)))
+      $(info 2MBVIT PHY)
+      CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_LE_2M_PHY=1
+      CFLAGS += -DNIMBLE_NETIF_PHY_2M=1
+    endif
+    ifneq (,$(filter ble_phy_coded,$(FEATURES_USED)))
+      $(info CODED PHY)
+      CFLAGS += -DMYNEWT_VAL_BLE_LL_CFG_FEAT_LL_EXT_ADV=1
+      CFLAGS += -DNIMBLE_NETIF_PHY_CODED=1
+    endif
+  endif
 endif
 ifneq (,$(filter nimble_scanlist,$(USEMODULE)))
   INCLUDES += -I$(RIOTPKG)/nimble/scanlist/include

@@ -402,8 +402,12 @@ int _nimble_netif_handler(int argc, char **argv)
         uint8_t phy_mode = BLE_HCI_LE_PHY_1M;
         if (argc > 2) {
             if (_ishelp(argv[2])) {
+#if IS_USED(MODULE_NIMBLE_NETIF_EXT)
                 printf("usage: %s adv [help|stop|<name>] [phy mode]\n"
                        "        phy mode: [1M|2M|coded]\n", argv[0]);
+#else
+                printf("usage: %s adv [help|stop|<name>]\n", argv[0]);
+#endif
                 return 0;
             }
             if (memcmp(argv[2], "stop", 4) == 0) {
@@ -411,21 +415,25 @@ int _nimble_netif_handler(int argc, char **argv)
                 return 0;
             }
             name = argv[2];
+#if IS_USED(MODULE_NIMBLE_NETIF_EXT)
             if (argc >= 4) {
                 if (memcmp(argv[3], "1M", 2) == 0) {
                     phy_mode = BLE_HCI_LE_PHY_1M;
                 }
-                else if (memcmp(argv[3], "2M", 2) == 0) {
+                else if (IS_ACTIVE(NIMBLE_NETIF_PHY_2M) &&
+                         memcmp(argv[3], "2M", 2) == 0) {
                     phy_mode = BLE_HCI_LE_PHY_2M;
                 }
-                else if (memcmp(argv[3], "coded", 5) == 0) {
+                else if (IS_ACTIVE(NIMBLE_NETIF_PHY_1M) &&
+                         memcmp(argv[3], "coded", 5) == 0) {
                     phy_mode = BLE_HCI_LE_PHY_CODED;
                 }
                 else {
-                    puts("unable to parse phy mode");
+                    puts("phy mode not supported");
                     return 0;
                 }
             }
+#endif
         }
         _cmd_adv(name, phy_mode);
     }
@@ -447,11 +455,11 @@ int _nimble_netif_handler(int argc, char **argv)
     else if (memcmp(argv[1], "connect", 7) == 0) {
         if ((argc < 3) || _ishelp(argv[2])) {
 #if IS_USED(MODULE_NIMBLE_NETIF_EXT)
-            printf("usage: %s %s [help|list|<scanlist entry #>|<BLE addr>|<name>] [phy mode]\n"
-                   "        phy mode: [1M|2M|coded]\n",
-                   argv[0], argv[1]);
+            printf("usage: %s %s [help|list|<scanlist #>|<BLE addr>|<name>] "
+                   "[phy mode]\n"
+                   "        phy mode: [1M|2M|coded]\n", argv[0], argv[1]);
 #else
-            printf("usage: %s %s [help|list|<scanlist entry #>|<BLE addr>|<name>]\n",
+            printf("usage: %s %s [help|list|<scanlist #>|<BLE addr>|<name>]\n",
                    argv[0], argv[1]);
 #endif
             return 0;
@@ -461,17 +469,19 @@ int _nimble_netif_handler(int argc, char **argv)
             return 0;
         }
 
-        uint8_t phy_mask = 0;
+        uint8_t phy_mask = BLE_GAP_LE_PHY_1M_MASK;
 #if IS_USED(MODULE_NIMBLE_NETIF_EXT)
         /* parse PHY mode */
         if (argc >= 4) {
             if (memcmp(argv[3], "1M", 2) == 0) {
                 phy_mask = BLE_GAP_LE_PHY_1M_MASK;
             }
-            else if (memcmp(argv[3], "2M", 2) == 0) {
+            else if (IS_ACTIVE(NIMBLE_NETIF_PHY_2M) &&
+                     memcmp(argv[3], "2M", 2) == 0) {
                 phy_mask = BLE_GAP_LE_PHY_2M_MASK;
             }
-            else if (memcmp(argv[3], "coded", 5) == 0) {
+            else if (IS_ACTIVE(NIMBLE_NETIF_PHY_2M) &&
+                     memcmp(argv[3], "coded", 5) == 0) {
                 phy_mask = BLE_GAP_LE_PHY_CODED_MASK;
             }
             else {
