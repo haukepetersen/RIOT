@@ -360,10 +360,11 @@ static void _cmd_update(int handle, int itvl, int timeout)
     }
 }
 
-static void _on_echo_rsp(uint32_t rtt, struct os_mbuf *om)
+static void _on_echo_rsp(uint16_t gap_handle, uint32_t rtt, struct os_mbuf *om)
 {
-    (void)om;
-    printf("ECHO_RSP, rtt:%u size:%u\n", (unsigned)rtt, (unsigned)OS_MBUF_PKTLEN(om));
+    int handle = nimble_netif_conn_get_by_gaphandle(gap_handle);
+    printf("ECHO_RSP handle:%i rtt:%u size:%u\n",
+           handle, (unsigned)rtt, (unsigned)OS_MBUF_PKTLEN(om));
 }
 
 static void _cmd_ping(int handle, char *data)
