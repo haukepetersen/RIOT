@@ -360,6 +360,19 @@ static void _cmd_update(int handle, int itvl, int timeout)
     }
 }
 
+static void _on_echo_rsp(uint16_t gap_handle, uint32_t rtt, struct os_mbuf *om)
+{
+    int handle = nimble_netif_conn_get_by_gaphandle(gap_handle);
+    printf("ECHO_RSP handle:%i rtt:%u size:%u\n",
+           handle, (unsigned)rtt, (unsigned)OS_MBUF_PKTLEN(om));
+}
+
+static void _cmd_ping(int handle, char *data)
+{
+    nimble_netif_conn_t *conn  = nimble_netif_conn_get(handle);
+    ble_l2cap_ping(conn->gaphandle, _on_echo_rsp, data, (uint16_t)strlen(data));
+}
+
 static int _ishelp(char *argv)
 {
     return memcmp(argv, "help", 4) == 0;
@@ -380,9 +393,9 @@ int _nimble_netif_handler(int argc, char **argv)
 {
     if ((argc == 1) || _ishelp(argv[1])) {
 #if !IS_USED(MODULE_NIMBLE_AUTOCONN) && !IS_USED(MODULE_NIMBLE_STATCONN)
-        printf("usage: %s [help|info|adv|scan|connect|close|update|chanmap]\n", argv[0]);
+        printf("usage: %s [help|info|adv|scan|connect|close|update|chanmap|ping]\n", argv[0]);
 #else
-        printf("usage: %s [help|info|close|update|chanmap]\n", argv[0]);
+        printf("usage: %s [help|info|close|update|chanmap|ping]\n", argv[0]);
 #endif
         return 0;
     }
@@ -494,6 +507,15 @@ int _nimble_netif_handler(int argc, char **argv)
                                                 NIMBLE_NETIF_GAP_CONNECTED);
         }
         return 0;
+    }
+    else if ((memcmp(argv[1], "ping", 4) == 0)) {
+        if ((argc < 3) || _ishelp(argv[2])) {
+            printf("usage: %s %s <handle>\n", argv[0], argv[1]);
+            return 0;
+        }
+        int handle = atoi(argv[2]);
+        char *data = (argc > 3) ? argv[3] : NULL;
+        _cmd_ping(handle, data);
     }
 
     else {
