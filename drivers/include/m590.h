@@ -45,14 +45,21 @@ enum {
 typedef struct {
     uart_t uart;
     uint32_t baudrate;
+    const char *pin;
 } m590_params_t;
 
 typedef struct {
     at_dev_t at;
     char buf[M590_BUFSIZE];
+    uint8_t state;
+    const m590_params_t *params;
 } m590_t;
 
-int m590_init_textmode(m590_t *dev, const m590_params_t *params);
+int m590_init(m590_t *dev, const m590_params_t *params);
+
+int m590_udp_open(m590_t *dev, const char *ipv4_addr, uint16_t port);
+int m590_udp_close(m590_t *dev, int sock);
+int m590_udp_send(m590_t *dev, int sock, const void *data, size_t data_len);
 
 int m590_send_text(m590_t *dev, const char *recv_number, const char *text);
 
