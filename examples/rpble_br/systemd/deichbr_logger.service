@@ -1,0 +1,12 @@
+[Unit]
+Description=Deich Border Router Logging Service
+Wants=network-online.target
+After=network-online.target
+After=time-sync.target
+StopWhenUnneeded=yes
+
+[Service]
+ExecStart=/home/hauke/services/deichbr/deichbr_logger.py /dev/ttyACM0
+
+[Install]
+WantedBy=sys-devices-platform-soc-3f980000.usb-usb1-1\x2d1-1\x2d1.5-1\x2d1.5:1.2-net-usb0.device
