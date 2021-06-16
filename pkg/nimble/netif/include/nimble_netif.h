@@ -130,6 +130,7 @@ typedef enum {
     NIMBLE_NETIF_ABORT_MASTER,      /**< connection est. abort (as master) */
     NIMBLE_NETIF_ABORT_SLAVE,       /**< connection est. abort (as slave) */
     NIMBLE_NETIF_CONN_UPDATED,      /**< connection parameter update done */
+    // NIMBLE_NETIF_ECHO_RESP,         /**< L2CAP ECHO_RESP received */
 } nimble_netif_event_t;
 
 /**
@@ -220,6 +221,9 @@ int nimble_netif_close(int handle);
 int nimble_netif_accept(const uint8_t *ad, size_t ad_len,
                         const struct ble_gap_adv_params *adv_params);
 
+int nimble_netif_accept_direct(const ble_addr_t *addr, uint32_t timeout,
+                               const struct ble_gap_adv_params *adv_params);
+
 /**
  * @brief   Stop accepting incoming connections (stop advertising)
  * *
@@ -255,6 +259,12 @@ int nimble_netif_update(int handle,
  * @return  NIMBLE_NETIF_DEVERR if reading the channel map failed otherwise
  */
 int nimble_netif_used_chanmap(int handle, uint8_t map[5]);
+
+/**
+ * TODO
+ */
+int nimble_netif_l2cap_ping(int handle, ble_l2cap_ping_fn cb,
+                            const void *data, uint16_t data_len);
 
 #ifdef __cplusplus
 }

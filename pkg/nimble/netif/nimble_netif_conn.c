@@ -220,3 +220,19 @@ unsigned nimble_netif_conn_count(uint16_t filter)
 
     return cnt;
 }
+
+uint16_t nimble_netif_conn_get_conn_itvl(int handle)
+{
+    nimble_netif_conn_t *conn = nimble_netif_conn_get(handle);
+    if (conn == NULL) {
+        return 0;
+    }
+
+    struct ble_gap_conn_desc desc;
+    int res = ble_gap_conn_find(conn->gaphandle, &desc);
+    if (res != 0) {
+        return 0;
+    }
+
+    return desc.conn_itvl;
+}

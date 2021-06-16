@@ -54,6 +54,12 @@ ifneq (,$(filter nimble_autoconn,$(USEMODULE)))
   USEMODULE += bluetil_ad
 endif
 
+ifneq (,$(filter nimble_meshconn,$(USEMODULE)))
+  USEMODULE += nimble_netif
+  USEMODULE += bluetil_ad
+  USEMODULE += nimble_scanner
+endif
+
 ifneq (,$(filter nimble_scanlist,$(USEMODULE)))
   USEMODULE += nimble_addr
   USEMODULE += bluetil_ad

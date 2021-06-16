@@ -175,6 +175,8 @@ int nimble_netif_conn_start_adv(void);
  */
 void nimble_netif_conn_free(int handle, uint8_t *addr);
 
+uint16_t nimble_netif_conn_get_conn_itvl(int handle);
+
 /**
  * @brief   Find the connection context with a given GAP handle and return a
  *          pointer to it

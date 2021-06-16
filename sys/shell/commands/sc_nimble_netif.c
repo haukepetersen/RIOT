@@ -89,6 +89,9 @@ static void _on_ble_evt(int handle, nimble_netif_event_t event,
         case NIMBLE_NETIF_ABORT_SLAVE:
             _print_evt("CONNECTION ABORT", handle, addr);
             break;
+        // case NIMBLE_NETIF_ECHO_RESP:
+            // _print_evt("ECHO_RESP", handle, addr);
+            // break;
         case NIMBLE_NETIF_CONN_UPDATED:
         default:
             /* do nothing */
