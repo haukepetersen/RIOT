@@ -405,12 +405,6 @@ static void _on_echo_rsp(uint16_t gap_handle, uint32_t rtt, struct os_mbuf *om)
            handle, (unsigned)rtt, (unsigned)OS_MBUF_PKTLEN(om));
 }
 
-static void _cmd_ping(int handle, char *data)
-{
-    nimble_netif_conn_t *conn  = nimble_netif_conn_get(handle);
-    ble_l2cap_ping(conn->gaphandle, _on_echo_rsp, data, (uint16_t)strlen(data));
-}
-
 static int _ishelp(char *argv)
 {
     return memcmp(argv, "help", 4) == 0;
@@ -561,11 +555,16 @@ int _nimble_netif_handler(int argc, char **argv)
             printf("usage: %s %s <handle>\n", argv[0], argv[1]);
             return 0;
         }
+
         int handle = atoi(argv[2]);
         char *data = (argc > 3) ? argv[3] : NULL;
-        _cmd_ping(handle, data);
-    }
+        size_t data_len = (data != NULL) ? strlen(data) : 0;
 
+        int res = nimble_netif_l2cap_ping(handle, _on_echo_rsp, data, data_len);
+        if (res != 0) {
+            printf("err: unable to send ping (%i)\n", res);
+        }
+    }
     else {
         printf("unable to parse the command. Use '%s help' for more help\n",
                argv[0]);
