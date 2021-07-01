@@ -83,6 +83,9 @@ nimble_autoadv:
 nimble_autoconn:
 	$(QQ)"$(MAKE)" -C $(TDIR)/autoconn
 
+nimble_meshconn:
+	$(QQ)"$(MAKE)" -C $(TDIR)/meshconn
+
 nimble_netif:
 	$(QQ)"$(MAKE)" -C $(TDIR)/netif/
 

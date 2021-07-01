@@ -187,6 +187,10 @@ extern int _loramac_handler(int argc, char **argv);
 extern int _nimble_netif_handler(int argc, char **argv);
 #endif
 
+#ifdef MODULE_NIMBLE_MESHCONN
+extern int _nimble_meshconn_handler(int argc, char **argv);
+#endif
+
 #ifdef MODULE_NIMBLE_STATCONN
 extern int _nimble_statconn_handler(int argc, char **argv);
 #endif
@@ -329,6 +333,9 @@ const shell_command_t _shell_command_list[] = {
 #endif
 #ifdef MODULE_NIMBLE_NETIF
     { "ble", "Manage BLE connections for NimBLE", _nimble_netif_handler },
+#endif
+#ifdef MODULE_NIMBLE_MESHCONN
+    { "meshconn", "NimBLE netif meshconn", _nimble_meshconn_handler },
 #endif
 #ifdef MODULE_NIMBLE_STATCONN
     { "statconn", "NimBLE netif statconn", _nimble_statconn_handler},

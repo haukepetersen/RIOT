@@ -37,6 +37,11 @@
 #include "services/ipss/ble_svc_ipss.h"
 #endif
 
+#ifdef MODULE_NIMBLE_MESHCONN
+#include "nimble_meshconn.h"
+#include "nimble_meshconn_nt.h"
+#include "nimble_meshconn_of.h"
+#endif
 #ifdef MODULE_NIMBLE_STATCONN
 #include "nimble_statconn.h"
 #endif
@@ -153,6 +158,19 @@ void nimble_riot_init(void)
 #endif
 #ifdef MODULE_NIMBLE_SVC_IPSS
     ble_svc_ipss_init();
+#endif
+
+#ifdef MODULE_NIMBLE_MESHCONN
+    nimble_meshconn_init();
+    nimble_meshconn_nt_init();
+    // nimble_meshconn_of_init();
+    nimble_meshconn_of_hopcnt_init();
+    nimble_meshconn_of_ping_init();
+    nimble_meshconn_of_l2capping_init();
+#ifdef MODULE_SHELL_COMMANDS
+    extern void sc_nimble_meshconn_init(void);
+    sc_nimble_meshconn_init();
+#endif
 #endif
 
 #ifdef MODULE_NIMBLE_STATCONN
