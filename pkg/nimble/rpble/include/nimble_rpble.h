@@ -7,8 +7,8 @@
  */
 
 /**
- * @defgroup    net_ble_nimble_netif_rpble RPL-over-BLE for NimBLE
- * @ingroup     net_ble_nimble
+ * @defgroup    pkg_nimble_rpble RPL-over-BLE for NimBLE
+ * @ingroup     pkg_nimble
  * @brief       RPL-over-BLE for Nimble implementation
  *
  * # About
