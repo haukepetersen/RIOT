@@ -23,7 +23,9 @@
 #include "net/gnrc/rpl/structs.h"
 #include "net/gnrc/rpl/dodag.h"
 #include "utlist.h"
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
 #include "trickle.h"
+#endif
 #ifdef MODULE_GNRC_RPL_P2P
 #include "net/gnrc/rpl/p2p.h"
 #include "net/gnrc/rpl/p2p_dodag.h"
@@ -113,6 +115,7 @@ int _gnrc_rpl_instance_remove(char *arg1)
     return 0;
 }
 
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
 int _gnrc_rpl_trickle_reset(char *arg1)
 {
     uint8_t instance_id = atoi(arg1);
@@ -170,6 +173,7 @@ int _gnrc_rpl_trickle_start(char *arg1)
             instance_id);
     return 0;
 }
+#endif
 
 int _gnrc_rpl_send_dis_w_sol_opt(char* VID, char* version, char* instance, char* dodag)
 {
@@ -296,13 +300,20 @@ int _gnrc_rpl_dodag_show(void)
                 gnrc_rpl_instances[i].mop, gnrc_rpl_instances[i].of->ocp,
                 gnrc_rpl_instances[i].min_hop_rank_inc, gnrc_rpl_instances[i].max_rank_inc);
 
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
         printf("\tdodag [%s | R: %d | OP: %s | PIO: %s | "
                "TR(I=[%d,%d], k=%d, c=%d)]\n",
                ipv6_addr_to_str(addr_str, &dodag->dodag_id, sizeof(addr_str)),
                dodag->my_rank, (dodag->node_status == GNRC_RPL_LEAF_NODE ? "Leaf" : "Router"),
                ((dodag->dio_opts & GNRC_RPL_REQ_DIO_OPT_PREFIX_INFO) ? "on" : "off"),
-               (1 << dodag->dio_min), dodag->dio_interval_doubl, dodag->trickle.k,
-               dodag->trickle.c);
+               (1 << dodag->dio_min), dodag->dio_interval_doubl, 
+               dodag->trickle.k, dodag->trickle.c);
+#else
+        printf("\tdodag [%s | R: %d | OP: %s | PIO: %s\n",
+               ipv6_addr_to_str(addr_str, &dodag->dodag_id, sizeof(addr_str)),
+               dodag->my_rank, (dodag->node_status == GNRC_RPL_LEAF_NODE ? "Leaf" : "Router"),
+               ((dodag->dio_opts & GNRC_RPL_REQ_DIO_OPT_PREFIX_INFO) ? "on" : "off"));
+#endif
 
 #ifdef MODULE_GNRC_RPL_P2P
         if (dodag->instance->mop == GNRC_RPL_P2P_MOP) {
@@ -377,6 +388,7 @@ int _gnrc_rpl(int argc, char **argv)
             return _gnrc_rpl_instance_remove(argv[2]);
         }
     }
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     else if (strcmp(argv[1], "trickle") == 0) {
         if ((argc == 4) && (strcmp(argv[2], "reset") == 0)) {
             return _gnrc_rpl_trickle_reset(argv[3]);
@@ -388,6 +400,7 @@ int _gnrc_rpl(int argc, char **argv)
             return _gnrc_rpl_trickle_start(argv[3]);
         }
     }
+#endif
     else if (strcmp(argv[1], "send") == 0) {
         if ((argc == 3) && (strcmp(argv[2], "dis") == 0)) {
             return _gnrc_rpl_send_dis();
@@ -437,9 +450,11 @@ int _gnrc_rpl(int argc, char **argv)
     puts("* help\t\t\t\t\t- show usage");
     puts("* init <if_id>\t\t\t\t- initialize RPL on the given interface");
     puts("* leaf <instance_id>\t\t\t- operate as leaf in the instance");
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     puts("* trickle reset <instance_id>\t\t- reset the trickle timer");
     puts("* trickle start <instance_id>\t\t- start the trickle timer");
     puts("* trickle stop <instance_id>\t\t- stop the trickle timer");
+#endif
     puts("* rm <instance_id>\t\t\t- delete the given instance and related dodag");
     puts("* root <inst_id> <dodag_id>\t\t- add a dodag to a new or existing instance");
     puts("* router <instance_id>\t\t\t- operate as router in the instance");

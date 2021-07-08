@@ -16,7 +16,7 @@
  */
 
 #include <assert.h>
-#include <string.h>
+#include <string.h> 
 #include "kernel_defines.h"
 
 #include "net/icmpv6.h"
@@ -24,13 +24,16 @@
 #include "net/gnrc/netif/internal.h"
 #include "net/gnrc.h"
 #include "mutex.h"
-#include "evtimer.h"
 #include "random.h"
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
+#include "evtimer.h"
+#error FOOBAR
 #if IS_USED(MODULE_ZTIMER_MSEC)
 #include "ztimer.h"
 #include "timex.h"
 #else
 #include "xtimer.h"
+#endif
 #endif
 #include "gnrc_rpl_internal/globals.h"
 
@@ -57,6 +60,8 @@
 static char _stack[GNRC_RPL_STACK_SIZE];
 kernel_pid_t gnrc_rpl_pid = KERNEL_PID_UNDEF;
 const ipv6_addr_t ipv6_addr_all_rpl_nodes = GNRC_RPL_ALL_NODES_ADDR;
+
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
 #ifdef MODULE_GNRC_RPL_P2P
 #if IS_USED(MODULE_ZTIMER_MSEC)
 static uint32_t _lt_time = GNRC_RPL_LIFETIME_UPDATE_STEP * MS_PER_SEC;
@@ -67,6 +72,8 @@ static xtimer_t _lt_timer;
 #endif
 static msg_t _lt_msg = { .type = GNRC_RPL_MSG_TYPE_LIFETIME_UPDATE };
 #endif
+#endif
+
 static msg_t _msg_q[GNRC_RPL_MSG_QUEUE_SIZE];
 static gnrc_netreg_entry_t _me_reg;
 static mutex_t _inst_id_mutex = MUTEX_INIT;
@@ -82,6 +89,7 @@ netstats_rpl_t gnrc_rpl_netstats;
 #ifdef MODULE_GNRC_RPL_P2P
 static void _update_lifetime(void);
 #endif
+
 static void _dao_handle_send(gnrc_rpl_dodag_t *dodag);
 static void _receive(gnrc_pktsnip_t *pkt);
 static void *_event_loop(void *args);
@@ -158,9 +166,11 @@ gnrc_rpl_instance_t *gnrc_rpl_root_init(uint8_t instance_id, ipv6_addr_t *dodag_
 
     dodag->dtsn = 1;
     dodag->prf = 0;
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     dodag->dio_interval_doubl = CONFIG_GNRC_RPL_DEFAULT_DIO_INTERVAL_DOUBLINGS;
     dodag->dio_min = CONFIG_GNRC_RPL_DEFAULT_DIO_INTERVAL_MIN;
     dodag->dio_redun = CONFIG_GNRC_RPL_DEFAULT_DIO_REDUNDANCY_CONSTANT;
+#endif
     dodag->default_lifetime = CONFIG_GNRC_RPL_DEFAULT_LIFETIME;
     dodag->lifetime_unit = CONFIG_GNRC_RPL_LIFETIME_UNIT;
     dodag->version = GNRC_RPL_COUNTER_INIT;
@@ -173,9 +183,11 @@ gnrc_rpl_instance_t *gnrc_rpl_root_init(uint8_t instance_id, ipv6_addr_t *dodag_
         dodag->dio_opts |= GNRC_RPL_REQ_DIO_OPT_PREFIX_INFO;
     }
 
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     trickle_start(gnrc_rpl_pid, &dodag->trickle, GNRC_RPL_MSG_TYPE_TRICKLE_MSG,
                   (1 << dodag->dio_min), dodag->dio_interval_doubl,
                   dodag->dio_redun);
+#endif
 
 #ifdef MODULE_NIMBLE_RPBLE
     nimble_rpble_ctx_t ctx;

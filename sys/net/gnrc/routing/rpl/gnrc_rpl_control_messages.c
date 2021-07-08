@@ -268,9 +268,11 @@ gnrc_pktsnip_t *_dio_dodag_conf_build(gnrc_pktsnip_t *pkt, gnrc_rpl_dodag_t *dod
     dodag_conf->type = GNRC_RPL_OPT_DODAG_CONF;
     dodag_conf->length = GNRC_RPL_OPT_DODAG_CONF_LEN;
     dodag_conf->flags_a_pcs = 0;
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     dodag_conf->dio_int_doubl = dodag->dio_interval_doubl;
     dodag_conf->dio_int_min = dodag->dio_min;
     dodag_conf->dio_redun = dodag->dio_redun;
+#endif
     dodag_conf->max_rank_inc = byteorder_htons(dodag->instance->max_rank_inc);
     dodag_conf->min_hop_rank_inc = byteorder_htons(dodag->instance->min_hop_rank_inc);
     dodag_conf->ocp = byteorder_htons(dodag->instance->of->ocp);
@@ -572,16 +574,20 @@ bool _parse_options(int msg_type, gnrc_rpl_instance_t *inst, gnrc_rpl_opt_t *opt
                     DEBUG("RPL: Unsupported OCP 0x%02x\n", byteorder_ntohs(dc->ocp));
                     inst->of = gnrc_rpl_get_of_for_ocp(GNRC_RPL_DEFAULT_OCP);
                 }
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
                 dodag->dio_interval_doubl = dc->dio_int_doubl;
                 dodag->dio_min = dc->dio_int_min;
                 dodag->dio_redun = dc->dio_redun;
+#endif
                 inst->max_rank_inc = byteorder_ntohs(dc->max_rank_inc);
                 inst->min_hop_rank_inc = byteorder_ntohs(dc->min_hop_rank_inc);
                 dodag->default_lifetime = dc->default_lifetime;
                 dodag->lifetime_unit = byteorder_ntohs(dc->lifetime_unit);
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
                 dodag->trickle.Imin = (1 << dodag->dio_min);
                 dodag->trickle.Imax = dodag->dio_interval_doubl;
                 dodag->trickle.k = dodag->dio_redun;
+#endif
                 break;
 
             case (GNRC_RPL_OPT_PREFIX_INFO):
@@ -731,7 +737,9 @@ void gnrc_rpl_recv_DIS(gnrc_rpl_dis_t *dis, kernel_pid_t iface, ipv6_addr_t *src
                     continue;
                 }
 #endif
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
                 trickle_reset_timer(&(gnrc_rpl_instances[i].dodag.trickle));
+#endif
             }
         }
     }
@@ -846,9 +854,11 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
         }
 
         gnrc_rpl_delay_dao(dodag);
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
         trickle_start(gnrc_rpl_pid, &dodag->trickle, GNRC_RPL_MSG_TYPE_TRICKLE_MSG,
                       (1 << dodag->dio_min), dodag->dio_interval_doubl,
                       dodag->dio_redun);
+#endif
 
         gnrc_rpl_parent_update(dodag, parent);
         return;
@@ -885,7 +895,9 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
     if (GNRC_RPL_COUNTER_GREATER_THAN(dio->version_number, dodag->version)) {
         if (dodag->node_status == GNRC_RPL_ROOT_NODE) {
             dodag->version = GNRC_RPL_COUNTER_INCREMENT(dio->version_number);
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
             trickle_reset_timer(&dodag->trickle);
+#endif
         }
         else {
             dodag->version = dio->version_number;
@@ -893,17 +905,21 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
         }
     }
     else if (GNRC_RPL_COUNTER_GREATER_THAN(dodag->version, dio->version_number)) {
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
         trickle_reset_timer(&dodag->trickle);
+#endif
         return;
     }
 
     if (dodag->node_status == GNRC_RPL_ROOT_NODE) {
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
         if (byteorder_ntohs(dio->rank) != GNRC_RPL_INFINITE_RANK) {
             trickle_increment_counter(&dodag->trickle);
         }
         else {
             trickle_reset_timer(&dodag->trickle);
         }
+#endif
         return;
     }
 
@@ -913,9 +929,11 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
         DEBUG("RPL: Could not allocate new parent.\n");
         return;
     }
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     else if (parent != NULL) {
         trickle_increment_counter(&dodag->trickle);
     }
+#endif
 
     /* gnrc_rpl_parent_add_by_addr should have set this already */
     assert(parent != NULL);
@@ -929,7 +947,9 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
     if (parent->state == GNRC_RPL_PARENT_UNUSED) {
         if ((byteorder_ntohs(dio->rank) == GNRC_RPL_INFINITE_RANK)
              && (dodag->my_rank != GNRC_RPL_INFINITE_RANK)) {
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
             trickle_reset_timer(&dodag->trickle);
+#endif
             return;
         }
     }

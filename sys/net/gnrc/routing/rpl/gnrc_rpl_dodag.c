@@ -45,6 +45,7 @@ static char addr_str[IPV6_ADDR_MAX_STR_LEN];
 
 static gnrc_rpl_parent_t *_gnrc_rpl_find_preferred_parent(gnrc_rpl_dodag_t *dodag);
 
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
 static void _rpl_trickle_send_dio(void *args)
 {
     gnrc_rpl_instance_t *inst = (gnrc_rpl_instance_t *) args;
@@ -70,6 +71,7 @@ static void _rpl_trickle_send_dio(void *args)
     DEBUG("trickle callback: Instance (%d) | DODAG: (%s)\n", inst->id,
           ipv6_addr_to_str(addr_str,&dodag->dodag_id, sizeof(addr_str)));
 }
+#endif
 
 /* The lifetime of the default route should exceed the parent timeout interval
  * by the time we allow the node to probe its parent */
@@ -131,7 +133,9 @@ bool gnrc_rpl_instance_remove(gnrc_rpl_instance_t *inst)
     gnrc_rpl_p2p_ext_remove(dodag);
 #endif
     gnrc_rpl_dodag_remove_all_parents(dodag);
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     trickle_stop(&dodag->trickle);
+#endif
     evtimer_del(&gnrc_rpl_evtimer, (evtimer_event_t *)&dodag->dao_event);
     evtimer_del(&gnrc_rpl_evtimer, (evtimer_event_t *)&inst->cleanup_event);
     memset(inst, 0, sizeof(gnrc_rpl_instance_t));
@@ -157,11 +161,13 @@ bool gnrc_rpl_dodag_init(gnrc_rpl_instance_t *instance, ipv6_addr_t *dodag_id, k
 
     dodag->dodag_id = *dodag_id;
     dodag->my_rank = GNRC_RPL_INFINITE_RANK;
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     dodag->trickle.callback.func = &_rpl_trickle_send_dio;
     dodag->trickle.callback.args = instance;
     dodag->dio_interval_doubl = CONFIG_GNRC_RPL_DEFAULT_DIO_INTERVAL_DOUBLINGS;
     dodag->dio_min = CONFIG_GNRC_RPL_DEFAULT_DIO_INTERVAL_MIN;
     dodag->dio_redun = CONFIG_GNRC_RPL_DEFAULT_DIO_REDUNDANCY_CONSTANT;
+#endif
     dodag->default_lifetime = CONFIG_GNRC_RPL_DEFAULT_LIFETIME;
     dodag->lifetime_unit = CONFIG_GNRC_RPL_LIFETIME_UNIT;
     dodag->node_status = GNRC_RPL_NORMAL_NODE;
@@ -280,7 +286,9 @@ void gnrc_rpl_local_repair(gnrc_rpl_dodag_t *dodag)
 
     if (dodag->my_rank != GNRC_RPL_INFINITE_RANK) {
         dodag->my_rank = GNRC_RPL_INFINITE_RANK;
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
         trickle_reset_timer(&dodag->trickle);
+#endif
         gnrc_rpl_cleanup_start(dodag);
     }
 }
@@ -361,7 +369,9 @@ static gnrc_rpl_parent_t *_gnrc_rpl_find_preferred_parent(gnrc_rpl_dodag_t *doda
 
     dodag->my_rank = dodag->instance->of->calc_rank(dodag, 0);
     if (dodag->my_rank != old_rank) {
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
         trickle_reset_timer(&dodag->trickle);
+#endif
 
 #ifdef MODULE_NIMBLE_RPBLE
         nimble_rpble_ctx_t ctx;
@@ -447,7 +457,9 @@ void gnrc_rpl_router_operation(gnrc_rpl_dodag_t *dodag)
 {
     dodag->node_status = GNRC_RPL_NORMAL_NODE;
     /* announce presence to neighborhood */
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     trickle_reset_timer(&dodag->trickle);
+#endif
 }
 /**
  * @}

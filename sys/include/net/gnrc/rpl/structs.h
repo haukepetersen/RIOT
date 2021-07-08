@@ -32,7 +32,9 @@ extern "C" {
 #include "net/ipv6/addr.h"
 #include "evtimer.h"
 #include "evtimer_msg.h"
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
 #include "trickle.h"
+#endif
 
 /**
  * @name Option lengths
@@ -243,12 +245,14 @@ struct gnrc_rpl_parent {
     uint8_t dtsn;                   /**< last seen dtsn of this parent */
     uint16_t rank;                  /**< rank of the parent */
     gnrc_rpl_dodag_t *dodag;        /**< DODAG the parent belongs to */
-    double link_metric;             /**< metric of the link */
-    uint8_t link_metric_type;       /**< type of the metric */
+    // double link_metric;             /**< metric of the link */
+    // uint8_t link_metric_type;       /**< type of the metric */
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     /**
      * @brief Parent timeout events (see @ref GNRC_RPL_MSG_TYPE_PARENT_TIMEOUT)
      */
     evtimer_msg_event_t timeout_event;
+#endif
 };
 /**
  * @endcond
@@ -315,9 +319,11 @@ struct gnrc_rpl_dodag {
     gnrc_rpl_instance_t *instance;  /**< pointer to the instance that this dodag is part of */
     uint8_t dtsn;                   /**< DAO Trigger Sequence Number */
     uint8_t prf;                    /**< preferred flag */
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     uint8_t dio_interval_doubl;     /**< trickle Imax parameter */
     uint8_t dio_min;                /**< trickle Imin parameter */
     uint8_t dio_redun;              /**< trickle k parameter */
+#endif
     uint8_t default_lifetime;       /**< lifetime of routes (lifetime * unit) */
     uint16_t lifetime_unit;         /**< unit in seconds of the lifetime */
     kernel_pid_t iface;             /**< interface PID this DODAG operates on */
@@ -331,7 +337,9 @@ struct gnrc_rpl_dodag {
     uint8_t dio_opts;               /**< options in the next DIO
                                          (see @ref GNRC_RPL_REQ_DIO_OPTS "DIO Options") */
     evtimer_msg_event_t dao_event;  /**< DAO TX events (see @ref GNRC_RPL_MSG_TYPE_DODAG_DAO_TX) */
+#if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
     trickle_t trickle;              /**< trickle representation */
+#endif
 };
 
 struct gnrc_rpl_instance {
