@@ -37,14 +37,25 @@
 // #define HYSTERSIS               10
 #define HYSTERSIS               3
 
+#define DELAY_INIT(x)           ((11 * x) / 10)
+#define DELAY_OK(x)             ((301 * x) / 10)
+
 #define ENABLE_DEBUG    0
 #include "debug.h"
+
+#define MOVING_AVG      0
 
 #if IS_USED(MODULE_MYPRINT)
 #include "myprint.h"
 #else
 #define myprintf(...)
 #endif
+
+enum {
+    STATE_UNUSED,
+    STATE_INIT,
+    STATE_OK,
+};
 
 static nimble_meshconn_of_t _of;
 static nimble_meshconn_sub_t _meshconn_sub;
@@ -54,12 +65,13 @@ static int _handle = -1;
 
 struct {
     uint32_t rtt;
+    unsigned count;
     int state;
     struct ble_npl_callout probe_timer;
 } _peers[NB_LEN] = { 0 };
 
 
-static void _update(int handle)
+static void _update(int handle, uint32_t rtt)
 {
     // myprintf("[of_l2capping] _update h:%i, old:%u rtt:%u\n",
     //         handle, (unsigned)_val, (unsigned)_peers[handle].rtt);
@@ -69,8 +81,9 @@ static void _update(int handle)
         return;
     }
 
-    uint32_t of = base + _peers[handle].rtt;
+    uint32_t of = base + rtt;
     // myprintf("[of_l2capping] new of:%u\n", (unsigned)of);
+#if MOVING_AVG
     if ((_val == 0) ||
         ((_handle != handle) && (of < (_val - HYSTERSIS))) ||
         ((_handle == handle) &&
@@ -81,6 +94,15 @@ static void _update(int handle)
         _handle = handle;
         nimble_meshconn_updated_of();
     }
+#else
+    if ((_val == 0) ||
+        (of < _val) ||
+        ((of > _val) && _handle == handle)) {
+        _val = of;
+        _handle = handle;
+        nimble_meshconn_updated_of();
+    }
+#endif
 }
 
 static void _on_echo_rsp(uint16_t gap_handle, uint32_t rtt_ms,
@@ -91,26 +113,36 @@ static void _on_echo_rsp(uint16_t gap_handle, uint32_t rtt_ms,
         myprintf("[l2p] INVALID GAP HANDLE on echo response!\n");
         return;
     }
+    if (_peers[handle].state == STATE_UNUSED) {
+        return;
+    }
 
-    if (_peers[handle].state == INIT_SAMPLES) {
+#if MOVING_AVG
+    if (_peers[handle].state == STATE_INIT) {
+        _peers[handle].count ++;
+        _peers[handle].rtt += rtt_ms;
+        if (_peers[handle].count == INIT_SAMPLES) {
+            _peers[handle].rtt /= INIT_SAMPLES;
+            _peers[handle].state = STATE_OK;
+            myprintf("[l2p] init probing done, rtt:%u\n", (unsigned)_peers[handle].rtt);
+            _update(handle, _peers[handle].rtt);
+        }
+    }
+    else {
         _peers[handle].rtt = (((_peers[handle].rtt * INIT_SAMPLES) + rtt_ms) /
                                (INIT_SAMPLES + 1));
-        _update(handle);
+        _update(handle, _peers[handle].rtt);
     }
-    else if (_peers[handle].state < INIT_SAMPLES) {
-        _peers[handle].state ++;
-        _peers[handle].rtt += rtt_ms;
-
-        /* if this was the last sample, this peer is initialized and we include
-         * it into consideration when calculating our own objective function
-         * value */
-        if (_peers[handle].state == INIT_SAMPLES) {
-            _peers[handle].rtt /= INIT_SAMPLES;
-            myprintf("[l2p] init probing done, rtt:%u\n", (unsigned)_peers[handle].rtt);
-            _update(handle);
-        }
-
+#else
+    _peers[handle].count ++;
+    _peers[handle].rtt += rtt_ms;
+    if (_peers[handle].count == INIT_SAMPLES) {
+        _peers[handle].rtt /= INIT_SAMPLES;
+        _peers[handle].state = STATE_OK;
+        _update(handle, _peers[handle].rtt);
+        _peers[handle].rtt = 0;
     }
+#endif
 }
 
 static void _on_probe_timeout(struct ble_npl_event *ev)
@@ -129,11 +161,11 @@ static void _on_probe_timeout(struct ble_npl_event *ev)
     if (conn_itvl == 0) {
         timeout = (2 * NIMBLE_MESHCONN_RECONN_TIMEOUT);     // TODO magic numbers
     }
-    else if (_peers[handle].state < INIT_SAMPLES) {
-        timeout =  ((11 * conn_itvl) / 10);     // TODO magic numbers
+    else if (_peers[handle].state == STATE_INIT) {
+        timeout =  DELAY_INIT(conn_itvl);
     }
     else {
-        timeout = ((301 * conn_itvl) / 10);     // TODO magic numbers
+        timeout = DELAY_OK(conn_itvl);
     }
     ble_npl_callout_reset(&_peers[handle].probe_timer, timeout);
 }
@@ -142,24 +174,25 @@ static void _uplink_conn(int handle)
 {
     myprintf("[l2p] uplink_conn, starting init timer\n");
     _peers[handle].rtt = 0;
-    _peers[handle].state = 1;
+    _peers[handle].count = 0;
+    _peers[handle].state = STATE_INIT;
 
     uint16_t conn_itvl = nimble_netif_conn_get_itvl_ms(handle);
 
     nimble_netif_l2cap_ping(handle, _on_echo_rsp, NULL, 0);
-    ble_npl_callout_reset(&_peers[handle].probe_timer, ((11 * conn_itvl) / 10));
+    ble_npl_callout_reset(&_peers[handle].probe_timer, DELAY_INIT(conn_itvl));
 }
 
 static void _uplink_down(int handle)
 {
     ble_npl_callout_stop(&_peers[handle].probe_timer);
-    _peers[handle].state = 0;
+    _peers[handle].state = STATE_UNUSED;
 
     /* see if there is any other upstream link that can be used */
     _val = 0;
     for (int i = 0; i < NB_LEN; i++) {
-        if (_peers[i].state == INIT_SAMPLES) {
-            _update(i);
+        if (_peers[i].state == STATE_OK) {
+            _update(i, _peers[i].rtt);
         }
     }
     if (_val == 0) {
