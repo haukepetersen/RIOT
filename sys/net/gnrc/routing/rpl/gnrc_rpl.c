@@ -27,7 +27,6 @@
 #include "random.h"
 #if !IS_USED(MODULE_GNRC_RPL_NOTIMER)
 #include "evtimer.h"
-#error FOOBAR
 #if IS_USED(MODULE_ZTIMER_MSEC)
 #include "ztimer.h"
 #include "timex.h"
